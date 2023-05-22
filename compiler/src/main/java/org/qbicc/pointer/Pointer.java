@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.qbicc.interpreter.Memory;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
@@ -71,12 +71,12 @@ public abstract class Pointer {
             }
         }
         // structure?
-        if (pointeeType instanceof CompoundType ct) {
+        if (pointeeType instanceof StructType st) {
             // find the most-fitting member
-            List<CompoundType.Member> members = ct.getMembers();
-            Iterator<CompoundType.Member> iterator = members.iterator();
+            List<StructType.Member> members = st.getMembers();
+            Iterator<StructType.Member> iterator = members.iterator();
             while (iterator.hasNext()) {
-                CompoundType.Member member = iterator.next();
+                StructType.Member member = iterator.next();
                 int memberOffset = member.getOffset();
                 if (memberOffset > offset) {
                     // not it

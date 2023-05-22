@@ -18,7 +18,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.HeaderBits;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.element.InstanceFieldElement;
@@ -118,7 +118,7 @@ public final class GcCommon {
             });
             // part 2: the mark bit is clear; try to atomically set it, or retry on fail
             builder.begin(cas, sb -> {
-                final CompoundType casResultType = CmpAndSwap.getResultType(ctxt, headerType);
+                final StructType casResultType = CmpAndSwap.getResultType(ctxt, headerType);
                 final BlockParameter oldVal = sb.addParam(cas, Slot.temp(0), headerType);
                 Value or = sb.or(oldVal, markBitLiteral);
                 final Value casResult = sb.cmpAndSwap(hfPtr, oldVal, or, SingleOpaque, SingleOpaque, STRONG);

@@ -37,7 +37,7 @@ import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ObjectType;
@@ -419,7 +419,7 @@ final class MethodParser {
                 Value ptr = sav.get(lve);
                 if (ptr != null) {
                     ValueType lveType = lve.getType();
-                    if (lveType instanceof CompoundType || lveType instanceof ArrayType) {
+                    if (lveType instanceof StructType || lveType instanceof ArrayType) {
                         // return a *handle* to the variable
                         // (never needs promotion)
                         return gf.deref(ptr);
@@ -1498,7 +1498,7 @@ final class MethodParser {
                         // todo: signature context
                         Value handle = gf.resolveStaticField(owner, name, desc);
                         Value value;
-                        if (handle instanceof GlobalVariableLiteral || handle instanceof ProgramObjectLiteral || handle.getPointeeType() instanceof CompoundType) {
+                        if (handle instanceof GlobalVariableLiteral || handle instanceof ProgramObjectLiteral || handle.getPointeeType() instanceof StructType) {
                             if (desc == BaseTypeDescriptor.B || desc == BaseTypeDescriptor.C || desc == BaseTypeDescriptor.S || desc == BaseTypeDescriptor.Z) {
                                 ctxt.getCompilationContext().warning(gf.getLocation(), "Type promotion to `int` causes an eager load");
                             }
@@ -1529,8 +1529,8 @@ final class MethodParser {
                         if (v1 instanceof Dereference deref) {
                             Value pointer = deref.getPointer();
                             ValueType valueType = pointer.getPointeeType();
-                            if (valueType instanceof CompoundType ct) {
-                                push1(gf.deref(gf.memberOf(pointer, ct.getMember(name))));
+                            if (valueType instanceof StructType st) {
+                                push1(gf.deref(gf.memberOf(pointer, st.getMember(name))));
                             } else if (valueType instanceof UnionType ut) {
                                 push1(gf.deref(gf.memberOfUnion(pointer,  ut.getMember(name))));
                             } else if (valueType instanceof PhysicalObjectType) {
@@ -1539,14 +1539,14 @@ final class MethodParser {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
                             }
-                        } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof CompoundType ct) {
+                        } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof StructType st) {
                             // always a dereference
-                            push1(gf.deref(gf.memberOf(v1, ct.getMember(name))));
+                            push1(gf.deref(gf.memberOf(v1, st.getMember(name))));
                         } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof UnionType ut) {
                             // always a dereference
                             push1(gf.deref(gf.memberOfUnion(v1, ut.getMember(name))));
-                        } else if (v1.getType() instanceof CompoundType ct) {
-                            final CompoundType.Member member = ct.getMember(name);
+                        } else if (v1.getType() instanceof StructType st) {
+                            final StructType.Member member = st.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));
@@ -1567,8 +1567,8 @@ final class MethodParser {
                         if (v1 instanceof Dereference deref) {
                             Value pointer = deref.getPointer();
                             ValueType valueType = pointer.getPointeeType();
-                            if (valueType instanceof CompoundType ct) {
-                                gf.store(gf.memberOf(pointer, ct.getMember(name)), storeTruncate(v2, desc), SinglePlain);
+                            if (valueType instanceof StructType st) {
+                                gf.store(gf.memberOf(pointer, st.getMember(name)), storeTruncate(v2, desc), SinglePlain);
                             } else if (valueType instanceof UnionType ut) {
                                 gf.store(gf.memberOfUnion(pointer, ut.getMember(name)), storeTruncate(v2, desc), SinglePlain);
                             } else if (valueType instanceof PhysicalObjectType) {
@@ -1577,8 +1577,8 @@ final class MethodParser {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
                             }
-                        } else if (v1.getType() instanceof CompoundType ct) {
-                            final CompoundType.Member member = ct.getMember(name);
+                        } else if (v1.getType() instanceof StructType st) {
+                            final StructType.Member member = st.getMember(name);
                             replaceAll(v1, gf.insertMember(v1, member, storeTruncate(v2, desc)));
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));

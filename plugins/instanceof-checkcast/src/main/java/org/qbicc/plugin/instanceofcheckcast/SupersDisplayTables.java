@@ -17,7 +17,7 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -47,7 +47,7 @@ public class SupersDisplayTables {
 
     static final String GLOBAL_TYPEID_ARRAY = "qbicc_typeid_array";
     private GlobalVariableElement typeIdArrayGlobal;
-    private CompoundType typeIdStructType;
+    private StructType typeIdStructType;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -381,7 +381,7 @@ public class SupersDisplayTables {
         int numInterfaces = getNumberOfInterfacesInTypeIds();
         supersLog.debug("NumInterfaces=" + numInterfaces + " numBytes=" + getNumberOfBytesInInterfaceBitsArray());
         ArrayType interfaceBitsType = ts.getArrayType(u8, getNumberOfBytesInInterfaceBitsArray());
-        // ts.getCompoundType(tag, name, size, align, memberResolver);
+        // ts.getStructType(tag, name, size, align, memberResolver);
         // typedef struct typeids {
         //   uintXX_t tid;
         //   uintXX_t maxsubid;
@@ -390,8 +390,8 @@ public class SupersDisplayTables {
         // } typeids;
         UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
         
-        CompoundType typeIdStruct =  CompoundType.builder(ts)
-            .setTag(CompoundType.Tag.STRUCT)
+        StructType typeIdStruct =  StructType.builder(ts)
+            .setTag(StructType.Tag.STRUCT)
             .setName("typeIds")
             .setOverallAlignment(ts.getPointerAlignment())
             .addNextMember("typedId", uTypeId)
@@ -423,7 +423,7 @@ public class SupersDisplayTables {
             primitivesInterfaceBits.add(zero);
         }
         
-        List<CompoundType.Member> members = typeIdStructType.getMembers();
+        List<StructType.Member> members = typeIdStructType.getMembers();
         Literal[] typeIdTable = new Literal[get_number_of_typeids()];
 
         /* Primitives don't support instanceOf but they are only implemented by themselves */
@@ -480,14 +480,14 @@ public class SupersDisplayTables {
     }
 
     /**
-     * Get the CompoundType for the GlobalTypeIdArray (`qbicc_typeid_array`)
+     * Get the StructType for the GlobalTypeIdArray (`qbicc_typeid_array`)
      * global variable elements.
      * 
      * See #emitTypeIdTable for the definition of the typeid array elements.
      * 
-     * @return  The CompoundType describing the struct.
+     * @return  The StructType describing the struct.
      */
-    public CompoundType getGlobalTypeIdStructType() {
+    public StructType getGlobalTypeIdStructType() {
         Assert.assertNotNull(typeIdStructType);
         return typeIdStructType;
     }

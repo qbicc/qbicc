@@ -39,7 +39,7 @@ import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -82,7 +82,7 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value extractMember(Value compound, CompoundType.Member member) {
+    public Value extractMember(Value compound, StructType.Member member) {
         final Value value = compound.extractMember(ctxt.getLiteralFactory(), member);
         if (value != null) {
             return value;
@@ -103,11 +103,11 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+    public Value insertMember(Value compound, StructType.Member member, Value value) {
         if (compound instanceof CompoundLiteral cl && value instanceof Literal lit) {
             final LiteralFactory lf = ctxt.getLiteralFactory();
-            final Map<CompoundType.Member, Literal> values = cl.getValues();
-            final HashMap<CompoundType.Member, Literal> copy = new HashMap<>(values);
+            final Map<StructType.Member, Literal> values = cl.getValues();
+            final HashMap<StructType.Member, Literal> copy = new HashMap<>(values);
             copy.put(member, lit);
             return lf.literalOf(cl.getType(), Map.copyOf(copy));
         }
@@ -249,13 +249,13 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         // specific optimization for CAS operations:
         //   replace `witness == expected` pattern with extracted success bit
         if (v1 instanceof ExtractMember em
-            && em.getCompoundValue() instanceof CmpAndSwap cas
+            && em.getStructValue() instanceof CmpAndSwap cas
             && em.getMember() == cas.getResultValueType()
             && v2.equals(cas.getExpectedValue())
         ) {
             return extractMember(cas, cas.getResultFlagType());
         } else if (v2 instanceof ExtractMember em
-            && em.getCompoundValue() instanceof CmpAndSwap cas
+            && em.getStructValue() instanceof CmpAndSwap cas
             && em.getMember() == cas.getResultValueType()
             && v1.equals(cas.getExpectedValue())
         ) {
@@ -535,7 +535,7 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return bitCast(inputNode.getInput(), toType);
         } else if (input.getType() instanceof PointerType inPtrType && toType instanceof PointerType outPtrType) {
             // pointer to struct/array -> pointer to first member/element
-            if (inPtrType.getPointeeType() instanceof CompoundType) {
+            if (inPtrType.getPointeeType() instanceof StructType) {
                 final IntegerLiteral z = ctxt.getLiteralFactory().literalOf(0);
                 Value outVal = addressOfFirst(offsetPointer(input, z), outPtrType.getPointeeType());
                 if (outVal != null) {
@@ -548,8 +548,8 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private Value addressOfFirst(final Value input, final ValueType outputType) {
         // if the output type matches the first member or element of input, return its handle
-        if (input.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
-            final CompoundType.Member memberZero = ct.getMember(0);
+        if (input.getPointeeType() instanceof StructType st && st.getMemberCount() > 0) {
+            final StructType.Member memberZero = st.getMember(0);
             if (memberZero.getOffset() == 0) {
                 Value nextHandle = memberOf(input, memberZero);
                 if (outputType.equals(memberZero.getType())) {

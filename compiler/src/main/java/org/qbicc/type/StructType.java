@@ -16,12 +16,12 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- *
+ * A structured type, which comprises zero or more non-overlapping members.
  */
-public final class CompoundType extends ValueType {
+public final class StructType extends ValueType {
 
-    private static final VarHandle sizeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "size", VarHandle.class, CompoundType.class, long.class);
-    private static final VarHandle alignHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "align", VarHandle.class, CompoundType.class, int.class);
+    private static final VarHandle sizeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "size", VarHandle.class, StructType.class, long.class);
+    private static final VarHandle alignHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "align", VarHandle.class, StructType.class, int.class);
 
     private final Tag tag;
     private final String name;
@@ -35,8 +35,8 @@ public final class CompoundType extends ValueType {
     private volatile List<Member> paddedMembers;
     private volatile Map<String, Member> membersByName;
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
-        super(typeSystem, Objects.hash(CompoundType.class, name, size, overallAlign));
+    StructType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
+        super(typeSystem, Objects.hash(StructType.class, name, size, overallAlign));
         // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -48,8 +48,8 @@ public final class CompoundType extends ValueType {
         this.complete = true;
     }
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver) {
-        super(typeSystem, Objects.hash(CompoundType.class, name, -1, -1));
+    StructType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver) {
+        super(typeSystem, Objects.hash(StructType.class, name, -1, -1));
         // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -59,8 +59,8 @@ public final class CompoundType extends ValueType {
         this.complete = true;
     }
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name) {
-        super(typeSystem, Objects.hash(CompoundType.class, name, 0, 1));
+    StructType(final TypeSystem typeSystem, final Tag tag, final String name) {
+        super(typeSystem, Objects.hash(StructType.class, name, 0, 1));
         // tag does not contribute to hash or equality
         this.tag = tag;
         this.name = name;
@@ -333,7 +333,7 @@ public final class CompoundType extends ValueType {
     }
 
     public boolean equals(final ValueType other) {
-        return other instanceof CompoundType ct && equals(ct);
+        return other instanceof StructType st && equals(st);
     }
 
     @Override
@@ -341,14 +341,14 @@ public final class CompoundType extends ValueType {
         if (offset > getSize()) {
             return getTypeSystem().getVoidType();
         }
-        CompoundType.Member member = getMemberByOffset((int) offset);
+        StructType.Member member = getMemberByOffset((int) offset);
         if (member == null) {
             return getTypeSystem().getVoidType();
         }
         return member.getType().getTypeAtOffset(offset - member.getOffset());
     }
 
-    public boolean equals(final CompoundType other) {
+    public boolean equals(final StructType other) {
         return this == other || super.equals(other) && Objects.equals(name, other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
     }
 
@@ -365,7 +365,7 @@ public final class CompoundType extends ValueType {
         return b.append(getName());
     }
 
-    public static CompoundType.Builder builder(TypeSystem typeSystem) {
+    public static StructType.Builder builder(TypeSystem typeSystem) {
         return new Builder(typeSystem);
     }
 
@@ -457,10 +457,10 @@ public final class CompoundType extends ValueType {
     }
 
     /**
-     * CompoundTypeBuilders are explicitly not thread-safe
+     * StructType Builders are explicitly not thread-safe
      * and should not be shared between threads.
      * 
-     * The resulting CompoundType can be shared.
+     * The resulting StructType can be shared.
      */
     public static final class Builder {
         final TypeSystem typeSystem;
@@ -471,9 +471,9 @@ public final class CompoundType extends ValueType {
         int offset;
         int overallAlign;
 
-        ArrayList<CompoundType.Member> members = new ArrayList<>();
+        ArrayList<StructType.Member> members = new ArrayList<>();
 
-        CompoundType completeType;
+        StructType completeType;
 
         Builder(final TypeSystem typeSystem) {
             this.typeSystem = typeSystem;
@@ -481,7 +481,7 @@ public final class CompoundType extends ValueType {
         }
 
         public Builder setName(String name) {
-            // Don't need to check for null as CompoundType's ctor
+            // Don't need to check for null as StructType's ctor
             // will assign a name to anything without one.
             this.name = name;
             return this;
@@ -511,7 +511,7 @@ public final class CompoundType extends ValueType {
 
         public Builder addNextMember(final String name, final ValueType type, final int align) {
             int thisOffset = nextMemberOffset(offset, align);
-            Member m = typeSystem.getCompoundTypeMember(name, type, thisOffset, align);
+            Member m = typeSystem.getStructTypeMember(name, type, thisOffset, align);
             // Equivalent to Max(overallAign, Max(type.getAlign(), align))
             overallAlign = Math.max(overallAlign, m.getAlign());
             
@@ -534,13 +534,13 @@ public final class CompoundType extends ValueType {
             return (offset + (align - 1)) & -align;
         }
 
-        public CompoundType build() {
+        public StructType build() {
             if (members.isEmpty()) {
-                throw new IllegalStateException("CompoundType has no members");
+                throw new IllegalStateException("StructType has no members");
             }
             if (completeType == null) {
                 int size = (offset + (overallAlign - 1)) & -overallAlign;  // Offset points to the end of the structure, align the size to overall alignment
-                completeType =  typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
+                completeType =  typeSystem.getStructType(tag, name, size, overallAlign, () -> members);
             }
             return completeType;
         }

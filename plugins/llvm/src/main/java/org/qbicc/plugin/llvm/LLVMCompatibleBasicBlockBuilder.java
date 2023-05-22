@@ -30,7 +30,7 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -276,10 +276,10 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return super.load(pointer, SingleUnshared);
         }
         // Break apart atomic structure and array loads
-        if (pointer.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof StructType st) {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            Value res = lf.zeroInitializerLiteralOfType(ct);
-            for (CompoundType.Member member : ct.getPaddedMembers()) {
+            Value res = lf.zeroInitializerLiteralOfType(st);
+            for (StructType.Member member : st.getPaddedMembers()) {
                 res = insertMember(res, member, load(memberOf(pointer, member), accessMode));
             }
             return res;
@@ -339,15 +339,15 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return store(pointer, value, SingleUnshared);
         }
         // Break apart atomic structure and array stores
-        if (pointer.getPointeeType() instanceof CompoundType ct) {
+        if (pointer.getPointeeType() instanceof StructType st) {
             if (value instanceof Literal lit && lit.isZero()) {
                 LiteralFactory lf = getLiteralFactory();
-                for (CompoundType.Member member : ct.getPaddedMembers()) {
+                for (StructType.Member member : st.getPaddedMembers()) {
                     store(memberOf(pointer, member), lf.zeroInitializerLiteralOfType(member.getType()), accessMode);
                 }
                 return nop();
             } else {
-                for (CompoundType.Member member : ct.getPaddedMembers()) {
+                for (StructType.Member member : st.getPaddedMembers()) {
                     store(memberOf(pointer, member), extractMember(value, member), accessMode);
                 }
                 return nop();
@@ -396,7 +396,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value cmpAndSwap(Value pointer, Value expect, Value update, ReadAccessMode readMode, WriteAccessMode writeMode, CmpAndSwap.Strength strength) {
         BasicBlockBuilder fb = getFirstBuilder();
-        CompoundType resultType = CmpAndSwap.getResultType(ctxt, pointer.getPointeeType());
+        StructType resultType = CmpAndSwap.getResultType(ctxt, pointer.getPointeeType());
         ReadAccessMode lowerReadMode = readMode;
         WriteAccessMode lowerWriteMode = writeMode;
         Value result;

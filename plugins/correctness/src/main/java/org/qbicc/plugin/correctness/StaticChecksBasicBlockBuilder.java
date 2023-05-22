@@ -21,7 +21,7 @@ import org.qbicc.graph.literal.InitializerLiteral;
 import org.qbicc.graph.literal.MethodLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -101,8 +101,8 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
-    public Value memberOf(Value structPointer, CompoundType.Member member) {
-        if (checkTargetType(structPointer).getType(PointerType.class).getPointeeType() instanceof CompoundType) {
+    public Value memberOf(Value structPointer, StructType.Member member) {
+        if (checkTargetType(structPointer).getType(PointerType.class).getPointeeType() instanceof StructType) {
             return super.memberOf(structPointer, member);
         }
         ctxt.error(getLocation(), "`memberOf` handle must have structure type");

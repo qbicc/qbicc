@@ -44,7 +44,6 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Struct;
-import org.qbicc.machine.llvm.StructType;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
@@ -53,7 +52,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BlockType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -82,7 +81,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     final boolean opaquePointers;
 
     final Map<Type, LLValue> types = new HashMap<>();
-    final Map<CompoundType, Map<CompoundType.Member, LLValue>> structureOffsets = new HashMap<>();
+    final Map<StructType, Map<StructType.Member, LLValue>> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
 
     final Map<FunctionType, LLValue> statepointDecls = new HashMap<>();
@@ -176,35 +175,35 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             Type elementType = arrayType.getElementType();
             long size = arrayType.getElementCount();
             res = array((int) size, map(elementType));
-        } else if (type instanceof CompoundType) {
+        } else if (type instanceof StructType) {
             // Compound types are special in that they can be self-referential by containing pointers to themselves. To
             // handle this, we must do two special things:
             //   - Use an identified type in the module to avoid infinite recursion when printing the type
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
-            CompoundType compoundType = (CompoundType) type;
-            HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
-            boolean isIdentified = !compoundType.isAnonymous();
+            StructType structType = (StructType) type;
+            HashMap<StructType.Member, LLValue> offsets = new HashMap<>();
+            boolean isIdentified = !structType.isAnonymous();
 
-            structureOffsets.putIfAbsent(compoundType, offsets);
+            structureOffsets.putIfAbsent(structType, offsets);
 
             IdentifiedType identifiedType = null;
             if (isIdentified) {
-                String compoundName = compoundType.getName();
+                String structName = structType.getName();
                 String name;
-                if (compoundType.getTag() == CompoundType.Tag.NONE) {
-                    String outputName = "type." + compoundName;
-                    name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
+                if (structType.getTag() == StructType.Tag.NONE) {
+                    String outputName = "type." + structName;
+                    name = LLVM.needsQuotes(structName) ? LLVM.quoteString(outputName) : outputName;
                 } else {
-                    String outputName = compoundType.getTag() + "." + compoundName;
-                    name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
+                    String outputName = structType.getTag() + "." + structName;
+                    name = LLVM.needsQuotes(structName) ? LLVM.quoteString(outputName) : outputName;
                 }
                 identifiedType = module.identifiedType(name);
                 types.put(type, identifiedType.asTypeRef());
             }
 
-            StructType struct = structType(isIdentified);
+            org.qbicc.machine.llvm.StructType struct = structType(isIdentified);
             int index = 0;
-            for (CompoundType.Member member : compoundType.getPaddedMembers()) {
+            for (StructType.Member member : structType.getPaddedMembers()) {
                 ValueType memberType = member.getType();
                 struct.member(map(memberType), member.getName());
                 // todo: cache these ints
@@ -231,10 +230,10 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         return res;
     }
 
-    LLValue map(final CompoundType compoundType, final CompoundType.Member member) {
+    LLValue map(final StructType structType, final StructType.Member member) {
         // populate map
-        map(compoundType);
-        return structureOffsets.get(compoundType).get(member);
+        map(structType);
+        return structureOffsets.get(structType).get(member);
     }
 
     LLValue map(final Literal value) {
@@ -308,11 +307,11 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     }
 
     public LLValue visit(final Void param, final CompoundLiteral node) {
-        CompoundType type = node.getType();
-        Map<CompoundType.Member, Literal> values = node.getValues();
+        StructType type = node.getType();
+        Map<StructType.Member, Literal> values = node.getValues();
         // very similar to emitting a struct type, but we don't have to cache the structure offsets
         Struct struct = struct();
-        for (CompoundType.Member member : type.getPaddedMembers()) {
+        for (StructType.Member member : type.getPaddedMembers()) {
             Literal literal = values.get(member);
             ValueType memberType = member.getType();
             if (literal == null) {
@@ -443,7 +442,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             LLValue[] array = buildGepLiteralArgs(mol.getStructurePointer(), index + 2);
             final int length = array.length;
             array[length - index - 2] = i32;
-            array[length - index - 1] = map(mol.getPointeeType(CompoundType.class), mol.getMember());
+            array[length - index - 1] = map(mol.getPointeeType(StructType.class), mol.getMember());
             return array;
         } else if (lit instanceof OffsetFromLiteral ofl) {
             // offset-from always terminates a GEP
@@ -534,15 +533,15 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             b.append("isVoid");
         } else if (type instanceof WordType wt) {
             b.append('i').append(wt.getMinBits());
-        } else if (type instanceof CompoundType ct) {
+        } else if (type instanceof StructType st) {
             b.append("s_");
-            final String compoundName = ct.getName();
+            final String compoundName = st.getName();
             String name;
-            if (ct.getTag() == CompoundType.Tag.NONE) {
+            if (st.getTag() == StructType.Tag.NONE) {
                 String outputName = "type." + compoundName;
                 name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
             } else {
-                String outputName = ct.getTag() + "." + compoundName;
+                String outputName = st.getTag() + "." + compoundName;
                 name = LLVM.needsQuotes(compoundName) ? LLVM.quoteString(outputName) : outputName;
             }
             b.append(name);

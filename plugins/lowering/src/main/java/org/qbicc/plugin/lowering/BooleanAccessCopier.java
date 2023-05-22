@@ -13,7 +13,7 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 
 /**
@@ -73,8 +73,8 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
             // the result is a { i8, i1 } if the field is boolean
             // we need to change to a { i1, i1 }
             LiteralFactory lf = ctxt.getLiteralFactory();
-            CompoundType origType = CmpAndSwap.getResultType(ctxt, it);
-            CompoundType newType = CmpAndSwap.getResultType(ctxt, bt);
+            StructType origType = CmpAndSwap.getResultType(ctxt, it);
+            StructType newType = CmpAndSwap.getResultType(ctxt, bt);
             Value resultByteVal = b.extractMember(result, origType.getMember(0));
             Value resultFlag = b.extractMember(result, origType.getMember(1));
             result = b.insertMember(lf.zeroInitializerLiteralOfType(newType), newType.getMember(0), b.truncate(resultByteVal, bt));

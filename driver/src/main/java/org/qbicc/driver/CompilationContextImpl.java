@@ -39,8 +39,7 @@ import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.object.Segment;
-import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
@@ -51,7 +50,6 @@ import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.MethodTypeId;
 import org.qbicc.type.definition.NativeMethodConfigurator;
-import org.qbicc.type.definition.LeafTypeId;
 import org.qbicc.type.definition.TypeId;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
@@ -579,7 +577,7 @@ final class CompilationContextImpl implements CompilationContext {
             // already a function
             return ft;
         } else {
-            CompoundType threadNativeType = (CompoundType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+            StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
             // some kind of method
             assert origType instanceof MethodType;
             MethodType mt = (MethodType) origType;
@@ -602,7 +600,7 @@ final class CompilationContextImpl implements CompilationContext {
 
     public FunctionType getFunctionTypeForInitializer() {
         // look up the thread arg type - todo: lazy cache?
-        CompoundType threadNativeType = (CompoundType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
         return typeSystem.getFunctionType(typeSystem.getVoidType(), List.of(threadNativeType.getPointer()));
     }
 

@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.core.ConditionEvaluation;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -25,7 +25,7 @@ public final class NativeLayout {
     private static final AttachmentKey<NativeLayout> KEY = new AttachmentKey<>();
     private final CompilationContext ctxt;
 
-    private final Map<LoadedTypeDefinition, CompoundType> layouts = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, StructType> layouts = new ConcurrentHashMap<>();
 
     private NativeLayout(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -43,20 +43,20 @@ public final class NativeLayout {
         return layout;
     }
 
-    public CompoundType getLayoutInfo(DefinedTypeDefinition type) {
+    public StructType getLayoutInfo(DefinedTypeDefinition type) {
         LoadedTypeDefinition validated = type.load();
-        CompoundType layoutInfo = layouts.get(validated);
+        StructType layoutInfo = layouts.get(validated);
         if (layoutInfo != null) {
             return layoutInfo;
         }
         String internalName = type.getInternalName();
         int lastSep = Math.max(internalName.lastIndexOf('/'), internalName.lastIndexOf('$'));
         String simpleName = lastSep == -1 ? internalName : internalName.substring(lastSep + 1);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, simpleName, () -> {
+        StructType structType = ctxt.getTypeSystem().getStructType(StructType.Tag.NONE, simpleName, () -> {
             int minAlignment = ctxt.getTypeSystem().getPointerAlignment(); // All fields have at least pointer alignment.
             BitSet allocated = new BitSet();
             int cnt = validated.getFieldCount();
-            Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
+            Map<FieldElement, StructType.Member> fieldToMember = new HashMap<>(cnt);
             int previousFieldOffset = 0;
             ConditionEvaluation conditionEvaluation = ConditionEvaluation.get(ctxt);
             eachField: for (int i = 0; i < cnt; i ++) {
@@ -112,19 +112,19 @@ public final class NativeLayout {
                 } else {
                     idx = find(allocated, align, ts.getMaxAlignment(), previousFieldOffset);
                 }
-                CompoundType.Member member = ts.getCompoundTypeMember(fieldName, fieldType, idx, align);
+                StructType.Member member = ts.getStructTypeMember(fieldName, fieldType, idx, align);
                 if (member.getAlign() > minAlignment) {
                     minAlignment = member.getAlign();
                 }
                 fieldToMember.put(field, member);
                 previousFieldOffset = member.getOffset();
             }
-            CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
+            StructType.Member[] membersArray = fieldToMember.values().toArray(StructType.Member[]::new);
             Arrays.sort(membersArray);
             return List.of(membersArray);
         });
-        CompoundType appearing = layouts.putIfAbsent(validated, compoundType);
-        return appearing != null ? appearing : compoundType;
+        StructType appearing = layouts.putIfAbsent(validated, structType);
+        return appearing != null ? appearing : structType;
     }
 
     /**

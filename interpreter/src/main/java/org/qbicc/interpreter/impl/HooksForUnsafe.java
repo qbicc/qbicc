@@ -7,17 +7,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.interpreter.Hook;
-import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
-import org.qbicc.interpreter.memory.MemoryFactory;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.pointer.GlobalPointer;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -76,7 +74,7 @@ final class HooksForUnsafe {
         }
         field.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(clazzDef);
-        CompoundType.Member member = layoutInfo.getMember(field);
+        StructType.Member member = layoutInfo.getMember(field);
         if (member == null) {
             throw new Thrown(vm.errorClass.newInstance("Internal error"));
         }
@@ -93,7 +91,7 @@ final class HooksForUnsafe {
         }
         field.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(clazzDef);
-        CompoundType.Member member = layoutInfo.getMember(field);
+        StructType.Member member = layoutInfo.getMember(field);
         if (member == null) {
             throw new Thrown(vm.errorClass.newInstance("Internal error"));
         }

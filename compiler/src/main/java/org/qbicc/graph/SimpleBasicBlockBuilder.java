@@ -22,7 +22,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -459,7 +459,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new VaArg(callSite, element, line, bci, requireDependency(), vaList, type));
     }
 
-    public Value memberOf(final Value structPointer, final CompoundType.Member member) {
+    public Value memberOf(final Value structPointer, final StructType.Member member) {
         return unique(new MemberOf(callSite, element, line, bci, structPointer, member));
     }
 
@@ -551,7 +551,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new ExtractElement(callSite, element, line, bci, array, index));
     }
 
-    public Value extractMember(Value compound, CompoundType.Member member) {
+    public Value extractMember(Value compound, StructType.Member member) {
         return unique(new ExtractMember(callSite, element, line, bci, compound, member));
     }
 
@@ -567,7 +567,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new InsertElement(callSite, element, line, bci, array, index, value));
     }
 
-    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+    public Value insertMember(Value compound, StructType.Member member, Value value) {
         return unique(new InsertMember(callSite, element, line, bci, compound, value, member));
     }
 

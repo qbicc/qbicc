@@ -20,7 +20,7 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.ObjectType;
@@ -242,7 +242,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value extractElement(Value array, Value index);
 
-    Value extractMember(Value compound, CompoundType.Member member);
+    Value extractMember(Value compound, StructType.Member member);
 
     Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type);
 
@@ -250,7 +250,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value insertElement(Value array, Value index, Value value);
 
-    Value insertMember(Value compound, CompoundType.Member member, Value value);
+    Value insertMember(Value compound, StructType.Member member, Value value);
 
     // debug
 
@@ -474,7 +474,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value auto(Value initializer);
 
-    Value memberOf(Value structPointer, CompoundType.Member member);
+    Value memberOf(Value structPointer, StructType.Member member);
 
     Value memberOfUnion(Value unionPointer, UnionType.Member member);
 

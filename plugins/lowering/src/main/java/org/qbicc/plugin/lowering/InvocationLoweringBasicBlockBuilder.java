@@ -14,7 +14,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Node;
@@ -26,7 +25,6 @@ import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Function;
@@ -39,11 +37,10 @@ import org.qbicc.plugin.dispatch.DispatchTables;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
@@ -64,8 +61,8 @@ import org.qbicc.type.generic.BaseTypeSignature;
 public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;
-    private final CompoundType threadNativeType;
-    private final CompoundType.Member currentThreadMember;
+    private final StructType threadNativeType;
+    private final StructType.Member currentThreadMember;
     private final DefinedTypeDefinition threadTypeDef;
     private boolean started;
     private BlockParameter thrParam;
@@ -76,7 +73,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         this.ctxt = ctxt;
         originalElement = delegate.getCurrentElement();
         final ClassContext bcc = ctxt.getBootstrapClassContext();
-        threadNativeType = (CompoundType) bcc.resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        threadNativeType = (StructType) bcc.resolveTypeFromClassName("java/lang", "Thread$thread_native");
         currentThreadMember = threadNativeType.getMember("ref");
         threadTypeDef = bcc.findDefinedType("java/lang/Thread");
     }
@@ -132,7 +129,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             && mo.getMember().equals(currentThreadMember)
             && mo.getStructType().equals(threadNativeType)
             // do this check *last*
-            && ifo.getStructType().equals(Layout.get(ctxt).getInstanceLayoutInfo(threadTypeDef).getCompoundType())
+            && ifo.getStructType().equals(Layout.get(ctxt).getInstanceLayoutInfo(threadTypeDef).getStructType())
         ) {
             return mo.getStructurePointer();
         } else {

@@ -56,7 +56,7 @@ import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -91,7 +91,7 @@ public class BuildtimeHeap {
     /**
      * For lazy definition of native array types for literals
      */
-    private final HashMap<String, CompoundType> arrayTypes = new HashMap<>();
+    private final HashMap<String, StructType> arrayTypes = new HashMap<>();
     /**
      * For interning VmObjects
      */
@@ -183,7 +183,7 @@ public class BuildtimeHeap {
 
     void initializeRootClassArray(int numTypeIds) {
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        CompoundType jlcType = layout.getInstanceLayoutInfo(jlc).getCompoundType();
+        StructType jlcType = layout.getInstanceLayoutInfo(jlc).getStructType();
         ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcType, numTypeIds);
         rootClassesDecl = classSection.getProgramModule().declareData(null, "qbicc_jlc_lookup_table", rootArrayType);
         rootClasses = new Literal[numTypeIds];
@@ -426,7 +426,7 @@ public class BuildtimeHeap {
                     into = stringSection;
                 }
                 String name = nextLiteralName(into);
-                DataDeclaration decl = into.getProgramModule().declareData(null, name, objLayout.getCompoundType());
+                DataDeclaration decl = into.getProgramModule().declareData(null, name, objLayout.getStructType());
                 vmObjects.put(value, decl); // record declaration
                 serializeVmObject(concreteType, objLayout, value, into, -1, decl.getName()); // now serialize and define a Data
             }
@@ -436,7 +436,7 @@ public class BuildtimeHeap {
             LayoutInfo info = layout.getInstanceLayoutInfo(contentsField.getEnclosingType());
             Memory memory = value.getMemory();
             int length = memory.load32(info.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
-            CompoundType literalCT = arrayLiteralType(contentsField, length);
+            StructType literalCT = arrayLiteralType(contentsField, length);
             DataDeclaration decl = into.getProgramModule().declareData(null, nextLiteralName(into), literalCT);
             vmObjects.put(value, decl); // record declaration
             serializeRefArray((ReferenceArrayObjectType) ot, literalCT, length, into, decl, (VmArray)value); // now serialize
@@ -464,22 +464,22 @@ public class BuildtimeHeap {
         return d;
     }
 
-    private CompoundType arrayLiteralType(FieldElement contents, int length) {
+    private StructType arrayLiteralType(FieldElement contents, int length) {
         LoadedTypeDefinition ltd = contents.getEnclosingType().load();
         String typeName = ltd.getInternalName() + "_" + length;
-        CompoundType sizedArrayType = arrayTypes.get(typeName);
+        StructType sizedArrayType = arrayTypes.get(typeName);
         Layout layout = Layout.get(ctxt);
         if (sizedArrayType == null) {
             TypeSystem ts = ctxt.getTypeSystem();
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(ltd);
-            CompoundType arrayCT = objLayout.getCompoundType();
+            StructType arrayCT = objLayout.getStructType();
 
-            CompoundType.Member contentMem = objLayout.getMember(contents);
+            StructType.Member contentMem = objLayout.getMember(contents);
             ArrayType sizedContentMem = ts.getArrayType(((ArrayType) contents.getType()).getElementType(), length);
-            CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
+            StructType.Member realContentMem = ts.getStructTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
 
-            Supplier<List<CompoundType.Member>> thunk = () -> {
-                CompoundType.Member[] items = arrayCT.getMembers().toArray(CompoundType.Member[]::new);
+            Supplier<List<StructType.Member>> thunk = () -> {
+                StructType.Member[] items = arrayCT.getMembers().toArray(StructType.Member[]::new);
                 for (int i = 0; i < items.length; i++) {
                     if (items[i] == contentMem) {
                         items[i] = realContentMem;
@@ -488,7 +488,7 @@ public class BuildtimeHeap {
                 return Arrays.asList(items);
             };
 
-            sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName, arrayCT.getSize() + sizedContentMem.getSize(), arrayCT.getAlign(), thunk);
+            sizedArrayType = ts.getStructType(StructType.Tag.STRUCT, typeName, arrayCT.getSize() + sizedContentMem.getSize(), arrayCT.getAlign(), thunk);
             arrayTypes.put(typeName, sizedArrayType);
         }
         return sizedArrayType;
@@ -497,8 +497,8 @@ public class BuildtimeHeap {
     private void serializeVmObject(LoadedTypeDefinition concreteType, LayoutInfo objLayout, VmObject value, ModuleSection into, int typeId, String name) {
         Memory memory = value.getMemory();
         LayoutInfo memLayout = layout.getInstanceLayoutInfo(concreteType);
-        CompoundType objType = objLayout.getCompoundType();
-        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+        StructType objType = objLayout.getStructType();
+        HashMap<StructType.Member, Literal> memberMap = new HashMap<>();
 
         populateMemberMap(concreteType, objType, objLayout, memLayout, memory, memberMap, into);
 
@@ -510,11 +510,11 @@ public class BuildtimeHeap {
         }
     }
 
-    private void populateMemberMap(final LoadedTypeDefinition concreteType, final CompoundType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory,
-                                   final HashMap<CompoundType.Member, Literal> memberMap, ModuleSection into) {
+    private void populateMemberMap(final LoadedTypeDefinition concreteType, final StructType objType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory,
+                                   final HashMap<StructType.Member, Literal> memberMap, ModuleSection into) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // Start by zero-initializing all members
-        for (CompoundType.Member m : objType.getMembers()) {
+        for (StructType.Member m : objType.getMembers()) {
             memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
         }
 
@@ -522,7 +522,7 @@ public class BuildtimeHeap {
     }
 
     private void populateClearedMemberMap(final LoadedTypeDefinition concreteType, final LayoutInfo objLayout, final LayoutInfo memLayout, final Memory memory,
-                                          final HashMap<CompoundType.Member, Literal> memberMap, ModuleSection into) {
+                                          final HashMap<StructType.Member, Literal> memberMap, ModuleSection into) {
         if (concreteType.hasSuperClass()) {
             populateClearedMemberMap(concreteType.getSuperClass(), objLayout, memLayout, memory, memberMap, into);
         }
@@ -536,8 +536,8 @@ public class BuildtimeHeap {
                 continue;
             }
 
-            CompoundType.Member im = memLayout.getMember(f);
-            CompoundType.Member om = objLayout.getMember(f);
+            StructType.Member im = memLayout.getMember(f);
+            StructType.Member om = objLayout.getMember(f);
             if (im == null || om == null) {
                 if (!ThreadLocals.get(ctxt).isThreadLocalField((InstanceFieldElement)f)) {
                     ctxt.warning("Field " + f + " not serialized due to incomplete layout");
@@ -639,7 +639,7 @@ public class BuildtimeHeap {
         }
     }
 
-    private void serializeRefArray(ReferenceArrayObjectType at, CompoundType literalCT, int length, ModuleSection into, DataDeclaration sl, VmArray value) {
+    private void serializeRefArray(ReferenceArrayObjectType at, StructType literalCT, int length, ModuleSection into, DataDeclaration sl, VmArray value) {
         LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         LiteralFactory lf = ctxt.getLiteralFactory();
 
@@ -649,8 +649,8 @@ public class BuildtimeHeap {
         DefinedTypeDefinition concreteType = contentField.getEnclosingType();
         LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
         LayoutInfo memLayout = this.layout.getInstanceLayoutInfo(concreteType);
-        CompoundType objType = objLayout.getCompoundType();
-        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+        StructType objType = objLayout.getStructType();
+        HashMap<StructType.Member, Literal> memberMap = new HashMap<>();
 
         populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap, into);
 
@@ -682,11 +682,11 @@ public class BuildtimeHeap {
         DefinedTypeDefinition concreteType = contentsField.getEnclosingType();
         LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
         LayoutInfo memLayout = this.layout.getInstanceLayoutInfo(concreteType);
-        CompoundType objType = objLayout.getCompoundType();
+        StructType objType = objLayout.getStructType();
 
         Memory memory = value.getMemory();
         int length = memory.load32(objLayout.getMember(coreClasses.getArrayLengthField()).getOffset(), SinglePlain);
-        CompoundType literalCT = arrayLiteralType(contentsField, length);
+        StructType literalCT = arrayLiteralType(contentsField, length);
 
         Literal arrayContentsLiteral;
         if (contentsField.equals(coreClasses.getByteArrayContentField())) {
@@ -734,7 +734,7 @@ public class BuildtimeHeap {
             arrayContentsLiteral = lf.literalOf(ctxt.getTypeSystem().getArrayType(at.getElementType(), length), elements);
         }
 
-        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+        HashMap<StructType.Member, Literal> memberMap = new HashMap<>();
 
         populateMemberMap(concreteType.load(), objType, objLayout, memLayout, memory, memberMap, into);
 

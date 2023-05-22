@@ -38,7 +38,7 @@ import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
@@ -111,7 +111,7 @@ public final class Reflection {
     private final Map<AnnotatedElement, VmArray> annotatedElements = new ConcurrentHashMap<>();
     private final Map<Element, VmObject> reflectionObjects = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, VmArray> annotatedTypes = new ConcurrentHashMap<>();
-    private final Map<InvokableType, CompoundType> functionCallStructures = new ConcurrentHashMap<>();
+    private final Map<InvokableType, StructType> functionCallStructures = new ConcurrentHashMap<>();
     private final Map<Element, Map<MethodHandleKind, Pointer>> dispatcherCache = new ConcurrentHashMap<>();
     private final VmArray noAnnotations;
     private final Vm vm;
@@ -679,7 +679,7 @@ public final class Reflection {
             vmObject.getMemory().storePointer(memOffset, StaticFieldPointer.of((StaticFieldElement) field), SinglePlain);
         } else {
             LayoutInfo layoutInfo = Layout.get(vm.getCompilationContext()).getInstanceLayoutInfo(field.getEnclosingType().load());
-            CompoundType.Member member = layoutInfo.getMember(field);
+            StructType.Member member = layoutInfo.getMember(field);
             vmObject.getMemory().store64(memOffset, member.getOffset(), SinglePlain);
         }
 
@@ -1715,23 +1715,23 @@ public final class Reflection {
         return builder.build();
     }
 
-    public CompoundType getCallStructureType(final InvokableType functionType) {
-        CompoundType compoundType = functionCallStructures.get(functionType);
-        if (compoundType == null) {
+    public StructType getCallStructureType(final InvokableType functionType) {
+        StructType structType = functionCallStructures.get(functionType);
+        if (structType == null) {
             int parameterCount = functionType.getParameterCount();
             if (parameterCount == 0) {
                 return null;
             }
-            CompoundType.Builder builder = CompoundType.builder(ctxt.getTypeSystem());
+            StructType.Builder builder = StructType.builder(ctxt.getTypeSystem());
             for (int i = 0; i < parameterCount; i ++) {
                 builder.addNextMember(functionType.getParameterType(i));
             }
-            compoundType = builder.build();
-            CompoundType appearing = functionCallStructures.putIfAbsent(functionType, compoundType);
+            structType = builder.build();
+            StructType appearing = functionCallStructures.putIfAbsent(functionType, structType);
             if (appearing != null) {
-                compoundType = appearing;
+                structType = appearing;
             }
         }
-        return compoundType;
+        return structType;
     }
 }

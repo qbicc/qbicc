@@ -3,7 +3,7 @@ package org.qbicc.graph.literal;
 import java.util.Objects;
 
 import org.qbicc.graph.Value;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.WordType;
 
@@ -12,9 +12,9 @@ import org.qbicc.type.WordType;
  */
 public final class MemberOfLiteral extends Literal {
     final Literal structurePointer;
-    final CompoundType.Member member;
+    final StructType.Member member;
 
-    MemberOfLiteral(Literal structurePointer, CompoundType.Member member) {
+    MemberOfLiteral(Literal structurePointer, StructType.Member member) {
         this.structurePointer = structurePointer;
         this.member = member;
     }
@@ -73,7 +73,7 @@ public final class MemberOfLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
-    public CompoundType.Member getMember() {
+    public StructType.Member getMember() {
         return member;
     }
 

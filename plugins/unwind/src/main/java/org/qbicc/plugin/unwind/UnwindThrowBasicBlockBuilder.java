@@ -13,7 +13,7 @@ import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ThreadLocalMode;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.TypeSystem;
@@ -39,7 +39,7 @@ public class UnwindThrowBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         final LiteralFactory lf = getLiteralFactory();
         if (getRootElement() instanceof FunctionElement fe) {
             ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
-            CompoundType threadNativeType = (CompoundType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+            StructType threadNativeType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
             DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadNativeType.getPointer());
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             ptr = memberOf(load(lf.literalOf(decl)), teh.getUnwindExceptionMember());

@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -10,20 +10,20 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * An extracted member of a compound (structure) value.
  */
 public final class ExtractMember extends AbstractValue {
-    private final Value compoundValue;
-    private final CompoundType compoundType;
-    private final CompoundType.Member member;
+    private final Value structValue;
+    private final StructType structType;
+    private final StructType.Member member;
 
-    ExtractMember(Node callSite, ExecutableElement element, int line, int bci, Value compoundValue, CompoundType.Member member) {
+    ExtractMember(Node callSite, ExecutableElement element, int line, int bci, Value structValue, StructType.Member member) {
         super(callSite, element, line, bci);
-        this.compoundValue = compoundValue;
-        compoundType = (CompoundType) compoundValue.getType();
+        this.structValue = structValue;
+        structType = (StructType) structValue.getType();
         this.member = member;
     }
 
     @Override
     int calcHashCode() {
-        return Objects.hash(compoundValue, member);
+        return Objects.hash(structValue, member);
     }
 
     @Override
@@ -40,7 +40,7 @@ public final class ExtractMember extends AbstractValue {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
-        compoundValue.toReferenceString(b);
+        structValue.toReferenceString(b);
         b.append(',');
         member.toString(b);
         b.append(')');
@@ -48,15 +48,15 @@ public final class ExtractMember extends AbstractValue {
     }
 
     public boolean equals(ExtractMember other) {
-        return this == other || other != null && compoundValue.equals(other.compoundValue) && member.equals(other.member);
+        return this == other || other != null && structValue.equals(other.structValue) && member.equals(other.member);
     }
 
-    public CompoundType getCompoundType() {
-        return compoundType;
+    public StructType getStructType() {
+        return structType;
     }
 
-    public Value getCompoundValue() {
-        return compoundValue;
+    public Value getStructValue() {
+        return structValue;
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class ExtractMember extends AbstractValue {
         return member.getType();
     }
 
-    public CompoundType.Member getMember() {
+    public StructType.Member getMember() {
         return member;
     }
 
@@ -75,7 +75,7 @@ public final class ExtractMember extends AbstractValue {
 
     @Override
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? compoundValue : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? structValue : Util.throwIndexOutOfBounds(index);
     }
 
     @Override
@@ -85,6 +85,6 @@ public final class ExtractMember extends AbstractValue {
 
     @Override
     public boolean isConstant() {
-        return compoundValue.isConstant();
+        return structValue.isConstant();
     }
 }

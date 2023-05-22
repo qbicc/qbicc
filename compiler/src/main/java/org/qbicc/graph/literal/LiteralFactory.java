@@ -26,7 +26,7 @@ import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -96,7 +96,7 @@ public interface LiteralFactory {
 
     Literal literalOf(ArrayType type, short[] values);
 
-    Literal literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
+    Literal literalOf(StructType type, Map<StructType.Member, Literal> values);
 
     Literal bitcastLiteral(Literal value, WordType toType);
 
@@ -104,7 +104,7 @@ public interface LiteralFactory {
 
     ElementOfLiteral elementOfLiteral(Literal arrayPointer, Literal index);
 
-    MemberOfLiteral memberOfLiteral(Literal structurePointer, CompoundType.Member member);
+    MemberOfLiteral memberOfLiteral(Literal structurePointer, StructType.Member member);
 
     OffsetFromLiteral offsetFromLiteral(Literal basePointer, Literal offset);
 
@@ -242,7 +242,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<VariableElement, VariableLiteral> varLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ExecutableElement, ExecutableLiteral> exeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<Literal, ConcurrentMap<Literal, ElementOfLiteral>> elementLiterals = new ConcurrentHashMap<>();
-            private final ConcurrentMap<Literal, ConcurrentMap<CompoundType.Member, MemberOfLiteral>> memberLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<Literal, ConcurrentMap<StructType.Member, MemberOfLiteral>> memberLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<Literal, ConcurrentMap<Literal, OffsetFromLiteral>> offsetLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
@@ -383,7 +383,7 @@ public interface LiteralFactory {
                 return zeroInitializerLiteralOfType(type);
             }
 
-            public Literal literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
+            public Literal literalOf(final StructType type, final Map<StructType.Member, Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 for (Literal value : values.values()) {
@@ -431,14 +431,14 @@ public interface LiteralFactory {
             }
 
             @Override
-            public MemberOfLiteral memberOfLiteral(Literal structurePointer, CompoundType.Member member) {
+            public MemberOfLiteral memberOfLiteral(Literal structurePointer, StructType.Member member) {
                 Assert.checkNotNullParam("structurePointer", structurePointer);
                 Assert.checkNotNullParam("member", member);
                 ValueType structureType = structurePointer.getPointeeType();
-                if (! (structureType instanceof CompoundType)) {
+                if (! (structureType instanceof StructType)) {
                     throw new IllegalArgumentException("Structure pointer is of wrong type " + structureType);
                 }
-                final ConcurrentMap<CompoundType.Member, MemberOfLiteral> subMap = memberLiterals.computeIfAbsent(structurePointer, LiteralFactory::newMap);
+                final ConcurrentMap<StructType.Member, MemberOfLiteral> subMap = memberLiterals.computeIfAbsent(structurePointer, LiteralFactory::newMap);
                 MemberOfLiteral lit = subMap.get(member);
                 if (lit == null) {
                     lit = new MemberOfLiteral(structurePointer, member);

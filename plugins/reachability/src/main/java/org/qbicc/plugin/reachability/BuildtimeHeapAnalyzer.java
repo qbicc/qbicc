@@ -24,8 +24,7 @@ import org.qbicc.pointer.Pointer;
 import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
-import org.qbicc.type.IntegerType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceArrayObjectType;
@@ -99,7 +98,7 @@ class BuildtimeHeapAnalyzer {
                 analysis.processBuildtimeInstantiatedObjectType(concreteType, rootElement);
 
                 LayoutInfo memLayout = interpreterLayout.getInstanceLayoutInfo(concreteType);
-                for (CompoundType.Member im : memLayout.getCompoundType().getMembers()) {
+                for (StructType.Member im : memLayout.getStructType().getMembers()) {
                     if (im.getType() instanceof ReferenceType) {
                         VmObject child = cur.getMemory().loadRef(im.getOffset(), SinglePlain);
                         if (child != null && !visited.containsKey(child)) {

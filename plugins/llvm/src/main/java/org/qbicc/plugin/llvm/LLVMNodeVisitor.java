@@ -128,7 +128,7 @@ import org.qbicc.plugin.methodinfo.CallSiteInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -892,9 +892,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     }
 
     public LLValue visit(final Set<Value> liveValues, final ExtractMember node) {
-        LLValue compType = map(node.getCompoundType());
-        LLValue comp = map(node.getCompoundValue());
-        LLValue index = map(node.getCompoundType(), node.getMember());
+        LLValue compType = map(node.getStructType());
+        LLValue comp = map(node.getStructValue());
+        LLValue index = map(node.getStructType(), node.getMember());
         return builder.extractvalue(compType, comp).arg(index).setLValue(map(node));
     }
 
@@ -909,7 +909,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
 
     public LLValue visit(final Set<Value> liveValues, final InsertMember node) {
         LLValue compType = map(node.getType());
-        LLValue comp = map(node.getCompoundValue());
+        LLValue comp = map(node.getStructValue());
         LLValue valueType = map(node.getInsertedValue().getType());
         LLValue value = map(node.getInsertedValue());
         LLValue index = map(node.getType(), node.getMember());
@@ -943,11 +943,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     }
 
     public LLValue visit(final Set<Value> liveValues, final MemberOf node) {
-        CompoundType structType = node.getStructType();
+        StructType structType = node.getStructType();
         PointerType pointerType = structType.getPointer();
         LLValue ptr = map(node.getStructurePointer());
         GetElementPtr gep = builder.getelementptr(map(structType), map(pointerType), ptr);
-        CompoundType.Member member = node.getMember();
+        StructType.Member member = node.getMember();
         gep.arg(false, i32, ZERO).arg(false, i32, map(structType, member));
         gep.comment("member " + member.getName());
         return gep.setLValue(map(node));
@@ -1668,7 +1668,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         }
     }
 
-    private LLValue map(CompoundType compoundType, CompoundType.Member member) {
-        return moduleVisitor.map(compoundType, member);
+    private LLValue map(StructType structType, StructType.Member member) {
+        return moduleVisitor.map(structType, member);
     }
 }

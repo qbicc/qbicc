@@ -7,7 +7,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.PointerType;
@@ -36,7 +36,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
                 BasicBlockBuilder fb = getFirstBuilder();
                 Layout layout = Layout.get(ctxt);
                 LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-                PointerType newType = info.getCompoundType().getPointer();
+                PointerType newType = info.getStructType().getPointer();
                 if (value.getType() instanceof PointerType) {
                     return fb.bitCast(value, newType);
                 } else {
@@ -53,16 +53,16 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
             BasicBlockBuilder fb = getFirstBuilder();
             Layout layout = Layout.get(ctxt);
             LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-            PointerType newType = info.getCompoundType().getPointer();
+            PointerType newType = info.getStructType().getPointer();
             return fb.stackAllocate(newType, count, align);
         }
         return super.stackAllocate(type, count, align);
     }
 
     public Value elementOf(Value arrayPointer, Value index) {
-        if (arrayPointer.getPointeeType() instanceof CompoundType ct && ct.getMemberCount() > 0) {
-            // ElementOf a CompoundType -> ElementOf the last Member
-            CompoundType.Member lastMember = ct.getMember(ct.getMemberCount() - 1);
+        if (arrayPointer.getPointeeType() instanceof StructType st && st.getMemberCount() > 0) {
+            // ElementOf a StructType -> ElementOf the last Member
+            StructType.Member lastMember = st.getMember(st.getMemberCount() - 1);
             if (lastMember.getType() instanceof ArrayType) {
                 BasicBlockBuilder fb = getFirstBuilder();
                 return fb.elementOf(fb.memberOf(arrayPointer, lastMember), index);
@@ -85,7 +85,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
             } else {
                 info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
             }
-            return super.decodeReference(reference, info.getCompoundType().getPointer());
+            return super.decodeReference(reference, info.getStructType().getPointer());
         } else {
             return super.decodeReference(reference, pointerType);
         }

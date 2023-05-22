@@ -154,7 +154,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.CompoundType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
@@ -905,8 +905,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 return null;
             } else {
                 // todo: fix by removing types from pointers
-                while (arrayPointer.getType().getPointeeType() instanceof CompoundType ct) {
-                    final CompoundType.Member zeroMember = ct.getMember(0);
+                while (arrayPointer.getType().getPointeeType() instanceof StructType st) {
+                    final StructType.Member zeroMember = st.getMember(0);
                     if (zeroMember.getOffset() != 0) {
                         throw new IllegalStateException();
                     }
@@ -952,7 +952,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl param, ExtractMember node) {
-        Value input = node.getCompoundValue();
+        Value input = node.getStructValue();
         Memory compound = (Memory) require(input);
         ValueType resultType = node.getType();
         int offset = node.getMember().getOffset();
@@ -1852,7 +1852,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ReadAccessMode readAccessMode = node.getReadAccessMode();
         WriteAccessMode writeAccessMode = node.getWriteAccessMode();
         boolean updated;
-        CompoundType resultType = node.getType();
+        StructType resultType = node.getType();
         Memory result = thread.getVM().allocate(resultType, 1);
         if (type instanceof ReferenceType) {
             VmObject expected = (VmObject) require(expect);
@@ -2431,12 +2431,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 memory.storeType(offset, (ValueType) require(value), mode);
             } else if (type instanceof PointerType) {
                 memory.storePointer(offset, unboxPointer(value), mode);
-            } else if (type instanceof CompoundType ct) {
+            } else if (type instanceof StructType st) {
                 Memory source = (Memory) require(value);
                 if (source == null) {
                     throw new Thrown(thread.vm.nullPointerException.newInstance("Invalid memory access"));
                 }
-                source.typedCopyTo(0, memory, offset, ct);
+                source.typedCopyTo(0, memory, offset, st);
             } else if (type instanceof ArrayType at) {
                 Memory source = (Memory) require(value);
                 if (source == null) {

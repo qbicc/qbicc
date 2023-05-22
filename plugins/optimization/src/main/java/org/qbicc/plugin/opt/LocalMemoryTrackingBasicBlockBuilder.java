@@ -25,7 +25,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.type.CompoundType;
 
 /**
  *
