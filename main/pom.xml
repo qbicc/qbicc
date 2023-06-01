@@ -390,6 +390,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-xml</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.sisu</groupId>
             <artifactId>org.eclipse.sisu.inject</artifactId>
         </dependency>
