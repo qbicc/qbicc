@@ -98,7 +98,7 @@ jobs:
         run: find . -type d -name '*-reports' -o -name "*-logs" | tar -czf test-reports.tgz -T -
 
       - name: Upload failure Archive (if maven failed)
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: test-reports
