@@ -725,7 +725,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setContext(ctxt);
         int access = getAccess();
         String superClassName = getSuperClassName();
-        builder.setSuperClassName(getSuperClassName());
+        if ((access & ACC_INTERFACE) == 0) {
+            builder.setSuperClassName(getSuperClassName());
+        }
         int cnt = getInterfaceNameCount();
         for (int i = 0; i < cnt; i ++) {
             builder.addInterfaceName(getInterfaceName(i));
