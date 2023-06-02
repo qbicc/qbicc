@@ -18,7 +18,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
@@ -392,7 +392,7 @@ public interface Node {
                 }
             }
 
-            public Value visit(Copier copier, CompoundLiteral literal) {
+            public Value visit(Copier copier, StructLiteral literal) {
                 Map<StructType.Member, Literal> old = literal.getValues();
                 Map<StructType.Member, Literal> copied = new HashMap<>();
                 for (Map.Entry<StructType.Member, Literal> e : old.entrySet()) {

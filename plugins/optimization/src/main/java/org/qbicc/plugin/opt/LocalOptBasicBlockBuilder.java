@@ -30,7 +30,7 @@ import org.qbicc.graph.WordCastValue;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -104,7 +104,7 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value insertMember(Value compound, StructType.Member member, Value value) {
-        if (compound instanceof CompoundLiteral cl && value instanceof Literal lit) {
+        if (compound instanceof StructLiteral cl && value instanceof Literal lit) {
             final LiteralFactory lf = ctxt.getLiteralFactory();
             final Map<StructType.Member, Literal> values = cl.getValues();
             final HashMap<StructType.Member, Literal> copy = new HashMap<>(values);

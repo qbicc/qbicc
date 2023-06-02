@@ -12,14 +12,14 @@ import org.qbicc.type.StructType;
 /**
  *
  */
-public final class CompoundLiteral extends Literal {
+public final class StructLiteral extends Literal {
 
     private final StructType type;
     private final Map<StructType.Member, Literal> values;
     private final List<Literal> valuesAsList;
     private final int hashCode;
 
-    CompoundLiteral(final StructType type, final Map<StructType.Member, Literal> values) {
+    StructLiteral(final StructType type, final Map<StructType.Member, Literal> values) {
         this.type = type;
         this.values = values;
         hashCode = Objects.hash(type, values);
@@ -63,10 +63,10 @@ public final class CompoundLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof CompoundLiteral && equals((CompoundLiteral) other);
+        return other instanceof StructLiteral && equals((StructLiteral) other);
     }
 
-    public boolean equals(final CompoundLiteral other) {
+    public boolean equals(final StructLiteral other) {
         return this == other || other != null && hashCode == other.hashCode && type.equals(other.type) && values.equals(other.values);
     }
 

@@ -388,7 +388,7 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("values", values);
                 for (Literal value : values.values()) {
                     if (value.isNonZero()) {
-                        return new CompoundLiteral(type, values);
+                        return new StructLiteral(type, values);
                     }
                 }
                 return zeroInitializerLiteralOfType(type);

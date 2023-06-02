@@ -12,7 +12,7 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -104,7 +104,7 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     }
 
     @Override
-    public Value visit(Node.Copier copier, CompoundLiteral literal) {
+    public Value visit(Node.Copier copier, StructLiteral literal) {
         // a compound literal may be composed of literals that must be transformed
         final Map<StructType.Member, Literal> originalValues = literal.getValues();
         final HashMap<StructType.Member, Literal> newMap = new HashMap<>(originalValues.size());
