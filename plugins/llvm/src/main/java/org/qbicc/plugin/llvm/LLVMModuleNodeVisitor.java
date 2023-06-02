@@ -18,7 +18,7 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.FunctionLiteral;
@@ -306,7 +306,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         return Values.byteArray(node.getValues());
     }
 
-    public LLValue visit(final Void param, final CompoundLiteral node) {
+    public LLValue visit(final Void param, final StructLiteral node) {
         StructType type = node.getType();
         Map<StructType.Member, Literal> values = node.getValues();
         // very similar to emitting a struct type, but we don't have to cache the structure offsets

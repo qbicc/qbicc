@@ -121,7 +121,7 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
@@ -951,7 +951,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, CompoundLiteral node) {
+        public Void visit(Disassembler param, StructLiteral node) {
             literal(param, node, "compound " + node.getValues());
             return delegate.visit(param, node);
         }
