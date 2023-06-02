@@ -47,7 +47,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     private final ReachabilityInfo info;
     private final CompilationContext ctxt;
 
-    private final BuildtimeHeapAnalyzer heapAnalyzer = new BuildtimeHeapAnalyzer();
+    private final BuildtimeHeapAnalyzer heapAnalyzer;
 
     // Tracks actually instantiated classes
     private final Set<LoadedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
@@ -61,6 +61,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     RapidTypeAnalysis(ReachabilityInfo info, CompilationContext ctxt) {
         this.info = info;
         this.ctxt = ctxt;
+        heapAnalyzer = new BuildtimeHeapAnalyzer(ctxt);
     }
 
     /*
@@ -80,7 +81,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
     }
 
     public synchronized void processReachableObject(VmObject object, ExecutableElement currentElement) {
-        heapAnalyzer.traceHeap(ctxt, this, object, currentElement);
+        heapAnalyzer.traceHeap(this, object, currentElement);
     }
 
     public synchronized void processReachableRuntimeInitializer(final InitializerElement target, ExecutableElement currentElement) {
@@ -136,7 +137,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
         if (!info.isAccessedStaticField(field)) {
             processReachableType(field.getEnclosingType().load(), null);
             info.addAccessedStaticField(field);
-            heapAnalyzer.traceHeap(ctxt, this, field, currentElement);
+            heapAnalyzer.traceHeap(this, field, currentElement);
         }
     }
 
