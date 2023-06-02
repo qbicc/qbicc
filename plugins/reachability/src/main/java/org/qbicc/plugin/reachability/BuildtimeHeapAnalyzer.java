@@ -58,9 +58,8 @@ class BuildtimeHeapAnalyzer {
     void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, StaticFieldElement f, ExecutableElement currentElement) {
         if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
             Value v = f.getEnclosingType().load().getInitialValue(f);
-            if (v instanceof ObjectLiteral) {
-                VmObject vo = ((ObjectLiteral) v).getValue();
-                traceHeap(ctxt, analysis, vo, currentElement);
+            if (v instanceof ObjectLiteral ol) {
+                traceHeap(ctxt, analysis, ol.getValue(), currentElement);
             }
         }
     }
@@ -108,13 +107,14 @@ class BuildtimeHeapAnalyzer {
                     } else if (im.getType() instanceof PointerType || im.getType().equals(ts.getSignedInteger64Type())) {
                         Pointer pointer = cur.getMemory().loadPointer(im.getOffset(), SinglePlain);
                         if (pointer instanceof StaticMethodPointer smp) {
-                            analysis.processReachableExactInvocation(smp.getStaticMethod(), rootElement);
+                            analysis.processReachableExactInvocation(smp.getExecutableElement(), rootElement);
                         } else if (pointer instanceof StaticFieldPointer sfp) {
                             analysis.processReachableStaticFieldAccess(sfp.getStaticField(), rootElement);
                         } else if (pointer instanceof InstanceMethodPointer imp) {
                             analysis.processReachableExactInvocation(imp.getExecutableElement(), rootElement);
                         } else if (pointer instanceof ConstructorPointer cp) {
                             analysis.processInstantiatedClass(cp.getExecutableElement().getEnclosingType().load(), false, rootElement);
+                            analysis.processReachableExactInvocation(cp.getExecutableElement(), rootElement);
                         }
                     }
                 }
