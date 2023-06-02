@@ -44,7 +44,12 @@ import org.qbicc.type.definition.element.StaticFieldElement;
  * java.lang.Class instances, and java.lang.String instances).
  */
 class BuildtimeHeapAnalyzer {
+    private final CompilationContext ctxt;
     private final Map<VmObject, Boolean> visited = Collections.synchronizedMap(new IdentityHashMap<>());
+
+    BuildtimeHeapAnalyzer(CompilationContext ctxt) {
+        this.ctxt = ctxt;
+    }
 
     void clear() {
         visited.clear();
@@ -55,11 +60,11 @@ class BuildtimeHeapAnalyzer {
      * to identify instantiated types.
      * @param f static field which is the starting point for this trace
      */
-    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, StaticFieldElement f, ExecutableElement currentElement) {
+    void traceHeap(ReachabilityAnalysis analysis, StaticFieldElement f, ExecutableElement currentElement) {
         if (f.isStatic() && f.getType() instanceof ReferenceType && !f.isThreadLocal() && f.getRunTimeInitializer() == null) {
             Value v = f.getEnclosingType().load().getInitialValue(f);
             if (v instanceof ObjectLiteral ol) {
-                traceHeap(ctxt, analysis, ol.getValue(), currentElement);
+                traceHeap(analysis, ol.getValue(), currentElement);
             }
         }
     }
@@ -69,7 +74,7 @@ class BuildtimeHeapAnalyzer {
      * to identify instantiated types.
      * @param root The VmObject which is the starting point for this trace.
      */
-    void traceHeap(CompilationContext ctxt, ReachabilityAnalysis analysis, VmObject root, ExecutableElement rootElement) {
+    void traceHeap(ReachabilityAnalysis analysis, VmObject root, ExecutableElement rootElement) {
         if (visited.containsKey(root)) {
             return;
         }
