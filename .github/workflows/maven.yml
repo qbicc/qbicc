@@ -24,7 +24,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v1.8.0
+        uses: KyleMayes/install-llvm-action@v1.8.1
         with:
           version: ${{ matrix.llvm-version }}
           directory: ${{ runner.temp }}/llvm-install
