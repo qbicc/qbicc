@@ -965,7 +965,7 @@ final class CNativeIntrinsics {
                 // in this case we want bit cast behavior
                 return builder.truncate(input, toType);
             }
-        } else if (toType instanceof IntegerType) {
+        } else if (toType instanceof IntegerType it) {
             if (fromType instanceof IntegerType inputType) {
                 if (toType.getMinBits() > inputType.getMinBits()) {
                     return builder.extend(input, toType);
@@ -974,12 +974,14 @@ final class CNativeIntrinsics {
                 } else {
                     return builder.bitCast(input, toType);
                 }
+            } else if (fromType instanceof FloatType) {
+                return builder.fpToInt(input, it);
             } else if (fromType instanceof WordType) {
                 return builder.valueConvert(input, toType);
             } else {
                 return input;
             }
-        } else if (toType instanceof FloatType) {
+        } else if (toType instanceof FloatType ft) {
             if (fromType instanceof FloatType inputType) {
                 if (toType.getMinBits() > inputType.getMinBits()) {
                     return builder.extend(input, toType);
@@ -988,6 +990,8 @@ final class CNativeIntrinsics {
                 } else {
                     return input;
                 }
+            } else if (fromType instanceof IntegerType) {
+                return builder.intToFp(input, ft);
             } else if (fromType instanceof WordType) {
                 return builder.valueConvert(input, toType);
             } else {

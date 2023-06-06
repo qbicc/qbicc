@@ -1189,34 +1189,34 @@ final class MethodParser {
                         push2(gf.extend(pop1(), ts.getSignedInteger64Type()));
                         break;
                     case OP_I2F:
-                        push1(gf.valueConvert(pop1(), ts.getFloat32Type()));
+                        push1(gf.intToFp(pop1(), ts.getFloat32Type()));
                         break;
                     case OP_I2D:
-                        push2(gf.valueConvert(pop1(), ts.getFloat64Type()));
+                        push2(gf.intToFp(pop1(), ts.getFloat64Type()));
                         break;
                     case OP_L2I:
                         push1(gf.truncate(pop2(), ts.getSignedInteger32Type()));
                         break;
                     case OP_L2F:
-                        push1(gf.valueConvert(pop2(), ts.getFloat32Type()));
+                        push1(gf.intToFp(pop2(), ts.getFloat32Type()));
                         break;
                     case OP_L2D:
-                        push2(gf.valueConvert(pop2(), ts.getFloat64Type()));
+                        push2(gf.intToFp(pop2(), ts.getFloat64Type()));
                         break;
                     case OP_F2I:
-                        push1(gf.valueConvert(pop1(), ts.getSignedInteger32Type()));
+                        push1(gf.fpToInt(pop1(), ts.getSignedInteger32Type()));
                         break;
                     case OP_F2L:
-                        push2(gf.valueConvert(pop1(), ts.getSignedInteger64Type()));
+                        push2(gf.fpToInt(pop1(), ts.getSignedInteger64Type()));
                         break;
                     case OP_F2D:
                         push2(gf.extend(pop1(), ts.getFloat64Type()));
                         break;
                     case OP_D2I:
-                        push1(gf.valueConvert(pop2(), ts.getSignedInteger32Type()));
+                        push1(gf.fpToInt(pop2(), ts.getSignedInteger32Type()));
                         break;
                     case OP_D2L:
-                        push2(gf.valueConvert(pop2(), ts.getSignedInteger64Type()));
+                        push2(gf.fpToInt(pop2(), ts.getSignedInteger64Type()));
                         break;
                     case OP_D2F:
                         push1(gf.truncate(pop2(), ts.getFloat32Type()));

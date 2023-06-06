@@ -23,6 +23,11 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
         return toType;
     }
 
+    @Override
+    public WordType getInputType() {
+        return getInput().getType(WordType.class);
+    }
+
     int calcHashCode() {
         return Objects.hash(getClass(), value, toType);
     }

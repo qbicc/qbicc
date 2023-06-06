@@ -25,6 +25,8 @@ import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -541,6 +543,16 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     @Override
     public Value bitCast(Value value, WordType toType) {
         return super.bitCast(rhs(value), toType);
+    }
+
+    @Override
+    public Value fpToInt(Value value, IntegerType toType) {
+        return super.fpToInt(rhs(value), toType);
+    }
+
+    @Override
+    public Value intToFp(Value value, FloatType toType) {
+        return super.intToFp(rhs(value), toType);
     }
 
     @Override

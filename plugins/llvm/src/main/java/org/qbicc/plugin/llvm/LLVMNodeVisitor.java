@@ -45,10 +45,12 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
+import org.qbicc.graph.FpToInt;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
+import org.qbicc.graph.IntToFp;
 import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
@@ -834,24 +836,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
                 return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
             }
             // else invalid
-        } else if (javaInputType instanceof FloatType) {
-            if (javaOutputType instanceof SignedIntegerType) {
-                return builder.fptosi(inputType, llvmInput, outputType).setLValue(map(node));
-            } else if (javaOutputType instanceof UnsignedIntegerType) {
-                return builder.fptoui(inputType, llvmInput, outputType).setLValue(map(node));
-            }
-            // else invalid
         } else if (javaInputType instanceof IntegerType) {
             if (javaOutputType instanceof PointerType || javaOutputType instanceof ReferenceType) {
                 return builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
-            } else if (javaInputType instanceof SignedIntegerType) {
-                if (javaOutputType instanceof FloatType) {
-                    return builder.sitofp(inputType, llvmInput, outputType).setLValue(map(node));
-                }
-            } else if (javaInputType instanceof UnsignedIntegerType) {
-                if (javaOutputType instanceof FloatType) {
-                    return builder.uitofp(inputType, llvmInput, outputType).setLValue(map(node));
-                }
             }
             // else invalid
         }
@@ -896,6 +883,40 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         LLValue comp = map(node.getStructValue());
         LLValue index = map(node.getStructType(), node.getMember());
         return builder.extractvalue(compType, comp).arg(index).setLValue(map(node));
+    }
+
+    @Override
+    public LLValue visit(Set<Value> values, FpToInt node) {
+        Type javaInputType = node.getInput().getType();
+        IntegerType javaOutputType = node.getType();
+        LLValue inputType = map(javaInputType);
+        LLValue outputType = map(javaOutputType);
+        LLValue llvmInput = map(node.getInput());
+        if (javaOutputType instanceof SignedIntegerType) {
+            return builder.fptosi(inputType, llvmInput, outputType).setLValue(map(node));
+        } else if (javaOutputType instanceof UnsignedIntegerType) {
+            return builder.fptoui(inputType, llvmInput, outputType).setLValue(map(node));
+        } else {
+            ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
+            return llvmInput;
+        }
+    }
+
+    @Override
+    public LLValue visit(Set<Value> values, IntToFp node) {
+        Type javaInputType = node.getInput().getType();
+        FloatType javaOutputType = node.getType();
+        LLValue inputType = map(javaInputType);
+        LLValue outputType = map(javaOutputType);
+        LLValue llvmInput = map(node.getInput());
+        if (javaInputType instanceof SignedIntegerType) {
+            return builder.sitofp(inputType, llvmInput, outputType).setLValue(map(node));
+        } else if (javaInputType instanceof UnsignedIntegerType) {
+            return builder.uitofp(inputType, llvmInput, outputType).setLValue(map(node));
+        } else {
+            ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
+            return llvmInput;
+        }
     }
 
     public LLValue visit(final Set<Value> liveValues, final InsertElement node) {

@@ -676,6 +676,10 @@ public interface Node {
                 return param.getBlockBuilder().extractMember(param.copyValue(node.getStructValue()), node.getMember());
             }
 
+            public Value visit(final Copier copier, final FpToInt node) {
+                return copier.getBlockBuilder().fpToInt(copier.copyValue(node.getInput()), node.getType());
+            }
+
             public Value visit(final Copier param, final InsertElement node) {
                 return param.getBlockBuilder().insertElement(param.copyValue(node.getArrayValue()), param.copyValue(node.getIndex()), param.copyValue(node.getInsertedValue()));
             }
@@ -692,6 +696,10 @@ public interface Node {
             public Value visit(final Copier copier, final InterfaceMethodLookup node) {
                 copier.copyNode(node.getDependency());
                 return copier.getBlockBuilder().lookupInterfaceMethod(copier.copyValue(node.getReference()), node.getMethod());
+            }
+
+            public Value visit(final Copier copier, final IntToFp node) {
+                return copier.getBlockBuilder().intToFp(copier.copyValue(node.getInput()), node.getType());
             }
 
             public Value visit(final Copier param, final IsEq node) {

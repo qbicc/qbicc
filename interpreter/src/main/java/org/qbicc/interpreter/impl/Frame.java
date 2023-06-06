@@ -48,12 +48,14 @@ import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
+import org.qbicc.graph.FpToInt;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InitCheck;
 import org.qbicc.graph.InitializeClass;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.InstanceOf;
+import org.qbicc.graph.IntToFp;
 import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
@@ -698,98 +700,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         Value input = node.getInput();
         WordType inputType = (WordType) input.getType();
         WordType outputType = node.getType();
-        if (isSigned(inputType)) {
-            if (isInt64(inputType)) {
-                if (isFloat32(outputType)) {
-                    return box((float) unboxLong(input), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box((double) unboxLong(input), outputType);
-                } else if (isPointer(outputType)) {
-                    Object val = require(node.getInput());
-                    if (val instanceof Pointer ptr) {
-                        return ptr;
-                    } else if (val instanceof Number num) {
-                        PointerType voidPtr = thread.vm.getCompilationContext().getTypeSystem().getVoidType().getPointer();
-                        return new IntegerAsPointer(voidPtr, num.longValue());
-                    }
-                }
-            } else if (isInteger(inputType)) {
-                if (isFloat32(outputType)) {
-                    return box((float) unboxInt(input), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box((double) unboxInt(input), outputType);
-                }
-            }
-        } else if (isUnsigned(inputType)) {
-            if (isInt64(inputType)) {
-                // todo: this may or may not be right re: rounding...
-                long inLong = unboxLong(input);
-                if (isFloat32(outputType)) {
-                    return box(Math.fma((float) (inLong >>> 1L), 2f, (float) (inLong & 1)), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box(Math.fma((double) (inLong >>> 1L), 2f, (double) (inLong & 1)), outputType);
-                }
-            } else if (isInt32(inputType)) {
-                if (isFloat32(outputType)) {
-                    return box((float) (unboxLong(input) & 0xffff_ffffL), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box((double) (unboxLong(input) & 0xffff_ffffL), outputType);
-                }
-            } else if (isInt16(inputType)) {
-                if (isFloat32(outputType)) {
-                    return box((float) (unboxInt(input) & 0xffff), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box((double) (unboxInt(input) & 0xffff), outputType);
-                }
-            } else if (isInt8(inputType)) {
-                if (isFloat32(outputType)) {
-                    return box((float) (unboxInt(input) & 0xff), outputType);
-                } else if (isFloat64(outputType)) {
-                    return box((double) (unboxInt(input) & 0xff), outputType);
-                }
-            }
-        } else if (isFloat32(inputType)) {
-            if (isSigned(outputType)) {
-                if (isInt64(outputType)) {
-                    return box((long) unboxFloat(input), outputType);
-                } else if (isInt32(outputType)) {
-                    return box((int) unboxFloat(input), outputType);
-                } else if (isInt16(outputType)) {
-                    return box((short) unboxFloat(input), outputType);
-                } else if (isInt8(outputType)) {
-                    return box((byte) unboxFloat(input), outputType);
-                }
-            } else if (isUnsigned(outputType)) {
-                if (isInt64(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
-                } else if (isInt32(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
-                } else if (isInt16(outputType)) {
-                    return box((char) unboxFloat(input), outputType);
-                } else if (isInt8(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
-                }
-            }
-        } else if (isFloat64(inputType)) {
-            if (isSigned(outputType)) {
-                if (isInt64(outputType)) {
-                    return box((long) unboxDouble(input), outputType);
-                } else if (isInt32(outputType)) {
-                    return box((int) unboxDouble(input), outputType);
-                } else if (isInt16(outputType)) {
-                    return box((short) unboxDouble(input), outputType);
-                } else if (isInt8(outputType)) {
-                    return box((byte) unboxDouble(input), outputType);
-                }
-            } else if (isUnsigned(outputType)) {
-                if (isInt64(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
-                } else if (isInt32(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
-                } else if (isInt16(outputType)) {
-                    return box((char) unboxDouble(input), outputType);
-                } else if (isInt8(outputType)) {
-                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+        if (isInt64(inputType)) {
+            if (isPointer(outputType)) {
+                Object val = require(node.getInput());
+                if (val instanceof Pointer ptr) {
+                    return ptr;
+                } else if (val instanceof Number num) {
+                    PointerType voidPtr = thread.vm.getCompilationContext().getTypeSystem().getVoidType().getPointer();
+                    return new IntegerAsPointer(voidPtr, num.longValue());
                 }
             }
         } else if (inputType.equals(outputType)) {
@@ -980,6 +898,59 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
+    public Object visit(VmThreadImpl vmThread, FpToInt node) {
+        Value input = node.getInput();
+        FloatType inputType = (FloatType) input.getType();
+        IntegerType outputType = node.getType();
+        if (isFloat32(inputType)) {
+            if (isSigned(outputType)) {
+                if (isInt64(outputType)) {
+                    return box((long) unboxFloat(input), outputType);
+                } else if (isInt32(outputType)) {
+                    return box((int) unboxFloat(input), outputType);
+                } else if (isInt16(outputType)) {
+                    return box((short) unboxFloat(input), outputType);
+                } else if (isInt8(outputType)) {
+                    return box((byte) unboxFloat(input), outputType);
+                }
+            } else if (isUnsigned(outputType)) {
+                if (isInt64(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                } else if (isInt32(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                } else if (isInt16(outputType)) {
+                    return box((char) unboxFloat(input), outputType);
+                } else if (isInt8(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                }
+            }
+        } else if (isFloat64(inputType)) {
+            if (isSigned(outputType)) {
+                if (isInt64(outputType)) {
+                    return box((long) unboxDouble(input), outputType);
+                } else if (isInt32(outputType)) {
+                    return box((int) unboxDouble(input), outputType);
+                } else if (isInt16(outputType)) {
+                    return box((short) unboxDouble(input), outputType);
+                } else if (isInt8(outputType)) {
+                    return box((byte) unboxDouble(input), outputType);
+                }
+            } else if (isUnsigned(outputType)) {
+                if (isInt64(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                } else if (isInt32(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                } else if (isInt16(outputType)) {
+                    return box((char) unboxDouble(input), outputType);
+                } else if (isInt8(outputType)) {
+                    throw new UnsupportedOperationException("Unsupported conversion (will implement later)");
+                }
+            }
+        }
+        throw new IllegalStateException("Invalid cast");
+    }
+
+    @Override
     public Object visit(VmThreadImpl vmThread, InstanceFieldOf node) {
         Value instance = node.getInstance();
         Pointer pointer = unboxPointer(instance);
@@ -1007,6 +978,57 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(objType.isSubtypeOf(checkType));
         }
         return Boolean.FALSE;
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, IntToFp node) {
+        Value input = node.getInput();
+        IntegerType inputType = (IntegerType) input.getType();
+        FloatType outputType = node.getType();
+        if (isSigned(inputType)) {
+            if (isInt64(inputType)) {
+                if (isFloat32(outputType)) {
+                    return box((float) unboxLong(input), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box((double) unboxLong(input), outputType);
+                }
+            } else if (isInteger(inputType)) {
+                if (isFloat32(outputType)) {
+                    return box((float) unboxInt(input), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box((double) unboxInt(input), outputType);
+                }
+            }
+        } else if (isUnsigned(inputType)) {
+            if (isInt64(inputType)) {
+                // todo: this may or may not be right re: rounding...
+                long inLong = unboxLong(input);
+                if (isFloat32(outputType)) {
+                    return box(Math.fma((float) (inLong >>> 1L), 2f, (float) (inLong & 1)), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box(Math.fma((double) (inLong >>> 1L), 2f, (double) (inLong & 1)), outputType);
+                }
+            } else if (isInt32(inputType)) {
+                if (isFloat32(outputType)) {
+                    return box((float) (unboxLong(input) & 0xffff_ffffL), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box((double) (unboxLong(input) & 0xffff_ffffL), outputType);
+                }
+            } else if (isInt16(inputType)) {
+                if (isFloat32(outputType)) {
+                    return box((float) (unboxInt(input) & 0xffff), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box((double) (unboxInt(input) & 0xffff), outputType);
+                }
+            } else if (isInt8(inputType)) {
+                if (isFloat32(outputType)) {
+                    return box((float) (unboxInt(input) & 0xff), outputType);
+                } else if (isFloat64(outputType)) {
+                    return box((double) (unboxInt(input) & 0xff), outputType);
+                }
+            }
+        }
+        throw new IllegalStateException("Invalid cast");
     }
 
     @Override
