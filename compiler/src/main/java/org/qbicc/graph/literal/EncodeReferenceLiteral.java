@@ -1,14 +1,16 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
-import org.qbicc.type.WordType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 
-public class ValueConvertLiteral extends Literal {
+public final class EncodeReferenceLiteral extends Literal {
     final Literal value;
-    final WordType toType;
+    final ReferenceType toType;
 
-    ValueConvertLiteral(final Literal value, final WordType toType) {
+    EncodeReferenceLiteral(final Literal value, final ReferenceType toType) {
         this.value = value;
+        value.getType(PointerType.class);
         this.toType = toType;
     }
 
@@ -25,8 +27,12 @@ public class ValueConvertLiteral extends Literal {
         };
     }
 
-    public WordType getType() {
+    public ReferenceType getType() {
         return toType;
+    }
+
+    public PointerType getInputType() {
+        return value.getType(PointerType.class);
     }
 
     public Literal getValue() { return value; }
@@ -36,10 +42,10 @@ public class ValueConvertLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof ValueConvertLiteral && equals((ValueConvertLiteral) other);
+        return other instanceof EncodeReferenceLiteral && equals((EncodeReferenceLiteral) other);
     }
 
-    public boolean equals(final ValueConvertLiteral other) {
+    public boolean equals(final EncodeReferenceLiteral other) {
         return other == this || other != null && toType.equals(other.toType) && value.equals(other.value);
     }
 
@@ -56,7 +62,7 @@ public class ValueConvertLiteral extends Literal {
 
     @Override
     public StringBuilder toString(StringBuilder b) {
-        b.append("convert").append("(");
+        b.append("encode").append("(");
         value.toString(b);
         b.append(" to ");
         toType.toString(b);

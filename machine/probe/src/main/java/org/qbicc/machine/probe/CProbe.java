@@ -814,7 +814,7 @@ public final class CProbe {
                 if (hasSymbol()) {
                     throw new UnsupportedOperationException("TODO: pointer values with a symbol base");
                 } else {
-                    return lf.valueConvertLiteral(lf.literalOf(getSize() <= 4 ? ts.getSignedInteger32Type() : ts.getSignedInteger64Type(), getValueAsSignedLong()), pt);
+                    return lf.bitcastLiteral(lf.literalOf(pt.getSameSizedSignedInteger(), getValueAsSignedLong()), pt);
                 }
             } else {
                 ValueType naturalType = getValueType(ts);

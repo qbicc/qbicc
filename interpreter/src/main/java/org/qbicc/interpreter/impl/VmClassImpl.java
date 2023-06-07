@@ -540,7 +540,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
                         if (value == null) {
                             yield lf.zeroInitializerLiteralOfType(sit);
                         } else {
-                            yield lf.valueConvertLiteral(lf.literalOf(value), sit);
+                            yield lf.bitcastLiteral(lf.literalOf(value), sit);
                         }
                     }
                 }

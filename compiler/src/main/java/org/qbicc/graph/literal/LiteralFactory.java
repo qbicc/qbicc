@@ -26,6 +26,7 @@ import org.qbicc.pointer.StaticFieldPointer;
 import org.qbicc.pointer.StaticMethodPointer;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -100,7 +101,11 @@ public interface LiteralFactory {
 
     Literal bitcastLiteral(Literal value, WordType toType);
 
-    Literal valueConvertLiteral(Literal value, WordType toType);
+    Literal encodeReferenceLiteral(Literal value, ReferenceType toType);
+
+    default Literal encodeReferenceLiteral(Literal value) {
+        return encodeReferenceLiteral(value, value.getPointeeType(PhysicalObjectType.class).getReference());
+    }
 
     ElementOfLiteral elementOfLiteral(Literal arrayPointer, Literal index);
 
@@ -400,10 +405,11 @@ public interface LiteralFactory {
                 return value.bitCast(this, toType);
             }
 
-            public Literal valueConvertLiteral(final Literal value, final WordType toType) {
+            @Override
+            public Literal encodeReferenceLiteral(Literal value, ReferenceType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
-                return value.convert(this, toType);
+                return new EncodeReferenceLiteral(value, toType);
             }
 
             @Override
