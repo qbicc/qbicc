@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -61,6 +62,11 @@ public final class DecodeReference extends AbstractValue implements WordCastValu
     @Override
     public PointerType getType() {
         return valueType;
+    }
+
+    @Override
+    public ReferenceType getInputType() {
+        return reference.getType(ReferenceType.class);
     }
 
     @Override

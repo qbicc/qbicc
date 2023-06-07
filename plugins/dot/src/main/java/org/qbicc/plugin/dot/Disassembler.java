@@ -19,6 +19,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
+import org.qbicc.graph.FpToInt;
+import org.qbicc.graph.IntToFp;
 import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.PointerDifference;
 import org.qbicc.graph.ThreadBound;
@@ -900,6 +902,22 @@ public final class Disassembler {
                 , node.getType()
                 , show(node.getInput())
             );
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, FpToInt node) {
+            final String id = param.nextId();
+            final String description = "fp to int " + show(node.getInput());
+            param.nodeInfo.put(node, new NodeInfo(id, description));
+            return delegate.visit(param, node);
+        }
+
+        @Override
+        public Void visit(Disassembler param, IntToFp node) {
+            final String id = param.nextId();
+            final String description = "int to fp " + show(node.getInput());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

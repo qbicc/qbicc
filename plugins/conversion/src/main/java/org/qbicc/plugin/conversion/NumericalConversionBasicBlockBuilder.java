@@ -209,9 +209,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toTypeRaw);
             }
         } else if (fromTypeRaw instanceof IntegerType) {
-            if (toTypeRaw instanceof FloatType) {
+            if (toTypeRaw instanceof FloatType ft) {
                 // no bounds check needed in this case
-                return super.valueConvert(from, toTypeRaw);
+                return super.intToFp(from, ft);
             } else if (toTypeRaw instanceof PointerType) {
                 // pointer conversions are allowed
                 if (fromTypeRaw.getSize() < toTypeRaw.getSize()) {

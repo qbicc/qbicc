@@ -12,6 +12,8 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -536,6 +538,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value bitCast(final Value value, final WordType toType) {
         return getDelegate().bitCast(value, toType);
+    }
+
+    public Value fpToInt(final Value value, final IntegerType toType) {
+        return getDelegate().fpToInt(value, toType);
+    }
+
+    public Value intToFp(final Value value, final FloatType toType) {
+        return getDelegate().intToFp(value, toType);
     }
 
     public Value valueConvert(final Value value, final WordType toType) {

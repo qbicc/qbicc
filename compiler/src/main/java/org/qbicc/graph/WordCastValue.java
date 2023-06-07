@@ -1,10 +1,16 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 
 /**
  *
  */
 public interface WordCastValue extends CastValue {
-    ValueType getType();
+    WordType getType();
+
+    WordType getInputType();
+
+    default <W extends WordType> W getInputType(Class<W> type) {
+        return getInput().getType(type);
+    }
 }

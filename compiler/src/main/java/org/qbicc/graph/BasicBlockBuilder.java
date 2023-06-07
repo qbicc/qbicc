@@ -20,6 +20,8 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.NullableType;
@@ -375,6 +377,10 @@ public interface BasicBlockBuilder extends Locatable {
     Value extend(Value value, WordType toType);
 
     Value bitCast(Value value, WordType toType);
+
+    Value fpToInt(Value value, IntegerType toType);
+
+    Value intToFp(Value value, FloatType toType);
 
     Value valueConvert(Value value, WordType toType);
 

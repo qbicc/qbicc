@@ -151,6 +151,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, FpToInt node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, InsertElement node) {
         return visitUnknown(t, node);
     }
@@ -168,6 +172,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
     }
 
     default R visit(T t, InterfaceMethodLookup node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, IntToFp node) {
         return visitUnknown(t, node);
     }
 
@@ -426,6 +434,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
+        default R visit(T t, FpToInt node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
         default R visit(T t, InsertElement node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -443,6 +455,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, InterfaceMethodLookup node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, IntToFp node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

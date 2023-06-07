@@ -22,6 +22,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
@@ -394,6 +395,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value bitCast(final Value value, final WordType toType) {
         return unique(new BitCast(callSite, element, line, bci, value, toType));
+    }
+
+    public Value fpToInt(final Value value, final IntegerType toType) {
+        return unique(new FpToInt(callSite, element, line, bci, value, toType));
+    }
+
+    public Value intToFp(final Value value, final FloatType toType) {
+        return unique(new IntToFp(callSite, element, line, bci, value, toType));
     }
 
     public Value valueConvert(final Value value, final WordType toType) {
