@@ -48,6 +48,10 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, EncodeReferenceLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, FloatLiteral literal) {
         return visitAny(t, literal);
     }
@@ -120,10 +124,6 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
-    default R visit(T t, ValueConvertLiteral literal) {
-        return visitAny(t, literal);
-    }
-
     default R visit(T t, ZeroInitializerLiteral literal) {
         return visitAny(t, literal);
     }
@@ -168,6 +168,10 @@ public interface LiteralVisitor<T, R> {
         }
 
         default R visit(T t, ElementOfLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, EncodeReferenceLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 
@@ -240,10 +244,6 @@ public interface LiteralVisitor<T, R> {
         }
 
         default R visit(T t, UndefinedLiteral literal) {
-            return getDelegateLiteralVisitor().visit(t, literal);
-        }
-
-        default R visit(T t, ValueConvertLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 

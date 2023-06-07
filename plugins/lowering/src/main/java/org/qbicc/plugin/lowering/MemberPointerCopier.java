@@ -12,6 +12,7 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
+import org.qbicc.graph.literal.EncodeReferenceLiteral;
 import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.GlobalVariableLiteral;
@@ -19,7 +20,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
-import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
@@ -71,8 +71,8 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     }
 
     @Override
-    public Value visit(Node.Copier copier, ValueConvertLiteral literal) {
-        return ctxt.getLiteralFactory().valueConvertLiteral((Literal) copier.copyValue(literal.getValue()), literal.getType());
+    public Value visit(Node.Copier copier, EncodeReferenceLiteral literal) {
+        return ctxt.getLiteralFactory().encodeReferenceLiteral((Literal) copier.copyValue(literal.getValue()), literal.getType());
     }
 
     @Override

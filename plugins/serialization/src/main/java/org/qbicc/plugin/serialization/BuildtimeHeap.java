@@ -377,7 +377,11 @@ public class BuildtimeHeap {
             int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
             // todo: change to offset-from classes segment
             Literal elem = lf.elementOfLiteral(lf.literalOf(d), lf.literalOf(typeId));
-            return lf.valueConvertLiteral(elem, desiredType);
+            if (desiredType instanceof ReferenceType rt) {
+                return lf.encodeReferenceLiteral(elem, rt);
+            } else {
+                return lf.bitcastLiteral(elem, desiredType);
+            }
         } else {
             DataDeclaration objDecl = vmObjects.get(value);
             if (objDecl == null) {
@@ -385,7 +389,11 @@ public class BuildtimeHeap {
                 return lf.nullLiteralOfType(desiredType);
             }
             DataDeclaration decl = from.declareData(objDecl);
-            return lf.valueConvertLiteral(lf.literalOf(decl), desiredType);
+            if (desiredType instanceof ReferenceType rt) {
+                return lf.encodeReferenceLiteral(lf.literalOf(decl), rt);
+            } else {
+                return lf.bitcastLiteral(lf.literalOf(decl), desiredType);
+            }
         }
     }
 
@@ -569,19 +577,19 @@ public class BuildtimeHeap {
                         ctxt.enqueue(method);
                         Function function = ctxt.getExactFunction(method);
                         FunctionDeclaration decl = into.getProgramModule().declareFunction(function);
-                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
+                        memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof StaticFieldPointer sfp) {
                         // lower static field pointers to their corresponding program objects
                         StaticFieldElement sfe = sfp.getStaticField();
                         GlobalVariableElement global = getGlobalForStaticField(sfe);
                         DataDeclaration decl = into.getProgramModule().declareData(sfe, global.getName(), global.getType());
-                        memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
+                        memberMap.put(om, lf.bitcastLiteral(lf.literalOf(ProgramObjectPointer.of(decl)), it));
                     } else if (asPointerVal instanceof GlobalPointer gp) {
                         Memory m = ctxt.getVm().getGlobal(gp.getGlobalVariable());
                         if (m instanceof ByteArrayMemory bam) {
                             // Support serializing "native" memory allocated by Unsafe.allocateMemory0
                             DataDeclaration memDecl = serializeNativeMemory(gp.getGlobalVariable(), bam.getArray(), objectSection);
-                            memberMap.put(om, lf.valueConvertLiteral(lf.literalOf(memDecl), it));
+                            memberMap.put(om, lf.bitcastLiteral(lf.literalOf(memDecl), it));
                         } else {
                             ctxt.error(f.getLocation(), "An object contains an unlowerable pointer: %s", gp);
                         }

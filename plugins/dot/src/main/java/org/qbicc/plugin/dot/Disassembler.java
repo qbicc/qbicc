@@ -123,6 +123,7 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.EncodeReferenceLiteral;
 import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.ConstructorLiteral;
@@ -143,7 +144,6 @@ import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
-import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
@@ -987,6 +987,12 @@ public final class Disassembler {
         }
 
         @Override
+        public Void visit(Disassembler param, EncodeReferenceLiteral node) {
+            literal(param, node, "encode →" + node.getType().toString());
+            return delegate.visit(param, node);
+        }
+
+        @Override
         public Void visit(Disassembler param, FloatLiteral node) {
             literal(param, node, String.valueOf(node.doubleValue()));
             return delegate.visit(param, node);
@@ -1043,12 +1049,6 @@ public final class Disassembler {
         @Override
         public Void visit(Disassembler param, UndefinedLiteral node) {
             literal(param, node, "undef");
-            return delegate.visit(param, node);
-        }
-
-        @Override
-        public Void visit(Disassembler param, ValueConvertLiteral node) {
-            literal(param, node, "convert →" + node.getType().toString());
             return delegate.visit(param, node);
         }
 

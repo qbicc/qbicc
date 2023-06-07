@@ -105,10 +105,6 @@ public abstract class Literal implements Unschedulable, Value {
         return(ImmutableMap<WordType, BitCastLiteral>) bitCastLiteralsHandle.compareAndExchange(this, expected, update);
     }
 
-    Literal convert(final LiteralFactory lf, final WordType toType) {
-        return new ValueConvertLiteral(this, toType);
-    }
-
     @Override
     public final <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return accept((LiteralVisitor<T, R>) visitor, param);

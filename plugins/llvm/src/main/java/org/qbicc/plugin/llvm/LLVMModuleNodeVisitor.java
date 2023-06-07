@@ -18,6 +18,7 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.EncodeReferenceLiteral;
 import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -34,7 +35,6 @@ import org.qbicc.graph.literal.ShortArrayLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
-import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.machine.llvm.Array;
 import org.qbicc.machine.llvm.Function;
@@ -52,6 +52,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BlockType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -268,38 +269,25 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         LLValue toType = map(outputType);
         if (fromType.equals(toType)) {
             return input;
+        } else if (inputType instanceof IntegerType && outputType instanceof NullableType) {
+            return Values.inttoptrConstant(input, fromType, toType);
+        } else if (inputType instanceof NullableType && outputType instanceof IntegerType) {
+            return Values.ptrtointConstant(input, fromType, toType);
+        } else {
+            return Values.bitcastConstant(input, fromType, toType);
         }
-
-        return Values.bitcastConstant(input, fromType, toType);
     }
 
-    public LLValue visit(final Void param, final ValueConvertLiteral node) {
+    public LLValue visit(final Void param, final EncodeReferenceLiteral node) {
         LLValue input = map(node.getValue());
-        ValueType inputType = node.getValue().getType();
+        PointerType inputType = node.getInputType();
         LLValue fromType = map(inputType);
-        WordType outputType = node.getType();
+        ReferenceType outputType = node.getType();
         LLValue toType = map(outputType);
-        if (fromType.equals(toType)) {
-            return input;
-        }
-
-        if (inputType instanceof IntegerType && outputType instanceof PointerType) {
-            return Values.inttoptrConstant(input, fromType, toType);
-        } else if (inputType instanceof PointerType && outputType instanceof IntegerType) {
-            return Values.ptrtointConstant(input, fromType, toType);
-        } else if (inputType instanceof ReferenceType && outputType instanceof PointerType) {
-            return switch (config.getReferenceStrategy()) {
-                case POINTER -> input;
-                case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
-            };
-        } else if (inputType instanceof PointerType && outputType instanceof ReferenceType) {
-            return switch (config.getReferenceStrategy()) {
-                case POINTER -> input;
-                case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
-            };
-        }
-        // todo: add signed/unsigned int <-> fp
-        return visitAny(param, node);
+        return switch (config.getReferenceStrategy()) {
+            case POINTER -> input;
+            case POINTER_AS1 -> Values.addrspacecastConstant(input, fromType, toType);
+        };
     }
 
     public LLValue visit(final Void param, final ByteArrayLiteral node) {

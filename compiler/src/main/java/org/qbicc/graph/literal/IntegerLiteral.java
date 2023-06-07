@@ -1,12 +1,10 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
-import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.WordType;
 
 public final class IntegerLiteral extends WordLiteral {
@@ -70,22 +68,6 @@ public final class IntegerLiteral extends WordLiteral {
             return lf.nullLiteralOfType((NullableType) toType);
         }
         return super.bitCast(lf, toType);
-    }
-
-    @Override
-    Literal convert(LiteralFactory lf, WordType toType) {
-        if (toType instanceof FloatType) {
-            if (type instanceof UnsignedIntegerType && type.getMinBits() == 64) {
-                return lf.literalOf((FloatType) toType, (double) (value >>> 1) * 2.0);
-            } else {
-                return lf.literalOf((FloatType) toType, (double) value);
-            }
-        } else if (toType instanceof BooleanType) {
-            return lf.literalOf((value & 1) != 0);
-        } else if (toType instanceof IntegerType it && it.getSize() == type.getSize()) {
-            return bitCast(lf, toType);
-        }
-        return super.convert(lf, toType);
     }
 
     public <T, R> R accept(final LiteralVisitor<T, R> visitor, final T param) {

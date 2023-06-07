@@ -18,12 +18,12 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.EncodeReferenceLiteral;
 import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
-import org.qbicc.graph.literal.ValueConvertLiteral;
 import org.qbicc.graph.schedule.Util;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ReferenceType;
@@ -411,6 +411,15 @@ public interface Node {
                 }
             }
 
+            public Value visit(Copier copier, EncodeReferenceLiteral literal) {
+                Literal value = (Literal)copier.copyValue(literal.getValue());
+                if (value == literal.getValue()) {
+                    return literal;
+                } else {
+                    return copier.getBlockBuilder().getLiteralFactory().encodeReferenceLiteral(value, literal.getType());
+                }
+            }
+
             public Value visit(Copier copier, OffsetFromLiteral literal) {
                 Literal basePointer = (Literal)copier.copyValue(literal.getBasePointer());
                 Literal offset = (Literal)copier.copyValue(literal.getOffset());
@@ -428,15 +437,6 @@ public interface Node {
                     return literal;
                 } else {
                     return copier.getBlockBuilder().getLiteralFactory().memberOfLiteral(structPointer, literal.getMember());
-                }
-            }
-
-            public Value visit(Copier copier, ValueConvertLiteral literal) {
-                Literal value = (Literal)copier.copyValue(literal.getValue());
-                if (value == literal.getValue()) {
-                    return literal;
-                } else {
-                    return copier.getBlockBuilder().getLiteralFactory().valueConvertLiteral(value, literal.getType());
                 }
             }
 
