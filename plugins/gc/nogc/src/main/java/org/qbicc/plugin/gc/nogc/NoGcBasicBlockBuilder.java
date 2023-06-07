@@ -44,7 +44,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
             if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
                 StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getStructType();
-                refVal = valueConvert(stackAllocate(structType, lf.literalOf(1), align), type.getReference());
+                refVal = encodeReference(stackAllocate(structType, lf.literalOf(1), align), type.getReference());
             }
         }
         if (refVal == null) {
@@ -64,8 +64,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value newArray(final PrimitiveArrayObjectType arrayType, Value size) {
         LoadedTypeDefinition ltd = coreClasses.getArrayContentField(arrayType).getEnclosingType().load();
         StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(ltd).getStructType();
-        Value ptrVal = allocateArray(structType, size, arrayType.getElementType().getSize());
-        Value oop = valueConvert(ptrVal, arrayType.getReference());
+        Value allocatedRef = allocateArray(structType, size, arrayType.getElementType().getSize());
+        Value oop = bitCast(allocatedRef, arrayType.getReference());
         BasicHeaderInitializer.initializeArrayHeader(ctxt, this, decodeReference(oop), ctxt.getLiteralFactory().literalOfType(ltd.getClassType()), size);
         return oop;
     }
@@ -75,8 +75,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Layout layout = Layout.get(ctxt);
         LayoutInfo info = layout.getInstanceLayoutInfo(coreClasses.getRefArrayContentField().getEnclosingType());
         StructType structType = info.getStructType();
-        Value ptrVal = allocateArray(structType, size, ctxt.getTypeSystem().getReferenceSize());
-        Value oop = valueConvert(ptrVal, arrayType.getReference());
+        Value allocatedRef = allocateArray(structType, size, ctxt.getTypeSystem().getReferenceSize());
+        Value oop = bitCast(allocatedRef, arrayType.getReference());
         BasicHeaderInitializer.initializeRefArrayHeader(ctxt, this, decodeReference(oop), elemTypeId, dimensions, size);
         return oop;
     }

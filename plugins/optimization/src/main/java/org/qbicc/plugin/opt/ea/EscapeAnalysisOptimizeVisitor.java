@@ -100,7 +100,7 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
         IntegerLiteral align = lf.literalOf(structType.getAlign());
 
         Value ptrVal = bbb.stackAllocate(structType, lf.literalOf(1), align);
-        Value oop = bbb.valueConvert(ptrVal, type.getReference());
+        Value oop = bbb.encodeReference(ptrVal, type.getReference());
         // zero initialize the object's instance fields
         initializeObjectFieldsToZero(info, lf, oop, bbb);
         // initialize object header

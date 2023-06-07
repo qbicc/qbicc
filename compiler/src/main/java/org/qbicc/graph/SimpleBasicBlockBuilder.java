@@ -405,13 +405,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new IntToFp(callSite, element, line, bci, value, toType));
     }
 
-    public Value valueConvert(final Value value, final WordType toType) {
-        return unique(new Convert(callSite, element, line, bci, value, toType));
-    }
-
     public Value decodeReference(Value refVal, PointerType pointerType) {
         // not asDependency() because the dependency may precede the required dependency
         return unique(new DecodeReference(callSite, element, line, bci, requireDependency(), refVal, pointerType));
+    }
+
+    public Value encodeReference(Value pointer, ReferenceType referenceType) {
+        // not asDependency() because the dependency may precede the required dependency
+        return unique(new EncodeReference(callSite, element, line, bci, requireDependency(), pointer, referenceType));
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {

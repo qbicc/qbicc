@@ -382,8 +382,6 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value intToFp(Value value, FloatType toType);
 
-    Value valueConvert(Value value, WordType toType);
-
     /**
      * Decode a reference into a pointer of the given type.
      *
@@ -404,6 +402,26 @@ public interface BasicBlockBuilder extends Locatable {
     default Value decodeReference(Value refVal) {
         ValueType valType = refVal.getType();
         return decodeReference(refVal, valType instanceof ReferenceType rt ? rt.getUpperBound().getPointer() : valType instanceof PointerType pt ? pt : getTypeSystem().getVoidType().getPointer());
+    }
+
+    /**
+     * Encode a reference from a pointer for new object allocations.
+     *
+     * @param pointer the pointer to the object (must not be {@code null})
+     * @param referenceType the reference type to encode to (must not be {@code null})
+     * @return the encoded reference value (not {@code null})
+     */
+    Value encodeReference(Value pointer, ReferenceType referenceType);
+
+    /**
+     * A convenience method which encodes a pointer into a reference using the object type inferred from the pointee.
+     * Do not override.
+     *
+     * @param pointer the pointer to the object (must not be {@code null})
+     * @return the encoded reference value (not {@code null})
+     */
+    default Value encodeReference(Value pointer) {
+        return encodeReference(pointer, pointer.getPointeeType(PhysicalObjectType.class).getReference());
     }
 
     Value instanceOf(Value input, ObjectType expectedType, int expectedDimensions);

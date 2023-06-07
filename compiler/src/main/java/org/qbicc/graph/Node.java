@@ -644,10 +644,6 @@ public interface Node {
                 return param.getBlockBuilder().currentThread();
             }
 
-            public Value visit(final Copier param, final Convert node) {
-                return param.getBlockBuilder().valueConvert(param.copyValue(node.getInput()), node.getType());
-            }
-
             public Value visit(Copier copier, DecodeReference node) {
                 return copier.getBlockBuilder().decodeReference(copier.copyValue(node.getInput()), node.getType());
             }
@@ -658,6 +654,10 @@ public interface Node {
 
             public Value visit(Copier copier, ElementOf node) {
                 return copier.getBlockBuilder().elementOf(copier.copyValue(node.getArrayPointer()), copier.copyValue(node.getIndex()));
+            }
+
+            public Value visit(Copier copier, EncodeReference node) {
+                return copier.getBlockBuilder().encodeReference(copier.copyValue(node.getInput()), node.getType());
             }
 
             public Value visit(final Copier param, final Extend node) {
