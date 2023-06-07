@@ -18,10 +18,10 @@ import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
-import org.qbicc.graph.Convert;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Div;
+import org.qbicc.graph.EncodeReference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.If;
 import org.qbicc.graph.Invoke;
@@ -355,12 +355,12 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return delegate.visit(param, node);
         }
 
-        public Value visit(final Node.Copier param, final Convert node) {
+        public Value visit(final Node.Copier param, final DecodeReference node) {
             addCost(param, 1);
             return delegate.visit(param, node);
         }
 
-        public Value visit(final Node.Copier param, final DecodeReference node) {
+        public Value visit(final Node.Copier param, final EncodeReference node) {
             addCost(param, 1);
             return delegate.visit(param, node);
         }

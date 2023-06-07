@@ -36,7 +36,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
@@ -45,6 +44,7 @@ import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.EncodeReference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
@@ -363,18 +363,57 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     private Object bitCast(final Value input, final WordType outputType) {
         WordType inputType = (WordType) input.getType();
-        if (isRef(inputType) && isRef(outputType)) {
+        if (inputType.equals(outputType)) {
             return require(input);
-        } else if (isPointer(inputType) && isPointer(outputType)) {
-            return require(input);
+        } else if (isRef(inputType) && isRef(outputType)) {
+            if (isRef(outputType)) {
+                return require(input);
+            } else if (isPointer(outputType)) {
+                Object obj = require(input);
+                return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
+            }
+        } else if (isPointer(inputType)) {
+            if (isPointer(outputType)) {
+                return require(input);
+            } else if (isInt64(outputType) && inputType.getMinBits() == 64) {
+                Object val = require(input);
+                if (val instanceof IntegerAsPointer iap) {
+                    return Long.valueOf(iap.getValue());
+                } else {
+                    return val;
+                }
+            } else if (isInt32(outputType) && inputType.getMinBits() == 32) {
+                Object val = require(input);
+                if (val instanceof IntegerAsPointer iap) {
+                    return Integer.valueOf((int) iap.getValue());
+                } else {
+                    return val;
+                }
+            }
         } else if (isInt32(inputType)) {
-            if (isInt32(outputType)) {
+            if (isPointer(outputType) && outputType.getMinBits() == 32) {
+                Object val = require(input);
+                if (val instanceof Pointer ptr) {
+                    return ptr;
+                } else if (val instanceof Number num) {
+                    PointerType voidPtr = outputType.getTypeSystem().getVoidType().getPointer();
+                    return new IntegerAsPointer(voidPtr, num.longValue());
+                }
+            } else if (isInt32(outputType)) {
                 return require(input);
             } else if (isFloat32(outputType)) {
                 return box(Float.intBitsToFloat(unboxInt(input)), outputType);
             }
         } else if (isInt64(inputType)) {
-            if (isInt64(outputType)) {
+            if (isPointer(outputType) && outputType.getMinBits() == 64) {
+                Object val = require(input);
+                if (val instanceof Pointer ptr) {
+                    return ptr;
+                } else if (val instanceof Number num) {
+                    PointerType voidPtr = outputType.getTypeSystem().getVoidType().getPointer();
+                    return new IntegerAsPointer(voidPtr, num.longValue());
+                }
+            } else if (isInt64(outputType)) {
                 return require(input);
             } else if (isFloat64(outputType)) {
                 return box(Double.longBitsToDouble(unboxLong(input)), outputType);
@@ -696,37 +735,6 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public Object visit(VmThreadImpl thread, Convert node) {
-        Value input = node.getInput();
-        WordType inputType = (WordType) input.getType();
-        WordType outputType = node.getType();
-        if (isInt64(inputType)) {
-            if (isPointer(outputType)) {
-                Object val = require(node.getInput());
-                if (val instanceof Pointer ptr) {
-                    return ptr;
-                } else if (val instanceof Number num) {
-                    PointerType voidPtr = thread.vm.getCompilationContext().getTypeSystem().getVoidType().getPointer();
-                    return new IntegerAsPointer(voidPtr, num.longValue());
-                }
-            }
-        } else if (inputType.equals(outputType)) {
-            return require(node.getInput());
-        } else if (isRef(inputType) && isPointer(outputType)) {
-            Object obj = require(node.getInput());
-            return obj == null ? null : new ReferenceAsPointer((VmObject) obj);
-        } else if (isPointer(inputType) && isInt64(outputType)) {
-            Object val = require(node.getInput());
-            if (val instanceof IntegerAsPointer iap) {
-                return Long.valueOf(iap.getValue());
-            } else {
-                return val;
-            }
-        }
-        throw new IllegalStateException("Invalid cast");
-    }
-
-    @Override
     public Object visit(VmThreadImpl param, CountLeadingZeros node) {
         Value input = node.getInput();
         ValueType inputType = input.getType();
@@ -770,6 +778,18 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return null;
         }
         return new ReferenceAsPointer((VmObject) obj);
+    }
+
+    @Override
+    public Object visit(VmThreadImpl vmThread, EncodeReference node) {
+        Object obj = require(node.getInput());
+        if (obj instanceof ReferenceAsPointer rap) {
+            return rap.getReference();
+        } else if (obj == null) {
+            return null;
+        } else {
+            throw badInputType();
+        }
     }
 
     @Override

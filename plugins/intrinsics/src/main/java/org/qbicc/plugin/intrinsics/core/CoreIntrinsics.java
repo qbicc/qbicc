@@ -581,7 +581,7 @@ public final class CoreIntrinsics {
             ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
             Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
             Value elem = builder.elementOf(base, arguments.get(0));
-            Value componentClass = builder.valueConvert(elem, jlcRef);
+            Value componentClass = builder.encodeReference(elem, jlcRef);
             Value result = componentClass;
 
             builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of(Slot.temp(0), result)); // if (dimensions > 0)
@@ -599,7 +599,7 @@ public final class CoreIntrinsics {
             ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
             Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
             Value elem = builder.elementOf(base, arguments.get(0));
-            return builder.valueConvert(elem, jlcRef);
+            return builder.encodeReference(elem, jlcRef);
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeIdSimple", typeIdToClassDesc, getClassFromTypeIdSimple);

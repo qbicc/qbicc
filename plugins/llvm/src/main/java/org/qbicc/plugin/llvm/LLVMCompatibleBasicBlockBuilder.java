@@ -30,6 +30,7 @@ import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -63,9 +64,9 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public Value valueConvert(Value value, WordType toType) {
+    public Value encodeReference(Value pointer, ReferenceType referenceType) {
         // this won't be scheduled by the LLVM backend when pointer strategy is in use
-        return super.valueConvert(value, toType);
+        return super.encodeReference(pointer, referenceType);
     }
 
     @Override
@@ -247,8 +248,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // this is similar to how clang translates pointer differences
         BasicBlockBuilder fb = getFirstBuilder();
         SignedIntegerType intType = leftPointer.getType(PointerType.class).getSameSizedSignedInteger();
-        Value leftCast = fb.valueConvert(leftPointer, intType);
-        Value rightCast = fb.valueConvert(rightPointer, intType);
+        Value leftCast = fb.bitCast(leftPointer, intType);
+        Value rightCast = fb.bitCast(rightPointer, intType);
         Value byteDiff = fb.sub(leftCast, rightCast);
         ValueType pointeeType = leftPointer.getPointeeType();
         long size = pointeeType.getSize();

@@ -220,11 +220,11 @@ final class CNativeIntrinsics {
             Value value = arguments.get(0);
             if (value.getType() instanceof PointerType pt) {
                 if (pt.getPointeeType() instanceof ObjectType ot) {
-                    return builder.valueConvert(value, ot.getReference());
+                    return builder.encodeReference(value, ot.getReference());
                 } else {
                     // we don't know the exact type; use Object
                     ReferenceType objRef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getObjectType().getReference();
-                    return builder.valueConvert(value, objRef);
+                    return builder.encodeReference(value, objRef);
                 }
             } else {
                 ctxt.error(builder.getLocation(), "Cannot convert non-pointer to reference");
@@ -976,8 +976,8 @@ final class CNativeIntrinsics {
                 }
             } else if (fromType instanceof FloatType) {
                 return builder.fpToInt(input, it);
-            } else if (fromType instanceof WordType) {
-                return builder.valueConvert(input, toType);
+            } else if (fromType instanceof PointerType || fromType instanceof ReferenceType) {
+                return builder.bitCast(input, toType);
             } else {
                 return input;
             }
@@ -993,20 +993,21 @@ final class CNativeIntrinsics {
             } else if (fromType instanceof IntegerType) {
                 return builder.intToFp(input, ft);
             } else if (fromType instanceof WordType) {
-                return builder.valueConvert(input, toType);
+                return builder.bitCast(input, toType);
             } else {
                 return input;
             }
-        } else if (toType instanceof PointerType) {
-            if (fromType instanceof PointerType) {
+        } else if (toType instanceof PointerType pt) {
+            if (fromType instanceof PointerType || fromType instanceof IntegerType) {
                 return builder.bitCast(input, toType);
-            } else if (fromType instanceof WordType) {
-                return builder.valueConvert(input, toType);
+            } else if (fromType instanceof ReferenceType) {
+                return builder.decodeReference(input, pt);
             } else {
-                return input;
+                return builder.bitCast(input, toType);
             }
         } else {
-            return builder.valueConvert(input, toType);
+            // give it our best try
+            return builder.bitCast(input, toType);
         }
     }
 }

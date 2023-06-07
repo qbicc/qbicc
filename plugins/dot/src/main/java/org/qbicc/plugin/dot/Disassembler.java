@@ -19,6 +19,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
+import org.qbicc.graph.EncodeReference;
 import org.qbicc.graph.FpToInt;
 import org.qbicc.graph.IntToFp;
 import org.qbicc.graph.MemberOfUnion;
@@ -43,7 +44,6 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.Convert;
 import org.qbicc.graph.CountLeadingZeros;
 import org.qbicc.graph.CountTrailingZeros;
 import org.qbicc.graph.CurrentThread;
@@ -879,17 +879,17 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, Convert node) {
+        public Void visit(Disassembler param, DecodeReference node) {
             final String id = param.nextId();
-            final String description = "convert " + show(node.getInput());
+            final String description = "decode " + show(node.getInput());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }
 
         @Override
-        public Void visit(Disassembler param, DecodeReference node) {
+        public Void visit(Disassembler param, EncodeReference node) {
             final String id = param.nextId();
-            final String description = "decode " + show(node.getInput());
+            final String description = "encode " + show(node.getInput());
             param.nodeInfo.put(node, new NodeInfo(id, description));
             return delegate.visit(param, node);
         }

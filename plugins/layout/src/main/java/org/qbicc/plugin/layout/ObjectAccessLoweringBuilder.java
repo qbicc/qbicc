@@ -15,7 +15,6 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
@@ -27,24 +26,6 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     public ObjectAccessLoweringBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
-    }
-
-    @Override
-    public Value valueConvert(Value value, WordType toType) {
-        if (toType instanceof PointerType pt) {
-            if (pt.getPointeeType() instanceof PhysicalObjectType pot) {
-                BasicBlockBuilder fb = getFirstBuilder();
-                Layout layout = Layout.get(ctxt);
-                LayoutInfo info = layout.getInstanceLayoutInfo(pot.getDefinition());
-                PointerType newType = info.getStructType().getPointer();
-                if (value.getType() instanceof PointerType) {
-                    return fb.bitCast(value, newType);
-                } else {
-                    return fb.valueConvert(value, newType);
-                }
-            }
-        }
-        return getDelegate().valueConvert(value, toType);
     }
 
     @Override

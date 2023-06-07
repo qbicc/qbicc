@@ -556,11 +556,6 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value valueConvert(Value value, WordType toType) {
-        return super.valueConvert(rhs(value), toType);
-    }
-
-    @Override
     public Value decodeReference(Value refVal, PointerType pointerType) {
         return super.decodeReference(rhs(refVal), pointerType);
     }

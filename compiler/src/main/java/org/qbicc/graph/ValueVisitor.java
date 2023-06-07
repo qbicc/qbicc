@@ -115,10 +115,6 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, Convert node) {
-        return visitUnknown(t, node);
-    }
-
     default R visit(T t, CurrentThread node) {
         return visitUnknown(t, node);
     }
@@ -132,6 +128,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
     }
 
     default R visit(T t, ElementOf node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, EncodeReference node) {
         return visitUnknown(t, node);
     }
 
@@ -398,10 +398,6 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
             return getDelegateValueVisitor().visit(t, node);
         }
 
-        default R visit(T t, Convert node) {
-            return getDelegateValueVisitor().visit(t, node);
-        }
-
         default R visit(T t, CurrentThread node) {
             return getDelegateValueVisitor().visit(t, node);
         }
@@ -415,6 +411,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, ElementOf node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, EncodeReference node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

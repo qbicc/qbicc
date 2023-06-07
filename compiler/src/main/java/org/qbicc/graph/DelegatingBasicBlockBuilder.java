@@ -14,6 +14,7 @@ import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -548,12 +549,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().intToFp(value, toType);
     }
 
-    public Value valueConvert(final Value value, final WordType toType) {
-        return getDelegate().valueConvert(value, toType);
-    }
-
     public Value decodeReference(Value refVal, PointerType pointerType) {
         return getDelegate().decodeReference(refVal, pointerType);
+    }
+
+    public Value encodeReference(Value pointer, ReferenceType referenceType) {
+        return getDelegate().encodeReference(pointer, referenceType);
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {

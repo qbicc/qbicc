@@ -35,12 +35,12 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.Convert;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.DebugValueDeclaration;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.EncodeReference;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
@@ -776,75 +776,35 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
     }
 
     public LLValue visit(final Set<Value> liveValues, final BitCast node) {
-        ValueType javaInputType = node.getInput().getType();
-        ValueType javaOutputType = node.getType();
+        WordType javaInputType = node.getInputType();
+        WordType javaOutputType = node.getType();
+        if (javaInputType.getSize() != javaOutputType.getSize()) {
+            throw new IllegalStateException("Size mismatch");
+        }
         LLValue llvmInput = map(node.getInput());
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         if (inputType.equals(outputType)) {
             return null;
         }
-        if (javaInputType instanceof IntegerType it && javaOutputType instanceof ReferenceType rt) {
-            // casts from integer to ref type come from register loads
-            if (it.getSize() == rt.getSize()) {
+        if (javaInputType instanceof IntegerType) {
+            if (javaOutputType instanceof ReferenceType) {
+                // casts from integer to ref type come from register loads
                 return switch (moduleVisitor.config.getReferenceStrategy()) {
                     case POINTER, POINTER_AS1 -> builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
                 };
-            } else {
-                throw new IllegalStateException("Size mismatch");
-            }
-        } else if (javaInputType instanceof ReferenceType rt && javaOutputType instanceof IntegerType it) {
-            // casts from ref type to integer come from register stores
-            if (it.getSize() == rt.getSize()) {
-                return switch (moduleVisitor.config.getReferenceStrategy()) {
-                    case POINTER, POINTER_AS1 -> builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
-                };
-            } else {
-                throw new IllegalStateException("Size mismatch");
-            }
-        }
-        return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
-    }
-
-    public LLValue visit(final Set<Value> liveValues, final Convert node) {
-        Type javaInputType = node.getInput().getType();
-        Type javaOutputType = node.getType();
-        LLValue inputType = map(javaInputType);
-        LLValue outputType = map(javaOutputType);
-        LLValue llvmInput = map(node.getInput());
-        if (inputType.equals(outputType)) {
-            return null;
-        }
-
-        if (javaInputType instanceof PointerType) {
-            if (javaOutputType instanceof ReferenceType) {
-                return switch (moduleVisitor.config.getReferenceStrategy()) {
-                    case POINTER -> null;
-                    case POINTER_AS1 -> builder.addrspacecast(inputType, llvmInput, outputType).setLValue(map(node));
-                };
-            } else if (javaOutputType instanceof IntegerType) {
-                return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
-            }
-            // else invalid
-        } else if (javaInputType instanceof ReferenceType) {
-            if (javaOutputType instanceof PointerType) {
-                return switch (moduleVisitor.config.getReferenceStrategy()) {
-                    case POINTER -> null;
-                    case POINTER_AS1 -> builder.addrspacecast(inputType, llvmInput, outputType).setLValue(map(node));
-                };
-            } else if (javaOutputType instanceof IntegerType) {
-                return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
-            }
-            // else invalid
-        } else if (javaInputType instanceof IntegerType) {
-            if (javaOutputType instanceof PointerType || javaOutputType instanceof ReferenceType) {
+            } else if (javaOutputType instanceof PointerType) {
                 return builder.inttoptr(inputType, llvmInput, outputType).setLValue(map(node));
             }
-            // else invalid
+        } else if (javaInputType instanceof PointerType && javaOutputType instanceof IntegerType) {
+            return builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
+        } else if (javaInputType instanceof ReferenceType && javaOutputType instanceof IntegerType) {
+            // casts from ref type to integer come from register stores
+            return switch (moduleVisitor.config.getReferenceStrategy()) {
+                case POINTER, POINTER_AS1 -> builder.ptrtoint(inputType, llvmInput, outputType).setLValue(map(node));
+            };
         }
-
-        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
-        return llvmInput;
+        return builder.bitcast(inputType, llvmInput, outputType).setLValue(map(node));
     }
 
     public LLValue visit(Set<Value> liveValues, DecodeReference node) {
@@ -852,6 +812,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
         return switch (moduleVisitor.config.getReferenceStrategy()) {
             case POINTER -> null;
             case POINTER_AS1 -> builder.addrspacecast(map(input.getType()), map(input), map(node.getType())).setLValue(map(node));
+        };
+    }
+
+    public LLValue visit(Set<Value> liveValues, EncodeReference node) {
+        final Value input = node.getInput();
+        return switch (moduleVisitor.config.getReferenceStrategy()) {
+            case POINTER -> null;
+            case POINTER_AS1 -> builder.addrspacecast(map(node.getInputType()), map(input), map(node.getType())).setLValue(map(node));
         };
     }
 
@@ -1623,24 +1591,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Set<Value>, LLValue, Instruct
                 // exclude nodes which convert between pointers and references
                 if (value instanceof DecodeReference dr) {
                     return map(dr.getInput());
-                } else if (value instanceof Convert conv) {
-                    if (conv.getInput().getType() instanceof PointerType && conv.getType() instanceof ReferenceType) {
-                        return map(conv.getInput());
-                    } else if (conv.getInput().getType() instanceof ReferenceType && conv.getType() instanceof PointerType) {
-                        return map(conv.getInput());
-                    }
+                } else if (value instanceof EncodeReference er) {
+                    return map(er.getInput());
                 }
             }
         } else if (moduleVisitor.config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
             // exclude nodes which convert between pointers and references
             if (value instanceof DecodeReference dr) {
                 return map(dr.getInput());
-            } else if (value instanceof Convert conv) {
-                if (conv.getInput().getType() instanceof PointerType && conv.getType() instanceof ReferenceType) {
-                    return map(conv.getInput());
-                } else if (conv.getInput().getType() instanceof ReferenceType && conv.getType() instanceof PointerType) {
-                    return map(conv.getInput());
-                }
+            } else if (value instanceof EncodeReference er) {
+                return map(er.getInput());
             }
         }
         LLValue mapped = mappedValues.get(value);

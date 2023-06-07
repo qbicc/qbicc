@@ -13,7 +13,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Comp;
-import org.qbicc.graph.Convert;
 import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Extend;
@@ -44,7 +43,6 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.InstanceFieldElement;
@@ -567,27 +565,6 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return null;
-    }
-
-    @Override
-    public Value valueConvert(Value input, WordType toType) {
-        Value result = literalCast(input, toType, false);
-        if (result != null) {
-            return result;
-        }
-        if (input instanceof Convert inputNode) {
-            Value inputInput = inputNode.getInput();
-            ValueType inputInputType = inputInput.getType();
-            if (inputInputType instanceof PointerType && toType instanceof PointerType) {
-                // Convert(Convert(a, x), y) -> BitCast(a, y) when a and y are pointer types
-                return bitCast(inputInput, toType);
-            }
-            if (inputInputType instanceof ReferenceType && toType instanceof ReferenceType) {
-                // Convert(Convert(a, x), y) -> BitCast(a, y) when a and y are reference types
-                return bitCast(inputInput, toType);
-            }
-        }
-        return super.valueConvert(input, toType);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {

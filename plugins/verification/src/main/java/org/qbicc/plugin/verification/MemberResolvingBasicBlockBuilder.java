@@ -205,7 +205,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             Value sizedValue;
             if (fromType instanceof IntegerType it) {
                 if (toType instanceof PointerType) {
-                    return super.valueConvert(value, toType);
+                    return super.bitCast(value, toType);
                 } else if (toType.getMinBits() < fromType.getMinBits()) {
                     sizedValue = super.truncate(value, it.asSized(toType.getMinBits()));
                 } else if (toType.getMinBits() > fromType.getMinBits()) {
@@ -217,12 +217,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 sizedValue = value;
             }
             // handle casts between integer and pointer types
-            if (fromType instanceof PointerType && toType instanceof IntegerType
-                || fromType instanceof IntegerType && toType instanceof PointerType) {
-                return super.valueConvert(sizedValue, toType);
-            } else {
-                return super.bitCast(sizedValue, toType);
-            }
+            return super.bitCast(sizedValue, toType);
         } else if (castType instanceof StructType) {
             // A checkcast in the bytecodes but it's really casting to a structure or compound type;
             // we can't just bitcast it really, in fact it's an error unless the actual value is zero
