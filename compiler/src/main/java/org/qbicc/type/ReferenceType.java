@@ -5,7 +5,7 @@ import java.util.Set;
 
 /**
  * A reference type.  A reference is essentially an abstract representation of an encoded pointer to an object.  The
- * pointee contains, somewhere, a value of type {@link TypeType} representing the object's polymorphic
+ * pointee contains, somewhere, a value of type {@link TypeIdType} representing the object's polymorphic
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
 public final class ReferenceType extends NullableType {

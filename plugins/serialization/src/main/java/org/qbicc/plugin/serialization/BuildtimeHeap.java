@@ -66,7 +66,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -603,7 +603,7 @@ public class BuildtimeHeap {
                 } else {
                     memberMap.put(om, lf.literalOf(ft, memory.loadDouble(im.getOffset(), SinglePlain)));
                 }
-            } else if (im.getType() instanceof TypeType) {
+            } else if (im.getType() instanceof TypeIdType) {
                 ValueType type = memory.loadType(im.getOffset(), SinglePlain);
                 memberMap.put(om, type == null ? lf.zeroInitializerLiteralOfType(im.getType()) : lf.literalOfType(type));
             } else if (im.getType() instanceof ArrayType) {

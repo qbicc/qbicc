@@ -32,7 +32,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -437,7 +437,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
             throw new IllegalArgumentException("Only references can be checkcast");
         }
         ValueType toTypeTypeRaw = toType.getType();
-        if (! (toTypeTypeRaw instanceof TypeType)) {
+        if (! (toTypeTypeRaw instanceof TypeIdType)) {
             throw new IllegalArgumentException("Invalid type for toType argument");
         }
         ReferenceType outputType = ((ReferenceType) inputType).narrow(expectedType);

@@ -14,7 +14,7 @@ import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
@@ -70,7 +70,7 @@ public class FinalFieldLoadOptimizer extends DelegatingBasicBlockBuilder {
             } else if (desc.equals(BaseTypeDescriptor.D)) {
                 contents =  ctxt.getLiteralFactory().literalOf(mem.loadDouble(offset, SinglePlain));
             } else {
-               if (ifo.getPointeeType() instanceof TypeType) {
+               if (ifo.getPointeeType() instanceof TypeIdType) {
                    ValueType tt = mem.loadType(offset, SinglePlain);
                    contents = ctxt.getLiteralFactory().literalOfType(tt);
                } else {

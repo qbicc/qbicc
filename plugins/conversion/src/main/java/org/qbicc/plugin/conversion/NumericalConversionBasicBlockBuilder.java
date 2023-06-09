@@ -1,26 +1,18 @@
 package org.qbicc.plugin.conversion;
 
-import java.util.List;
-
-import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
-import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.MethodLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.PointerType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  * This builder fixes up mismatched numerical conversions in order to avoid duplicating this kind of logic in other
@@ -52,7 +44,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     return truncate(bitCast(from, ((SignedIntegerType) fromType).asUnsigned()), toType);
                 } else if (toType instanceof BooleanType) {
                     return super.truncate(from, toType);
-                } else if (toType instanceof TypeType) {
+                } else if (toType instanceof TypeIdType) {
                     if (fromType.getMinBits() > toType.getMinBits()) {
                         return super.truncate(from, toType);
                     } else {
@@ -144,7 +136,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                         return from;
                     }
                 }
-            } else if (fromType instanceof TypeType) {
+            } else if (fromType instanceof TypeIdType) {
                 if (toType instanceof IntegerType) {
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         return super.extend(from, toType);

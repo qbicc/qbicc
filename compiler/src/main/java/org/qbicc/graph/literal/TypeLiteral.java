@@ -1,10 +1,10 @@
 package org.qbicc.graph.literal;
 
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.ValueType;
 
 /**
- * A constant value whose type is a {@link TypeType} and whose value is a {@link ValueType}.
+ * A constant value whose type is a {@link TypeIdType} and whose value is a {@link ValueType}.
  */
 public final class TypeLiteral extends Literal {
 
@@ -14,7 +14,7 @@ public final class TypeLiteral extends Literal {
         this.value = value;
     }
 
-    public TypeType getType() {
+    public TypeIdType getType() {
         return value.getTypeType();
     }
 
