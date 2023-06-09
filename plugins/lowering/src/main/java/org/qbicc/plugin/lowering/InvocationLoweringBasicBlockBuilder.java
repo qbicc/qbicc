@@ -43,7 +43,7 @@ import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -283,7 +283,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         if_(isEq(candidateId, lf.literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE, Map.of());
         try {
             begin(checkForICCE);
-            TypeType typeType = info.getInterface().getObjectType().getTypeType();
+            TypeIdType typeType = info.getInterface().getObjectType().getTypeType();
             if_(isEq(candidateId, lf.zeroInitializerLiteralOfType(typeType)), failLabel, loop, Map.of(Slot.temp(0), fb.add(bp, lf.literalOf(u32, 1))));
 
             begin(failLabel);

@@ -37,7 +37,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -396,8 +396,8 @@ final class LLVMModuleDebugInfo {
             return createPointerType(ut, ut.getTypeSystem().getVoidType().getPointer());
         } else if (type instanceof SignedIntegerType) {
             return createBasicType((SignedIntegerType) type, DIEncoding.Signed);
-        } else if (type instanceof TypeType) {
-            return createBasicType((TypeType) type, DIEncoding.Unsigned);
+        } else if (type instanceof TypeIdType) {
+            return createBasicType((TypeIdType) type, DIEncoding.Unsigned);
         } else if (type instanceof UnsignedIntegerType) {
             return createBasicType((UnsignedIntegerType) type, DIEncoding.Unsigned);
         } else {

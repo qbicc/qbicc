@@ -532,8 +532,8 @@ public final class TypeSystem {
         return new PrimitiveArrayObjectType(this, objectClass, elementType);
     }
 
-    TypeType createTypeType(final ValueType upperBound) {
-        return new TypeType(this, upperBound);
+    TypeIdType createTypeType(final ValueType upperBound) {
+        return new TypeIdType(this, upperBound);
     }
 
     public static Builder builder() {

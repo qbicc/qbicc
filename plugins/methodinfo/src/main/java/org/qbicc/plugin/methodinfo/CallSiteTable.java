@@ -44,7 +44,7 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -441,7 +441,7 @@ public final class CallSiteTable {
         assert fileNameMember.getName().equals("file_name_idx") && fileNameMember.getType() instanceof UnsignedIntegerType;
         assert methodNameMember.getName().equals("method_name_idx") && methodNameMember.getType() instanceof UnsignedIntegerType;
         assert methodTypeMember.getName().equals("method_type_idx") && methodTypeMember.getType() instanceof UnsignedIntegerType;
-        assert typeIdMember.getName().equals("type_id") && typeIdMember.getType() instanceof TypeType;
+        assert typeIdMember.getName().equals("type_id") && typeIdMember.getType() instanceof TypeIdType;
         assert modifiersMember.getName().equals("modifiers") && modifiersMember.getType() instanceof IntegerType;
         final LiteralFactory lf = ctxt.getLiteralFactory();
         final IntegerLiteral fileNameIdx = lf.literalOf(fileNameMember.getType(UnsignedIntegerType.class), fileNameLookup.applyAsInt(entry.fileName()));

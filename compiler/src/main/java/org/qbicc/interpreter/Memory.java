@@ -9,7 +9,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -723,7 +723,7 @@ public interface Memory {
             typedCopyTo(srcOffs, dest, destOffs, at);
         } else if (type instanceof ReferenceType) {
             dest.storeRef(destOffs, loadRef(srcOffs, SinglePlain), SinglePlain);
-        } else if (type instanceof TypeType) {
+        } else if (type instanceof TypeIdType) {
             dest.storeType(destOffs, loadType(srcOffs, SinglePlain), SinglePlain);
         } else if (type instanceof PointerType) {
             dest.storePointer(destOffs, loadPointer(srcOffs, SinglePlain), SinglePlain);

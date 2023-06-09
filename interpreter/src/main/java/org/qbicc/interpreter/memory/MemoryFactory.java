@@ -41,7 +41,7 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -358,7 +358,7 @@ public final class MemoryFactory {
                 } else if (memberType instanceof BooleanType) {
                     fieldClazz = boolean.class;
                     fieldTypeArg = BOOLEAN_CLASS_CONSTANT;
-                } else if (memberType instanceof TypeType) {
+                } else if (memberType instanceof TypeIdType) {
                     fieldClazz = ValueType.class;
                     fieldTypeArg = Type.getType(fieldClazz);
                 } else if (memberType instanceof ReferenceType) {

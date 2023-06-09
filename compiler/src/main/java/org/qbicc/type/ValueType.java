@@ -8,10 +8,10 @@ import java.lang.invoke.VarHandle;
  * An "object" in memory, which consists of word types and structured types.
  */
 public abstract class ValueType extends Type {
-    private static final VarHandle typeTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "typeType", VarHandle.class, ValueType.class, TypeType.class);
+    private static final VarHandle typeTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "typeType", VarHandle.class, ValueType.class, TypeIdType.class);
 
     @SuppressWarnings("unused") // VarHandle
-    private volatile TypeType typeType;
+    private volatile TypeIdType typeType;
 
     ValueType(final TypeSystem typeSystem, final int hashCode) {
         super(typeSystem, hashCode);
@@ -33,12 +33,12 @@ public abstract class ValueType extends Type {
      *
      * @return the type's type type
      */
-    public final TypeType getTypeType() {
-        TypeType typeType = this.typeType;
+    public final TypeIdType getTypeType() {
+        TypeIdType typeType = this.typeType;
         if (typeType != null) {
             return typeType;
         }
-        TypeType newTypeType = typeSystem.createTypeType(this);
+        TypeIdType newTypeType = typeSystem.createTypeType(this);
         while (! typeTypeHandle.compareAndSet(this, null, newTypeType)) {
             typeType = this.typeType;
             if (typeType != null) {

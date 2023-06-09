@@ -32,7 +32,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -331,7 +331,7 @@ public interface BasicBlockBuilder extends Locatable {
     Value populationCount(Value v);
 
     /**
-     * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with
+     * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeIdType} with
      * an upper bound which is a {@link ObjectType}.
      *
      * @param typeId the type ID value

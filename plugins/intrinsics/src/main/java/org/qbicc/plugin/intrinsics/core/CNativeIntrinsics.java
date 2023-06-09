@@ -54,7 +54,7 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -339,8 +339,8 @@ final class CNativeIntrinsics {
         StaticIntrinsic alignof = (builder, target, arguments) -> {
             ValueType argType = arguments.get(0).getType();
             long align;
-            if (argType instanceof TypeType) {
-                align = ((TypeType) argType).getUpperBound().getAlign();
+            if (argType instanceof TypeIdType) {
+                align = ((TypeIdType) argType).getUpperBound().getAlign();
             } else {
                 align = argType.getAlign();
             }

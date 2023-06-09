@@ -166,7 +166,7 @@ import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.TypeType;
+import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -253,7 +253,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 // references of any type can be compared
                 return;
             }
-            if (leftType instanceof TypeType && rightType instanceof TypeType) {
+            if (leftType instanceof TypeIdType && rightType instanceof TypeIdType) {
                 // type IDs can be compared
                 return;
             }
@@ -2594,7 +2594,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     private static boolean isTypeId(ValueType type) {
-        return type instanceof TypeType;
+        return type instanceof TypeIdType;
     }
 
     private static boolean isInt8(ValueType type) {
