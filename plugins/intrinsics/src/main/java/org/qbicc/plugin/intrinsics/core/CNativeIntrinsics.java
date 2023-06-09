@@ -33,7 +33,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmString;
@@ -202,7 +202,7 @@ final class CNativeIntrinsics {
 
         StaticIntrinsic deref1 = (builder, target, arguments) -> builder.deref(arguments.get(0));
         StaticIntrinsic deref2 = (builder, target, arguments) -> {
-            if (arguments.get(1) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+            if (arguments.get(1) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                 PointerType pt = typeLiteral.getValue().getPointer();
                 return builder.deref(builder.bitCast(arguments.get(0), pt));
             } else {
@@ -321,7 +321,7 @@ final class CNativeIntrinsics {
             Value arg = arguments.get(0);
             long size;
             /* Class should be ClassOf(TypeLiteral) */
-            if (arg instanceof ClassOf co && co.getInput() instanceof TypeLiteral input && !(input.getValue() instanceof ObjectType)) {
+            if (arg instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral input && !(input.getValue() instanceof ObjectType)) {
                 size = input.getValue().getSize();
             } else {
                 ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
@@ -474,8 +474,8 @@ final class CNativeIntrinsics {
             Value arg0 = arguments.get(0);
             if (arg0 instanceof ClassOf) {
                 Value typeLit = ((ClassOf) arg0).getInput();
-                if (typeLit instanceof TypeLiteral) {
-                    ValueType toType = ((TypeLiteral) typeLit).getValue();
+                if (typeLit instanceof TypeIdLiteral) {
+                    ValueType toType = ((TypeIdLiteral) typeLit).getValue();
                     if (toType instanceof WordType) {
                         return smartConvert(builder, input, (WordType) toType, false);
                     } else {
@@ -605,7 +605,7 @@ final class CNativeIntrinsics {
 
         InstanceIntrinsic sel = (builder, instance, target, arguments) -> builder.deref(instance);
         InstanceIntrinsic selWithType = (builder, instance, target, arguments) -> {
-            if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+            if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                 PointerType pt = typeLiteral.getValue().getPointer();
                 return builder.deref(builder.bitCast(instance, pt));
             } else {
@@ -650,7 +650,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic load = (builder, instance, target, arguments) -> builder.load(instance, mode);
             intrinsics.registerIntrinsic(ptrDesc, "load" + name, emptyToObjDesc, load);
             InstanceIntrinsic loadWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     return builder.load(builder.bitCast(instance, typeLiteral.getValue().getPointer()), mode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
@@ -670,7 +670,7 @@ final class CNativeIntrinsics {
             };
             intrinsics.registerIntrinsic(ptrDesc, "store" + name, objToVoidDesc, store);
             InstanceIntrinsic storeWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     builder.store(builder.bitCast(instance, typeLiteral.getValue().getPointer()), arguments.get(1), mode);
                 } else {
                     ctxt.error(builder.getLocation(), "Pointee argument must be a class literal");
@@ -692,7 +692,7 @@ final class CNativeIntrinsics {
             };
             intrinsics.registerIntrinsic(ptrDesc, "compareAndSet" + name, objObjToBoolDesc, cas);
             InstanceIntrinsic casWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     Value res = builder.cmpAndSwap(builder.bitCast(instance, pt), arguments.get(1), arguments.get(2), readMode, writeMode, CmpAndSwap.Strength.STRONG);
                     return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(1));
@@ -716,7 +716,7 @@ final class CNativeIntrinsics {
             };
             intrinsics.registerIntrinsic(ptrDesc, "compareAndSwap" + name, objObjToObjDesc, cas);
             InstanceIntrinsic casWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     Value res = builder.cmpAndSwap(builder.bitCast(instance, pt), arguments.get(1), arguments.get(2), readMode, writeMode, CmpAndSwap.Strength.STRONG);
                     return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(0));
@@ -740,7 +740,7 @@ final class CNativeIntrinsics {
             };
             intrinsics.registerIntrinsic(ptrDesc, "weakCompareAndSet" + name, objObjToBoolDesc, cas);
             InstanceIntrinsic casWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     Value res = builder.cmpAndSwap(builder.bitCast(instance, pt), arguments.get(1), arguments.get(2), readMode, writeMode, CmpAndSwap.Strength.WEAK);
                     return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(1));
@@ -764,7 +764,7 @@ final class CNativeIntrinsics {
             };
             intrinsics.registerIntrinsic(ptrDesc, "weakCompareAndSwap" + name, objObjToObjDesc, cas);
             InstanceIntrinsic casWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     Value res = builder.cmpAndSwap(builder.bitCast(instance, pt), arguments.get(1), arguments.get(2), readMode, writeMode, CmpAndSwap.Strength.WEAK);
                     return builder.extractMember(res, CmpAndSwap.getResultType(ctxt, pt.getPointeeType()).getMember(0));
@@ -784,7 +784,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.SET, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSet" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.SET, arguments.get(1), readMode, writeMode);
                 } else {
@@ -803,7 +803,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.MIN, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSetMin" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.MIN, arguments.get(1), readMode, writeMode);
                 } else {
@@ -822,7 +822,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.MAX, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSetMax" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.MAX, arguments.get(1), readMode, writeMode);
                 } else {
@@ -841,7 +841,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.ADD, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndAdd" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.ADD, arguments.get(1), readMode, writeMode);
                 } else {
@@ -860,7 +860,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.SUB, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndSubtract" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.SUB, arguments.get(1), readMode, writeMode);
                 } else {
@@ -879,7 +879,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.BITWISE_AND, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseAnd" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.BITWISE_AND, arguments.get(1), readMode, writeMode);
                 } else {
@@ -898,7 +898,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.BITWISE_OR, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseOr" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.BITWISE_OR, arguments.get(1), readMode, writeMode);
                 } else {
@@ -917,7 +917,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.BITWISE_XOR, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseXor" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.BITWISE_XOR, arguments.get(1), readMode, writeMode);
                 } else {
@@ -936,7 +936,7 @@ final class CNativeIntrinsics {
             InstanceIntrinsic op = (builder, instance, target, arguments) -> builder.readModifyWrite(instance, ReadModifyWrite.Op.BITWISE_NAND, arguments.get(0), readMode, writeMode);
             intrinsics.registerIntrinsic(ptrDesc, "getAndBitwiseNand" + name, objToObjDesc, op);
             InstanceIntrinsic opWithType = (builder, instance, target, arguments) -> {
-                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeLiteral typeLiteral) {
+                if (arguments.get(0) instanceof ClassOf classOf && classOf.getInput() instanceof TypeIdLiteral typeLiteral) {
                     PointerType pt = typeLiteral.getValue().getPointer();
                     return builder.readModifyWrite(builder.bitCast(instance, pt), ReadModifyWrite.Op.BITWISE_NAND, arguments.get(1), readMode, writeMode);
                 } else {

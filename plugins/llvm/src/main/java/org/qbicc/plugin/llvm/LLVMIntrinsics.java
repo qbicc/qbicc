@@ -18,7 +18,7 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -145,7 +145,7 @@ public final class LLVMIntrinsics {
                 throw new BlockEarlyTermination(builder.unreachable());
             }
             Value outputType = arguments.get(1);
-            if (outputType instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl) {
+            if (outputType instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral tl) {
                 return builder.vaArg(vaListPtr, tl.getValue());
             } else {
                 ctxt.error(builder.getLocation(), "Invalid type argument to va_arg (must be a class literal)");
@@ -239,7 +239,7 @@ public final class LLVMIntrinsics {
         // Determine the actual return type.
         // todo: also support VmClass literals
         ValueType returnType;
-        if (returnTypeClazzValue instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl) {
+        if (returnTypeClazzValue instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral tl) {
             returnType = tl.getValue();
         } else {
             ctxt.error(bb.getLocation(), "Type argument to `asm` must be a class literal or constant value");

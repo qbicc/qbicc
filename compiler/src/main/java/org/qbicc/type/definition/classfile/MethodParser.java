@@ -34,7 +34,7 @@ import org.qbicc.graph.literal.GlobalVariableLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.StructType;
@@ -445,9 +445,9 @@ final class MethodParser {
 
     Value getConstantValue(int cpIndex, TypeParameterContext paramCtxt) {
         Literal literal = getClassFile().getConstantValue(cpIndex, paramCtxt);
-        if (literal instanceof TypeLiteral) {
+        if (literal instanceof TypeIdLiteral) {
             int dims = 0;
-            ValueType type = ((TypeLiteral)literal).getValue();
+            ValueType type = ((TypeIdLiteral)literal).getValue();
             if (type instanceof UnresolvedType) {
                 ClassTypeDescriptor cd = ClassTypeDescriptor.synthesize(ctxt, "java/lang/NoClassDefFoundError");
                 Value ncdfe = gf.new_(cd);

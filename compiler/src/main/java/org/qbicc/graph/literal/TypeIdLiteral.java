@@ -6,11 +6,11 @@ import org.qbicc.type.ValueType;
 /**
  * A constant value whose type is a {@link TypeIdType} and whose value is a {@link ValueType}.
  */
-public final class TypeLiteral extends Literal {
+public final class TypeIdLiteral extends Literal {
 
     private final ValueType value;
 
-    TypeLiteral(final ValueType value) {
+    TypeIdLiteral(final ValueType value) {
         this.value = value;
     }
 
@@ -27,10 +27,10 @@ public final class TypeLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof TypeLiteral && equals((TypeLiteral) other);
+        return other instanceof TypeIdLiteral && equals((TypeIdLiteral) other);
     }
 
-    public boolean equals(final TypeLiteral other) {
+    public boolean equals(final TypeIdLiteral other) {
         return this == other || other != null && value.equals(other.value);
     }
 

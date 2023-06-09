@@ -85,7 +85,7 @@ public interface LiteralFactory {
 
     ConstantLiteral constantLiteralOfType(ValueType type);
 
-    TypeLiteral literalOfType(ValueType type);
+    TypeIdLiteral literalOfType(ValueType type);
 
     NullLiteral nullLiteralOfType(NullableType nullableType);
 
@@ -239,7 +239,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ProgramObject, ProgramObjectLiteral> programObjects = new ConcurrentHashMap<>();
-            private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ValueType, TypeIdLiteral> typeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, UndefinedLiteral> undefLiterals = new ConcurrentHashMap<>();
@@ -322,9 +322,9 @@ public interface LiteralFactory {
                 return programObjects.computeIfAbsent(programObject, ProgramObjectLiteral::new);
             }
 
-            public TypeLiteral literalOfType(final ValueType type) {
+            public TypeIdLiteral literalOfType(final ValueType type) {
                 Assert.checkNotNullParam("type", type);
-                return typeLiterals.computeIfAbsent(type, TypeLiteral::new);
+                return typeLiterals.computeIfAbsent(type, TypeIdLiteral::new);
             }
 
             public NullLiteral nullLiteralOfType(NullableType type) {
