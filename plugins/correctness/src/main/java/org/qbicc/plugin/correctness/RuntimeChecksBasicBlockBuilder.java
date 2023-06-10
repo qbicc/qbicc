@@ -23,7 +23,7 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.StaticFieldLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
@@ -97,7 +97,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     return bitCast(value, outputType);
                 }
             }
-            if (toType instanceof TypeLiteral tl
+            if (toType instanceof TypeIdLiteral tl
                 && tl.getValue() instanceof ObjectType ot
                 && toDimensions instanceof IntegerLiteral il && il.intValue() == 0
                 && refType.instanceOf(ot)

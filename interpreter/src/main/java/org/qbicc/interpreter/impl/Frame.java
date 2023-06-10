@@ -127,7 +127,7 @@ import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.InvalidMemoryAccessException;
@@ -1757,7 +1757,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     }
 
     @Override
-    public Object visit(VmThreadImpl param, TypeLiteral node) {
+    public Object visit(VmThreadImpl param, TypeIdLiteral node) {
         return node.getValue();
     }
 

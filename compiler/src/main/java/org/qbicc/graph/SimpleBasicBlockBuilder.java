@@ -18,7 +18,7 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
@@ -594,7 +594,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value classOf(Value typeId, Value dimensions) {
-        Assert.assertTrue(typeId instanceof TypeLiteral);
+        Assert.assertTrue(typeId instanceof TypeIdLiteral);
         ClassContext classContext = element.getEnclosingType().getContext();
         ClassObjectType type = classContext.findDefinedType("java/lang/Class").load().getClassType();
         return unique(new ClassOf(callSite, element, line, bci, typeId, dimensions, type.getReference()));

@@ -8,7 +8,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.plugin.coreclasses.BasicHeaderInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
@@ -40,7 +40,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NoGc noGc = NoGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value refVal = null;
-        if (typeId instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
+        if (typeId instanceof TypeIdLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
             if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
                 StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getStructType();

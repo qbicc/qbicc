@@ -35,7 +35,7 @@ import org.qbicc.graph.literal.MethodHandleLiteral;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.Hook;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Signal;
@@ -1090,7 +1090,7 @@ public final class VmImpl implements Vm {
             return ((ObjectLiteral) literal).getValue();
         } else if (literal instanceof StringLiteral) {
             return intern(((StringLiteral) literal).getValue());
-        } else if (literal instanceof TypeLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
+        } else if (literal instanceof TypeIdLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             return cot.getDefinition().load().getVmClass();
         } else {
             throw new UnsupportedOperationException("Boxing literal of type " + literal.getClass());

@@ -22,7 +22,7 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -189,7 +189,7 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return lit.getValue();
         } else if (value instanceof StringLiteral lit) {
             return Vm.requireCurrent().intern(lit.getValue());
-        } else if (value instanceof TypeLiteral lit) {
+        } else if (value instanceof TypeIdLiteral lit) {
             return lit.getValue();
         }
         ctxt.error(getLocation(), "Unmappable parameter value %s for constant folding (must be a constant/literal value)", value);

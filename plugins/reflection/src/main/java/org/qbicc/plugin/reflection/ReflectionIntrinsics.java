@@ -21,7 +21,7 @@ import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
@@ -549,7 +549,7 @@ public final class ReflectionIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "forName", stringToClass, forName);
 
         InstanceIntrinsic findField = (builder, instance, target, arguments) -> {
-            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral tl && tl.getValue() instanceof ObjectType ot) {
                 LoadedTypeDefinition receivingClass = ot.getDefinition().load();
                 if (arguments.get(0) instanceof StringLiteral sl) {
                     FieldElement fe = receivingClass.findField(sl.getValue());
@@ -567,7 +567,7 @@ public final class ReflectionIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "getDeclaredField", stringToField, findField);
 
         InstanceIntrinsic findMethod = (builder, instance, target, arguments) -> {
-            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral tl && tl.getValue() instanceof ObjectType ot) {
                 LoadedTypeDefinition receivingClass = ot.getDefinition().load();
 
                 // TODO: To eliminate the reflection, we need arguments(0) to be a StringLiteral and
@@ -583,7 +583,7 @@ public final class ReflectionIntrinsics {
 
 
         InstanceIntrinsic findConstructor = (builder, instance, target, arguments) -> {
-            if (instance instanceof ClassOf co && co.getInput() instanceof TypeLiteral tl && tl.getValue() instanceof ObjectType ot) {
+            if (instance instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral tl && tl.getValue() instanceof ObjectType ot) {
                 LoadedTypeDefinition receivingClass = ot.getDefinition().load();
 
                 // TODO: To eliminate the reflection, we need arguments(0) to be an ArrayLiteral all of whose elements are ClassLiterals

@@ -15,7 +15,7 @@ import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
@@ -57,9 +57,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // invalid cast; should be impossible at this point
             throw new IllegalStateException("Invalid cast");
         }
-        if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
+        if (toType instanceof TypeIdLiteral && toDimensions instanceof IntegerLiteral) {
             // We know the exact toType at compile time
-            ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
+            ObjectType toTypeOT = (ObjectType) ((TypeIdLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
             int dims = ((IntegerLiteral) toDimensions).intValue();
             if (isAlwaysAssignable(inputType, toTypeOT, dims)) {
                 return bitCast(input, outputType);
@@ -130,9 +130,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // Generate the code for a check; ideally inline but if that isn't possible then out-of-line.
             begin(dynCheck);
             boolean inlinedTest;
-            if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
+            if (toType instanceof TypeIdLiteral && toDimensions instanceof IntegerLiteral) {
                 // We know the exact toType at compile time
-                ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
+                ObjectType toTypeOT = (ObjectType) ((TypeIdLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
                 int dims = ((IntegerLiteral) toDimensions).intValue();
                 inlinedTest = generateTypeTest(input, toTypeOT, dims, pass, fail);
             } else {
@@ -141,7 +141,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             if (!inlinedTest) {
                 String helperName;
                 if (kind.equals(CheckCast.CastType.Cast)) {
-                    helperName = toType instanceof TypeLiteral ? "checkcastTypeId" : "checkcastClass";
+                    helperName = toType instanceof TypeIdLiteral ? "checkcastTypeId" : "checkcastClass";
                 } else {
                     helperName = "arrayStoreCheck";
                 }

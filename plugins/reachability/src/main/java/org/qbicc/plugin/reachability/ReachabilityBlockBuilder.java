@@ -33,7 +33,7 @@ import org.qbicc.graph.literal.InstanceMethodLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
@@ -139,7 +139,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
 
         @Override
-        public Void visit(ReachabilityContext param, TypeLiteral value) {
+        public Void visit(ReachabilityContext param, TypeIdLiteral value) {
             if (value.getValue() instanceof ClassObjectType cot) {
                 param.analysis.processReachableType(cot.getDefinition().load(), param.currentElement);
             } else if (value.getValue() instanceof InterfaceObjectType iot) {

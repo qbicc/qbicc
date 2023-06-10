@@ -142,7 +142,7 @@ import org.qbicc.graph.literal.ShortArrayLiteral;
 import org.qbicc.graph.literal.StaticFieldLiteral;
 import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
-import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.type.BooleanType;
@@ -1041,7 +1041,7 @@ public final class Disassembler {
         }
 
         @Override
-        public Void visit(Disassembler param, TypeLiteral node) {
+        public Void visit(Disassembler param, TypeIdLiteral node) {
             literal(param, node, unwrapTypeName(node.getType().getUpperBound()));
             return delegate.visit(param, node);
         }
