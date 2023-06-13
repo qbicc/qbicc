@@ -65,6 +65,9 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean optPhis;
 
+    @Parameter(defaultValue = "1")
+    private int optLevel;
+
     @Parameter(defaultValue = "false", property = "qbicc.emit-asm")
     private boolean emitAsm;
 
@@ -132,6 +135,7 @@ public class QbiccCompileMojo extends AbstractMojo {
         builder.setOptGotos(optGotos);
         builder.setOptInlining(optInlining);
         builder.setOptPhis(optPhis);
+        builder.setOptLevel(optLevel);
         builder.setClassPathResolver(this::resolveClassPath);
         List<File> librarySearchPaths = this.librarySearchPaths;
         if (librarySearchPaths != null && ! librarySearchPaths.isEmpty()) {
