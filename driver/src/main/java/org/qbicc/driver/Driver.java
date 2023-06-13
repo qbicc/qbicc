@@ -85,6 +85,7 @@ public class Driver implements Closeable {
     final float threadsPerCpu;
     final long stackSize;
     final Consumer<ClassContext> classContextListener;
+    final int optLevel;
 
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
@@ -178,6 +179,7 @@ public class Driver implements Closeable {
 
         threadsPerCpu = builder.threadsPerCpu;
         stackSize = builder.stackSize;
+        optLevel = builder.optLevel;
         compilationContext.putAttachment(KEY, this);
     }
 
@@ -491,53 +493,55 @@ public class Driver implements Closeable {
 
         // ANALYZE phase
 
-        Phase.ANALYZE.setCurrent(compilationContext);
+        for (int i = 0; i < 1 << optLevel; i ++) {
+            Phase.ANALYZE.setCurrent(compilationContext);
 
-        compilationContext.setBlockFactory(analyzeBuilderFactory);
-        compilationContext.setCopier(addToAnalyzeCopiers);
+            compilationContext.setBlockFactory(analyzeBuilderFactory);
+            compilationContext.setCopier(addToAnalyzeCopiers);
 
-        compilationContext.setTaskRunner(Consumer::accept);
+            compilationContext.setTaskRunner(Consumer::accept);
 
-        for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
-            try {
-                hook.accept(compilationContext);
-            } catch (Exception e) {
-                log.error("An exception was thrown in a pre-analyze hook", e);
-                compilationContext.error("Pre-analyze hook failed: %s", e);
+            for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
+                try {
+                    hook.accept(compilationContext);
+                } catch (Exception e) {
+                    log.error("An exception was thrown in a pre-analyze hook", e);
+                    compilationContext.error("Pre-analyze hook failed: %s", e);
+                }
+                if (compilationContext.errors() > 0) {
+                    // bail out
+                    return false;
+                }
             }
+
+            // In this phase we start from the entry points again, and then copy (and filter) all of the nodes to a smaller reachable set
+
+            for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
+                compilationContext.enqueue(entryPoint);
+            }
+
+            compilationContext.processQueue();
+
             if (compilationContext.errors() > 0) {
                 // bail out
                 return false;
             }
-        }
 
-        // In this phase we start from the entry points again, and then copy (and filter) all of the nodes to a smaller reachable set
-
-        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
-            compilationContext.enqueue(entryPoint);
-        }
-
-        compilationContext.processQueue();
-
-        if (compilationContext.errors() > 0) {
-            // bail out
-            return false;
-        }
-
-        for (Consumer<? super CompilationContext> hook : postAnalyzeHooks) {
-            try {
-                hook.accept(compilationContext);
-            } catch (Exception e) {
-                log.error("An exception was thrown in a post-analyze hook", e);
-                compilationContext.error("Post-analyze hook failed: %s", e);
+            for (Consumer<? super CompilationContext> hook : postAnalyzeHooks) {
+                try {
+                    hook.accept(compilationContext);
+                } catch (Exception e) {
+                    log.error("An exception was thrown in a post-analyze hook", e);
+                    compilationContext.error("Post-analyze hook failed: %s", e);
+                }
+                if (compilationContext.errors() > 0) {
+                    // bail out
+                    return false;
+                }
             }
-            if (compilationContext.errors() > 0) {
-                // bail out
-                return false;
-            }
-        }
 
-        compilationContext.cyclePhaseAttachments();
+            compilationContext.cyclePhaseAttachments();
+        }
 
         // LOWER phase
 
@@ -673,6 +677,7 @@ public class Driver implements Closeable {
 
         String mainClass;
         Consumer<ClassContext> classContextListener = Functions.discardingConsumer();
+        int optLevel = 1;
 
         Builder() {}
 
@@ -860,6 +865,13 @@ public class Driver implements Closeable {
 
         public Builder setClassContextListener(Consumer<ClassContext> classContextListener) {
             this.classContextListener = Assert.checkNotNullParam("classContextListener", classContextListener);
+            return this;
+        }
+
+        public Builder setOptLevel(int optLevel) {
+            Assert.checkMinimumParameter("optLevel", 0, optLevel);
+            Assert.checkMaximumParameter("optLevel", 3, optLevel);
+            this.optLevel = optLevel;
             return this;
         }
 

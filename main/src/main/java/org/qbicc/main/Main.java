@@ -216,6 +216,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final ClassPathResolver classPathResolver;
     private final Backend backend;
     private final LLVMConfiguration.Builder llvmConfigurationBuilder;
+    private final int optLevel;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -235,6 +236,7 @@ public class Main implements Callable<DiagnosticContext> {
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
         optEscapeAnalysis = false && builder.optEscapeAnalysis;
+        optLevel = builder.optLevel;
         platform = builder.platform;
         smallTypeIds = builder.smallTypeIds;
         backend = builder.backend;
@@ -295,6 +297,7 @@ public class Main implements Callable<DiagnosticContext> {
     void call0(BaseDiagnosticContext initialContext) {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
+        builder.setOptLevel(optLevel);
         boolean nogc = gc.equals("none");
         boolean llvm = backend.equals(Backend.llvm);
         int errors = initialContext.errors();
@@ -515,9 +518,9 @@ public class Main implements Callable<DiagnosticContext> {
                                     RuntimeResourceManager.get(ctxt).findAndSerializeResources();
                                 });
                             });
-                            builder.addPostHook(Phase.ADD, ReachabilityInfo::reportStats);
-                            builder.addPostHook(Phase.ADD, ReachabilityInfo::clear);
 
+                            builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
+                            builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::clear);
                             builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
                             builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
                             builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
@@ -843,6 +846,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setOptEscapeAnalysis(optionsProcessor.optArgs.optEscapeAnalysis)
+            .setOptLevel(optionsProcessor.optArgs.optLevel)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
             .setBackend(optionsProcessor.backend)
             .setGraphGenConfig(optionsProcessor.graphGenConfig)
@@ -1037,6 +1041,8 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optGotos;
             @CommandLine.Option(names = "--escape-analysis", negatable = true, defaultValue = "false", description = "Enable/disable escape analysis")
             boolean optEscapeAnalysis;
+            @CommandLine.Option(names = { "-O", "--opt-level" }, defaultValue = "1", description = "Optimization level, between 0 and 3 (inclusive)")
+            int optLevel;
         }
 
         static class LLVMArgs {
@@ -1124,6 +1130,7 @@ public class Main implements Callable<DiagnosticContext> {
         private final List<ClassPathEntry> bootPathsPrepend = new ArrayList<>();
         private final List<ClassPathEntry> bootPathsAppend = new ArrayList<>();
         private final List<ClassPathEntry> appPaths = new ArrayList<>();
+        private int optLevel;
         private String classLibVersion = Version.CLASSLIB_DEFAULT_VERSION;
         private Path outputPath;
         private String outputName = "a.out";
@@ -1213,6 +1220,13 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder addPropertyDefine(String property, String value) {
             propertyDefines.add(property);
             propertyDefines.add(value);
+            return this;
+        }
+
+        public Builder setOptLevel(int optLevel) {
+            Assert.checkMinimumParameter("optLevel", 0, optLevel);
+            Assert.checkMaximumParameter("optLevel", 3, optLevel);
+            this.optLevel = optLevel;
             return this;
         }
 
