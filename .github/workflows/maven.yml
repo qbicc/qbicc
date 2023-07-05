@@ -27,7 +27,7 @@ jobs:
 
       - name: Install LLVM (Non-homebrew)
         if: matrix.os != 'macos-latest' || matrix.llvm-version != '16'
-        uses: KyleMayes/install-llvm-action@v1.8.1
+        uses: KyleMayes/install-llvm-action@v1.8.3
         with:
           version: ${{ matrix.llvm-version }}
           directory: ${{ runner.temp }}/llvm-install
