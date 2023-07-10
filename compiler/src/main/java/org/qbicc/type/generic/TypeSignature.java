@@ -32,6 +32,10 @@ public abstract class TypeSignature extends Signature {
         return annotations.castToMap().values();
     }
 
+    ImmutableMap<ClassTypeDescriptor, Annotation> getAnnotationsPrivate() {
+        return annotations;
+    }
+
     public boolean hasAnnotation(ClassTypeDescriptor desc) {
         return annotations.containsKey(desc);
     }

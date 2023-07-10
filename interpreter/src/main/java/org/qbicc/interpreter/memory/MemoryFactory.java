@@ -597,9 +597,10 @@ public final class MemoryFactory {
         int intCount = Math.toIntExact(count);
         // vectored
         if (type instanceof StructType st) {
-            return getMemoryFactory(ctxt, st, upgradeLongs).get();
+            Memory single = getMemoryFactory(ctxt, st, upgradeLongs).get();
+            return MemoryFactory.replicate(single, intCount);
         } else if (type instanceof UnionType ut) {
-            return MemoryFactory.getZero(ut.getSize());
+            return MemoryFactory.getZero(ut.getSize() * count);
         } else if (type instanceof IntegerType it) {
             // todo: more compact impls
             return switch (it.getMinBits()) {

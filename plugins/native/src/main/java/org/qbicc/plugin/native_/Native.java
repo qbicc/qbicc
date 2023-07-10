@@ -39,6 +39,8 @@ final class Native {
     static final String ANN_UNDEF = className(undef.class);
     static final String ANN_UNDEF_LIST = className(undef.List.class);
 
+    static final String ARRAY_SIZE_INT_NAME = intName(array_size.class);
+    static final String RESTRICT_INT_NAME = intName(restrict.class);
     static final String OBJECT_INT_NAME = intName(object.class);
     static final String STRUCT_INT_NAME = intName(struct.class);
     static final String UNION_INT_NAME = intName(union.class);
