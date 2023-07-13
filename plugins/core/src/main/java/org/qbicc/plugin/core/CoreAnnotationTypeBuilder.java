@@ -155,6 +155,8 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_RETURN);
                     } else if (annotation.getDescriptor().equals(noReflect)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);
+                    } else if (annotation.getDescriptor().equals(noSafePoint)) {
+                        constructorElement.setModifierFlags(ClassFile.I_ACC_NO_SAFEPOINTS);
                     } else if (annotation.getDescriptor().equals(noThrow)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_THROW);
                     } else if (annotation.getDescriptor().equals(inline)) {
