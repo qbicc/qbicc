@@ -59,7 +59,7 @@ To run the driver, first build the project and then use https://jbang.dev[`jbang
 
 [source,shell]
 -----
-jbang --quiet org.qbicc:qbicc-main:0.72.0 --app-path-file /path/to/main.jar --output-path /tmp/output hello/world/Main
+jbang --quiet org.qbicc:qbicc-main:0.73.0 --app-path-file /path/to/main.jar --output-path /tmp/output hello/world/Main
 -----
 
 For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
@@ -73,7 +73,7 @@ local class lib version) to your qbicc invocation. For example,
 
 [source,shell]
 -----
-jbang --quiet org.qbicc:qbicc-main:0.72.0 --app-path-file /path/to/main.jar --output-path /tmp/output --rt-version=17.alpha.0.NNN-SNAPSHOT hello/world/Main
+jbang --quiet org.qbicc:qbicc-main:0.73.0 --app-path-file /path/to/main.jar --output-path /tmp/output --rt-version=17.alpha.0.NNN-SNAPSHOT hello/world/Main
 -----
 
 == JBang cache
