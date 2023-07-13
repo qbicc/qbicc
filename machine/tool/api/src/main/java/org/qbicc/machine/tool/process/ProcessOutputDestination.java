@@ -67,7 +67,6 @@ final class ProcessOutputDestination<T> extends OutputDestination {
             for (;;) {
                 try {
                     process.waitFor();
-                    checker.accept(process);
                     return;
                 } catch (InterruptedException e) {
                     process.destroy();
@@ -83,6 +82,7 @@ final class ProcessOutputDestination<T> extends OutputDestination {
                 }
             }
         }
+        checker.accept(process);
     }
 
     void transferFrom(final InputSource source) throws IOException {
