@@ -72,7 +72,6 @@ public class SupersDisplayTables {
      * so we can assign these bits up front and the array should
      * stay reasonably small.
      * 
-     * [poison]
      * [primitive classes]
      * [Object]
      * [primitive arrays]
@@ -85,7 +84,7 @@ public class SupersDisplayTables {
         static class Factory {
             static final int interfaces_per_byte = 8;
 
-            private int typeid_index = 0; // avoid using 0;
+            private int typeid_index = 0;
 
             // interface ids must be contigious and after the class ids
             private int first_interface_typeid = 0;
@@ -493,9 +492,9 @@ public class SupersDisplayTables {
     }
 
     public int get_number_of_typeids() {
-        Assert.assertTrue(idAndRange.typeid_index == (typeids.size() + 1));
-        supersLog.debug("get_highest_typeid == " + (typeids.size() + 1));
-        return typeids.size() + 1; // invalid zero
+        Assert.assertTrue(idAndRange.typeid_index == typeids.size());
+        supersLog.debug("get_highest_typeid == " + typeids.size());
+        return typeids.size();
     }
 }
 

@@ -35,9 +35,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         CoreClasses coreClasses = CoreClasses.get(ctxt);
 
         // Assign typeIDs to classes
-        // [0] Poisoned entry for easier debugging
-        tables.reserveTypeIds(1);
-        // [1 - 9] for void and primitive types
+        // [0 - 8] for void and primitive types
         Primitive.VOID.setTypeId(tables.assignTypeID(coreClasses.getVoidTypeDefinition()));
         Primitive.BOOLEAN.setTypeId(tables.assignTypeID(coreClasses.getBooleanTypeDefinition()));
         Primitive.BYTE.setTypeId(tables.assignTypeID(coreClasses.getByteTypeDefinition()));

@@ -407,7 +407,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             ctxt.error("llvm: cannot lower type literal %s", node);
             return Values.intConstant(0);
         }
-        if (typeId <= 0) {
+        if (typeId < 0) {
             ctxt.error("llvm: type %s has invalid type ID %d", type, typeId);
         }
         return Values.intConstant(typeId);
