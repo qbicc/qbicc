@@ -99,6 +99,10 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
         return (NestedClassTypeSignature) super.withoutAnnotation(descriptor);
     }
 
+    public NestedClassTypeSignature withEnclosing(ClassTypeSignature enclosing) {
+        return new NestedClassTypeSignature(enclosing, getIdentifier(), getTypeArguments(), getAnnotationsPrivate());
+    }
+
     @Override
     NestedClassTypeSignature replacingAnnotationMap(ImmutableMap<ClassTypeDescriptor, Annotation> newMap) {
         return new NestedClassTypeSignature(enclosing, getIdentifier(), getTypeArguments(), newMap);

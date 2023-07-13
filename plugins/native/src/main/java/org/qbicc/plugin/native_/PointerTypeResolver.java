@@ -47,8 +47,8 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
         this.classCtxt = classCtxt;
         ctxt = classCtxt.getCompilationContext();
         this.delegate = delegate;
-        restrictAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ANN_RESTRICT);
-        arraySizeAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ANN_ARRAY_SIZE);
+        restrictAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.RESTRICT_INT_NAME);
+        arraySizeAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ARRAY_SIZE_INT_NAME);
     }
 
     public DescriptorTypeResolver getDelegate() {

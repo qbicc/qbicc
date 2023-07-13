@@ -34,7 +34,10 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.annotation.type.TargetInfo;
+import org.qbicc.type.annotation.type.TypeAnnotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.annotation.type.TypePathKind;
 import org.qbicc.type.definition.ByteBufferInputStream;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.DefineFailedException;
@@ -53,6 +56,8 @@ import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.ArrayTypeSignature;
+import org.qbicc.type.generic.NestedClassTypeSignature;
 import org.qbicc.type.methodhandle.ConstructorMethodHandleConstant;
 import org.qbicc.type.descriptor.Descriptor;
 import org.qbicc.type.methodhandle.FieldMethodHandleConstant;
@@ -868,6 +873,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setModifiers(modifiers);
         // process attributes
         TypeSignature signature = null;
+        TypeAnnotationList visibleList = null;
+        TypeAnnotationList invisibleList = null;
         int cnt = getFieldAttributeCount(index);
         for (int i = 0; i < cnt; i ++) {
             if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
@@ -882,9 +889,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             } else if (fieldAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
                 builder.setVisibleTypeAnnotations(list);
+                visibleList = list;
             } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
                 builder.setInvisibleTypeAnnotations(list);
+                invisibleList = list;
             } else if (fieldAttributeNameEquals(index, i, "ConstantValue")) {
                 if ((modifiers & ACC_STATIC) != 0) {
                     builder.setInitialValue(getConstantValue(getFieldRawAttributeShort(index, i, 0), enclosing));
@@ -894,9 +903,52 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         if (signature == null) {
             signature = TypeSignature.synthesize(ctxt, typeDescriptor);
         }
+        signature = applyToFieldSignature(applyToFieldSignature(signature, visibleList), invisibleList);
         builder.setSignature(signature);
         builder.setSourceFileName(sourceFile);
         return builder.build();
+    }
+
+    private TypeSignature applyToFieldSignature(TypeSignature sig, TypeAnnotationList list) {
+        if (list == null) {
+            return sig;
+        }
+        for (TypeAnnotation typeAnnotation : list) {
+            TargetInfo targetType = typeAnnotation.getTargetType();
+            if (targetType instanceof TargetInfo.Empty) {
+                // OK
+                sig = applyNested(typeAnnotation, 0, sig);
+            }
+        }
+        // fully transformed
+        return sig;
+    }
+
+    private TypeSignature applyNested(TypeAnnotation ta, int idx, TypeSignature input) {
+        if (idx == ta.getPathLength()) {
+            // it applies here
+            Annotation annotation = ta.getAnnotation();
+            return input.withAnnotation(annotation);
+        }
+        TypePathKind kind = ta.getPathKind(idx);
+        switch (kind) {
+            case ARRAY -> {
+                if (input instanceof ArrayTypeSignature ats) {
+                    TypeSignature nested = applyNested(ta, idx + 1, ats.getElementTypeSignature());
+                    return ats.withElementType(nested);
+                }
+            }
+            case NESTED -> {
+                if (input instanceof NestedClassTypeSignature nts) {
+                    TypeSignature nested = applyNested(ta, idx + 1, nts.getEnclosing());
+                    if (nested instanceof ClassTypeSignature cts) {
+                        return nts.withEnclosing(cts);
+                    }
+                }
+            }
+        }
+        // unknown
+        return input;
     }
 
     public String getFieldName(final int index) {

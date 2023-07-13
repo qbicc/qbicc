@@ -66,6 +66,10 @@ public final class ArrayTypeSignature extends ReferenceTypeSignature {
         return (ArrayTypeSignature) super.withoutAnnotation(descriptor);
     }
 
+    public ArrayTypeSignature withElementType(TypeSignature signature) {
+        return new ArrayTypeSignature(elementTypeSignature, getAnnotationsPrivate());
+    }
+
     @Override
     ArrayTypeSignature replacingAnnotationMap(ImmutableMap<ClassTypeDescriptor, Annotation> newMap) {
         return new ArrayTypeSignature(elementTypeSignature, newMap);
