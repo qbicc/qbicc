@@ -11,6 +11,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.generic.TypeParameterContext;
 
@@ -64,7 +65,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
 
     @Override
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (inRange() && ! targetPtr.isNoThrow()) {
+        if (inRange() && ! targetPtr.isNoThrow() && ! (targetPtr.getPointeeType() instanceof FunctionType)) {
             Map<Slot, Value> capture = mp.captureOutbound();
             BlockLabel resumeLabel = new BlockLabel();
             BlockLabel handlerLabel = new BlockLabel();
@@ -77,7 +78,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
 
     @Override
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (inRange() && ! targetPtr.isNoThrow()) {
+        if (inRange() && ! targetPtr.isNoThrow() && ! (targetPtr.getPointeeType() instanceof FunctionType)) {
             Map<Slot, Value> capture = mp.captureOutbound();
             BlockLabel handlerLabel = new BlockLabel();
             return invokeNoReturn(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), Map.of());
@@ -87,7 +88,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
 
     @Override
     public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (inRange() && ! targetPtr.isNoThrow()) {
+        if (inRange() && ! targetPtr.isNoThrow() && ! (targetPtr.getPointeeType() instanceof FunctionType)) {
             return_(call(targetPtr, receiver, arguments));
         }
         return super.tailCall(targetPtr, receiver, arguments);
