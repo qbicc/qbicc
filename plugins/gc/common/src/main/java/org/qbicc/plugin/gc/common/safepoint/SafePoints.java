@@ -13,7 +13,7 @@ import org.qbicc.type.definition.element.MethodElement;
  *
  */
 public final class SafePoints {
-    private static final String THREAD_INT_NAME = "java/lang/Thread";
+    private static final String THREAD_NATIVE_INT_NAME = "jdk/internal/thread/ThreadNative";
 
     private SafePoints() {}
 
@@ -26,7 +26,7 @@ public final class SafePoints {
      */
     public static BasicBlockBuilder createBasicBlockBuilder(BasicBlockBuilder.FactoryContext fc, BasicBlockBuilder delegate) {
         final ClassContext bcc = delegate.getContext().getBootstrapClassContext();
-        final DefinedTypeDefinition dt = bcc.findDefinedType(THREAD_INT_NAME);
+        final DefinedTypeDefinition dt = bcc.findDefinedType(THREAD_NATIVE_INT_NAME);
         return new DelegatingBasicBlockBuilder(delegate) {
 
             @Override

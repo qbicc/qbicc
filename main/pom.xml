@@ -126,7 +126,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-gc-nogc</artifactId>
+            <artifactId>qbicc-plugin-gc-semispace</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

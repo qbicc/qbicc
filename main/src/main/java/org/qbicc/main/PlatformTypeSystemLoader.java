@@ -9,7 +9,6 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
-import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import org.qbicc.type.TypeSystem;
 
 import java.io.IOException;
@@ -51,7 +50,6 @@ public class PlatformTypeSystemLoader {
     private final DiagnosticContext initialContext;
     private final ReferenceType referenceType;
     private final boolean smallTypeIds;
-    private final boolean nogc;
 
 
     public PlatformTypeSystemLoader(
@@ -60,14 +58,12 @@ public class PlatformTypeSystemLoader {
         ObjectFileProvider objectFileProvider,
         DiagnosticContext initialContext,
         ReferenceType referenceType,
-        boolean smallTypeIds,
-        boolean nogc) {
+        boolean smallTypeIds) {
         this.platform = platform;
         this.toolChain = toolChain;
         this.objectFileProvider = objectFileProvider;
         this.initialContext = initialContext;
         this.smallTypeIds = smallTypeIds;
-        this.nogc = nogc;
         this.referenceType = referenceType;
     }
 
@@ -144,9 +140,9 @@ public class PlatformTypeSystemLoader {
             tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(type_id_type).getSize());
             tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(type_id_type).getAlign());
             tsBuilder.setEndianness(probeResult.getByteOrder());
-            if (nogc) {
-                new NoGcTypeSystemConfigurator().accept(tsBuilder);
-            }
+            // todo: compressed refs
+            tsBuilder.setReferenceSize(tsBuilder.getPointerSize());
+            tsBuilder.setReferenceAlignment(tsBuilder.getPointerAlignment());
 
             return tsBuilder.build();
         }
@@ -210,9 +206,8 @@ public class PlatformTypeSystemLoader {
 
         tsBuilder.setEndianness(endianness(platformTypeInfo.get("endian").asText()));
 
-        if (nogc) {
-            new NoGcTypeSystemConfigurator().accept(tsBuilder);
-        }
+        tsBuilder.setReferenceSize(tsBuilder.getPointerSize());
+        tsBuilder.setReferenceAlignment(tsBuilder.getPointerAlignment());
 
         return tsBuilder.build();
     }

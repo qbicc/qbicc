@@ -1,4 +1,4 @@
-package org.qbicc.plugin.gc.nogc;
+package org.qbicc.plugin.gc.common;
 
 import java.util.List;
 
@@ -14,49 +14,51 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.StructType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
  */
-public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class GcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+
     private final CompilationContext ctxt;
     private final CoreClasses coreClasses;
 
-    public NoGcBasicBlockBuilder(final FactoryContext fc, final BasicBlockBuilder delegate) {
+    public GcBasicBlockBuilder(final FactoryContext fc, BasicBlockBuilder delegate) {
         super(delegate);
         CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
-        this.coreClasses = CoreClasses.get(ctxt);
+        coreClasses = CoreClasses.get(ctxt);
     }
 
     @Override
     public Value new_(final ClassObjectType type, final Value typeId, final Value size, final Value align) {
-        NoGc noGc = NoGc.get(ctxt);
+        AbstractGc gc = AbstractGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value refVal = null;
+        boolean stackAlloc = false;
         if (typeId instanceof TypeIdLiteral tl && tl.getValue() instanceof ClassObjectType cot) {
             // We can only even attempt stack allocation if the typeId is a literal (ie, known precisely at compile time).
-            if (cot.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
+            if (cot.isSubtypeOf(gc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
                 StructType structType = Layout.get(ctxt).getInstanceLayoutInfo(cot.getDefinition()).getStructType();
                 refVal = encodeReference(stackAllocate(structType, lf.literalOf(1), align), type.getReference());
+                // zero initialize the allocated storage
+                MethodElement method = gc.getZeroMethod();
+                call(lf.literalOf(method), List.of(refVal, size));
+                stackAlloc = true;
             }
         }
         if (refVal == null) {
-            MethodElement method = noGc.getAllocateMethod();
-            refVal = notNull(bitCast(call(lf.literalOf(method), List.of(size, align)), type.getReference()));
+            MethodElement method = gc.getAllocateMethod();
+            refVal = notNull(bitCast(call(lf.literalOf(method), List.of(size)), type.getReference()));
         }
 
-        // zero initialize the allocated storage
-        MethodElement method = noGc.getZeroMethod();
-        call(lf.literalOf(method), List.of(refVal, size));
-
-        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, decodeReference(refVal), typeId);
+        BasicHeaderInitializer.initializeObjectHeader(ctxt, this, decodeReference(refVal), typeId, stackAlloc);
         return refVal;
     }
 
@@ -82,9 +84,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private Value allocateArray(StructType structType, Value size, long elementSize) {
-        NoGc noGc = NoGc.get(ctxt);
+        AbstractGc gc = AbstractGc.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
-        IntegerLiteral align = lf.literalOf(structType.getAlign());
         IntegerLiteral baseSize = lf.literalOf(structType.getSize());
         IntegerType sizeType = (IntegerType) size.getType();
         if (sizeType.getMinBits() < 64) {
@@ -95,11 +96,6 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Value realSize = add(baseSize, elementShift == 0 ? size : shl(size, lf.literalOf((IntegerType)size.getType(), elementShift)));
 
         // Allocate and zero-initialize the storage
-        MethodElement method1 = noGc.getAllocateMethod();
-        Value ptrVal = notNull(call(lf.literalOf(method1), List.of(realSize, align)));
-        MethodElement method = noGc.getZeroMethod();
-        call(lf.literalOf(method), List.of(ptrVal, realSize));
-
-        return ptrVal;
+        return notNull(call(lf.literalOf(gc.getAllocateMethod()), List.of(realSize)));
     }
 }

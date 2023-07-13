@@ -18,7 +18,7 @@ public class UnwindExceptionStrategy {
     private UnwindExceptionStrategy(final CompilationContext ctxt) {
         /* Locate the field "unwindException" of type Unwind$_Unwind_Exception in thread_native */
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        StructType st = (StructType) classContext.resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        StructType st = (StructType) classContext.resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
         unwindExceptionMember = st.getMember("unwindException");
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */

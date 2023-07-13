@@ -17,4 +17,5 @@ public class InitialHeap {
     static class ClassSection {}
     static class InternedStringSection {}
     static class ObjectSection {}
+    static class RefSection {}
 }

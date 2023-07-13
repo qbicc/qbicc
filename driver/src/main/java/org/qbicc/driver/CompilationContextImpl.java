@@ -577,7 +577,7 @@ final class CompilationContextImpl implements CompilationContext {
             // already a function
             return ft;
         } else {
-            StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+            StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
             // some kind of method
             assert origType instanceof MethodType;
             MethodType mt = (MethodType) origType;
@@ -600,7 +600,7 @@ final class CompilationContextImpl implements CompilationContext {
 
     public FunctionType getFunctionTypeForInitializer() {
         // look up the thread arg type - todo: lazy cache?
-        StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        StructType threadNativeType = (StructType) getBootstrapClassContext().resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
         return typeSystem.getFunctionType(typeSystem.getVoidType(), List.of(threadNativeType.getPointer()));
     }
 

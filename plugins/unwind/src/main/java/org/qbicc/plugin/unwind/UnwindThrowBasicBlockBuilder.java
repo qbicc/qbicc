@@ -39,7 +39,7 @@ public class UnwindThrowBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         final LiteralFactory lf = getLiteralFactory();
         if (getRootElement() instanceof FunctionElement fe) {
             ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
-            StructType threadNativeType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("java/lang", "Thread$thread_native");
+            StructType threadNativeType = (StructType) ctxt.getBootstrapClassContext().resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
             DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadNativeType.getPointer());
             decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             ptr = memberOf(load(lf.literalOf(decl)), teh.getUnwindExceptionMember());

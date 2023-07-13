@@ -18,6 +18,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ObjectLiteral;
@@ -67,6 +68,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeIdType;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -121,7 +123,7 @@ public class BuildtimeHeap {
     /**
      * The section where references are stored, where they can be found easily by GC.
      */
-    private final Section refSection;
+    private final ModuleSection refSection;
     /**
      * The global array of root java.lang.Class instances
      */
@@ -135,7 +137,14 @@ public class BuildtimeHeap {
      */
     private final Map<FieldElement, GlobalVariableElement> staticFields = new ConcurrentHashMap<>();
 
+    private final DataDeclaration heapEnd;
+    private final DataDeclaration stringsEnd;
+    private final DataDeclaration refsEnd;
+
     private int literalCounter = 0;
+    private Data stringsStart;
+    private Data heapStart;
+    private Data refsStart;
 
     private BuildtimeHeap(CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -143,14 +152,24 @@ public class BuildtimeHeap {
         this.coreClasses = CoreClasses.get(ctxt);
 
         Platform p = ctxt.getPlatform();
-        refSection = Section.defineSection(ctxt, 0, "refs", Segment.DATA, Section.Flag.DATA_ONLY);
+        Section refSection = Section.defineSection(ctxt, 0, "refs", Segment.DATA, Section.Flag.DATA_ONLY);
+        // todo: ref-typed fields belong in their corresponding modules
+        LoadedTypeDefinition refSectionClass = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$RefSection").load();
+        this.refSection = ctxt.getOrAddProgramModule(refSectionClass).inSection(refSection);
         Section classSection = Section.defineSection(ctxt, 3, "classes", Segment.DATA, Section.Flag.DATA_ONLY);
         // todo: class objects belong in their corresponding modules
-        this.classSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load()).inSection(classSection);
+        LoadedTypeDefinition classSectionClass = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ClassSection").load();
+        this.classSection = ctxt.getOrAddProgramModule(classSectionClass).inSection(classSection);
         Section stringSection = Section.defineSection(ctxt, 4, "strings", Segment.DATA, Section.Flag.DATA_ONLY);
-        this.stringSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load()).inSection(stringSection);
+        LoadedTypeDefinition stringSectionClass = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$InternedStringSection").load();
+        this.stringSection = ctxt.getOrAddProgramModule(stringSectionClass).inSection(stringSection);
         Section objectSection = Section.defineSection(ctxt, 4, "objects", Segment.DATA, Section.Flag.DATA_ONLY);
-        this.objectSection = ctxt.getOrAddProgramModule(ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load()).inSection(objectSection);
+        LoadedTypeDefinition objectSectionClass = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap$ObjectSection").load();
+        this.objectSection = ctxt.getOrAddProgramModule(objectSectionClass).inSection(objectSection);
+        UnsignedIntegerType u64 = ctxt.getTypeSystem().getUnsignedInteger64Type();
+        heapEnd = ctxt.getOrAddProgramModule(objectSectionClass).declareData(null, "qbicc_initial_heap_obj_end", u64);
+        stringsEnd = ctxt.getOrAddProgramModule(objectSectionClass).declareData(null, "qbicc_initial_heap_iss_end", u64);
+        refsEnd = ctxt.getOrAddProgramModule(objectSectionClass).declareData(null, "qbicc_refs_end", u64);
     }
 
     public static BuildtimeHeap get(CompilationContext ctxt) {
@@ -181,13 +200,20 @@ public class BuildtimeHeap {
             .forEach(e -> slog.debugf("  %,6d instances of %s", e.getValue(), e.getKey().getDescriptor()));
     }
 
+    public static void emitEndMarkers(CompilationContext ctxt) {
+        BuildtimeHeap bh = get(ctxt);
+        IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger64Type(), 0L);
+        bh.objectSection.addData(null, bh.heapEnd.getName(), zero);
+        bh.stringSection.addData(null, bh.stringsEnd.getName(), zero);
+        bh.refSection.addData(null, bh.refsEnd.getName(), zero);
+    }
+
     void initializeRootClassArray(int numTypeIds) {
         LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
         StructType jlcType = layout.getInstanceLayoutInfo(jlc).getStructType();
         ArrayType rootArrayType = ctxt.getTypeSystem().getArrayType(jlcType, numTypeIds);
         rootClassesDecl = classSection.getProgramModule().declareData(null, "qbicc_jlc_lookup_table", rootArrayType);
         rootClasses = new Literal[numTypeIds];
-        rootClasses[0] = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlc.getObjectType()); // TODO: Remove if we assign void typeId 0 instead of using 0 as an invalid typeId
     }
 
     void emitRootClassArray() {
@@ -286,7 +312,8 @@ public class BuildtimeHeap {
         builder.setSignature(TypeSignature.synthesize(classContext, fieldDesc));
         builder.setModifiers(field.getModifiers());
         builder.setEnclosingType(typeDef);
-        Section section = field.getType() instanceof ReferenceType ? refSection : ctxt.getImplicitSection();
+        ModuleSection moduleSection = field.getType() instanceof ReferenceType && !field.isThreadLocal() ? refSection : ctxt.getOrAddProgramModule(typeDef).inSection(ctxt.getImplicitSection());
+        Section section = moduleSection.getSection();
         builder.setSection(section);
         builder.setMinimumAlignment(field.getMinimumAlignment());
         global = builder.build();
@@ -300,7 +327,6 @@ public class BuildtimeHeap {
         }
         // we added it, so we must add the definition as well
         LiteralFactory lf = ctxt.getLiteralFactory();
-        ModuleSection moduleSection = ctxt.getOrAddProgramModule(typeDef).inSection(section);
         Value initialValue;
         if (field.getRunTimeInitializer() != null) {
             initialValue = lf.zeroInitializerLiteralOfType(globalType);
@@ -348,7 +374,21 @@ public class BuildtimeHeap {
         final Data data = moduleSection.addData(field, globalName, initialValue);
         data.setLinkage(Linkage.EXTERNAL);
         data.setDsoLocal();
+        if (section == refSection.getSection()) {
+            // the lowest type ID goes first
+            if (refsStart == null || data.getOriginalElement().getEnclosingType().typeId().getTypeIdValue() < refsStart.getOriginalElement().getEnclosingType().typeId().getTypeIdValue()) {
+                refsStart = data;
+            }
+        }
         return global;
+    }
+
+    public Section getReferenceTypedVariableSection() {
+        return refSection.getSection();
+    }
+
+    public Section getInitialHeapSection() {
+        return objectSection.getSection();
     }
 
     private ValueType widenBoolean(ValueType type) {
@@ -469,7 +509,40 @@ public class BuildtimeHeap {
     private Data defineData(ModuleSection into, String name, Literal value) {
         Data d = into.addData(null, name, value);
         d.setLinkage(Linkage.EXTERNAL);
+        if (into == objectSection) {
+            if (heapStart == null) {
+                heapStart = d;
+            }
+        } else if (into == stringSection) {
+            if (stringsStart == null) {
+                stringsStart = d;
+            }
+        }
         return d;
+    }
+
+    public Data getHeapStart() {
+        return heapStart;
+    }
+
+    public DataDeclaration getHeapEnd() {
+        return heapEnd;
+    }
+
+    public Data getStringsStart() {
+        return stringsStart;
+    }
+
+    public DataDeclaration getStringsEnd() {
+        return stringsEnd;
+    }
+
+    public Data getRefsStart() {
+        return refsStart;
+    }
+
+    public DataDeclaration getRefsEnd() {
+        return refsEnd;
     }
 
     private StructType arrayLiteralType(FieldElement contents, int length) {

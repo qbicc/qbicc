@@ -42,7 +42,7 @@ import org.qbicc.type.generic.TypeSignature;
 public final class CoreClasses {
     private static final AttachmentKey<CoreClasses> KEY = new AttachmentKey<>();
 
-    private static final String INTERNAL_ARRAY = "internal_array";
+    public static final HeaderBits.Key STACK_ALLOCATED_BIT = new HeaderBits.Key(1);
 
     private static final InitializerResolver EMPTY_INIT = (index, enclosing, builder) -> {
         builder.setEnclosingType(enclosing);
@@ -134,7 +134,7 @@ public final class CoreClasses {
 
         // define an array base type so that the length is always in the same place
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
-        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, INTERNAL_ARRAY);
+        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "[");
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
@@ -142,13 +142,14 @@ public final class CoreClasses {
         typeBuilder.expectInterfaceNameCount(2);
         typeBuilder.addInterfaceName("java/lang/Cloneable");
         typeBuilder.addInterfaceName("java/io/Serializable");
-        typeBuilder.setSimpleName("base_array_type");
+        typeBuilder.setSimpleName("[");
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
-        typeBuilder.setName("base_array_type");
+        typeBuilder.setName("[");
         typeBuilder.addField(CoreClasses::makeLengthField, 0, "length", BaseTypeDescriptor.I);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();
+        classContext.defineClass("[", baseType);
 
         arrayLengthField = (InstanceFieldElement) baseType.load().getField(0);
 
@@ -190,6 +191,10 @@ public final class CoreClasses {
         refArrayContentField = (InstanceFieldElement) refArrayType.getField(2);
 
         ts.initializeReferenceArrayClass(refArrayType);
+    }
+
+    public static void reserveStackAllocatedBit(CompilationContext ctxt) {
+        HeaderBits.get(ctxt).getHeaderBits(STACK_ALLOCATED_BIT);
     }
 
     private DefinedTypeDefinition definePrimitiveType(final BaseTypeDescriptor desc) {
@@ -235,6 +240,7 @@ public final class CoreClasses {
             // initialize the primitive type def
             wt.getPrimitiveArrayObjectType().initializeDefinition(definition);
         }
+        classContext.defineClass(simpleName, definition);
         return definition;
     }
 
@@ -242,7 +248,7 @@ public final class CoreClasses {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         return fieldBuilder.build();
     }
 
@@ -250,7 +256,7 @@ public final class CoreClasses {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.I);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         return fieldBuilder.build();
     }
 
@@ -258,7 +264,7 @@ public final class CoreClasses {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setType(jlo.load().getClassType().getTypeType());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         return fieldBuilder.build();
     }
 
@@ -266,7 +272,7 @@ public final class CoreClasses {
         fieldBuilder.setEnclosingType(enclosing);
         fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getArrayType(realMemberType, 0));
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT);
         return fieldBuilder.build();
     }
 

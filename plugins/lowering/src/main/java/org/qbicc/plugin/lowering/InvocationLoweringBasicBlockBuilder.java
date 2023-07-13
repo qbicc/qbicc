@@ -52,6 +52,7 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.ParameterElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
 
@@ -73,7 +74,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         this.ctxt = ctxt;
         originalElement = delegate.getCurrentElement();
         final ClassContext bcc = ctxt.getBootstrapClassContext();
-        threadNativeType = (StructType) bcc.resolveTypeFromClassName("java/lang", "Thread$thread_native");
+        threadNativeType = (StructType) bcc.resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
         currentThreadMember = threadNativeType.getMember("ref");
         threadTypeDef = bcc.findDefinedType("java/lang/Thread");
     }
@@ -90,6 +91,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             lveBuilder.setLine(node.getSourceLine());
             lveBuilder.setBci(node.getBytecodeIndex());
             lveBuilder.setTypeParameterContext(getCurrentElement().getTypeParameterContext());
+            lveBuilder.setSourceFileName(originalElement.getSourceFileName());
             final LocalVariableElement lve = lveBuilder.build();
             if (originalElement instanceof FunctionElement fe) {
                 ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
@@ -98,6 +100,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
                 final LiteralFactory lf = ctxt.getLiteralFactory();
                 declareDebugAddress(lve, lf.literalOf(decl));
             } else {
+                ParameterElement.Builder peBuilder = ParameterElement.builder(".thr", BaseTypeDescriptor.V, 0);
+                peBuilder.setSignature(BaseTypeSignature.V);
+                peBuilder.setEnclosingType(originalElement.getEnclosingType());
+                peBuilder.setType(threadNativeType.getPointer());
+                peBuilder.setTypeParameterContext(getCurrentElement().getTypeParameterContext());
+                peBuilder.setSourceFileName(originalElement.getSourceFileName());
+                lveBuilder.setReflectsParameter(peBuilder.build());
                 thrParam = addParam(blockLabel, Slot.thread(), threadNativeType.getPointer(), false);
                 setDebugValue(lve, thrParam);
             }

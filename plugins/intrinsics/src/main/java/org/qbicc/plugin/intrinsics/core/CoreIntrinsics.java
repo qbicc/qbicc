@@ -26,12 +26,13 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmString;
+import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.coreclasses.RuntimeMethodFinder;
 import org.qbicc.plugin.dispatch.DispatchTables;
-import org.qbicc.plugin.gc.nogc.NoGc;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -54,6 +55,8 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -90,6 +93,7 @@ public final class CoreIntrinsics {
         registerJavaUtilConcurrentAtomicLongIntrinsics(ctxt);
         UnsafeIntrinsics.register(ctxt);
         registerJDKInternalIntrinsics(ctxt);
+        registerJDKInternalThreadIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, StaticFieldElement field) {
@@ -210,16 +214,10 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
 
         MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
-        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         /* public static native Thread currentThread(); */
         StaticIntrinsic currentThread = (builder, target, arguments) -> builder.load(builder.currentThread(), SingleUnshared);
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
-
-        //static native void bind(ptr<thread_native> threadPtr);
-        StaticIntrinsic bind = (builder, targetPtr, arguments) ->
-            builder.call(builder.threadBound(arguments.get(0), builder.resolveStaticMethod(jltDesc, "run0", emptyToVoid)), List.of());
-        intrinsics.registerIntrinsic(jltDesc, "bind", bind);
     }
 
     public static void registerJavaLangStackTraceElementIntrinsics(CompilationContext ctxt) {
@@ -394,22 +392,7 @@ public final class CoreIntrinsics {
         };
         intrinsics.registerIntrinsic(Phase.ADD, ciDesc, "emitNew", newDesc, new_);
 
-        MethodDescriptor copyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(clsDesc, objDesc, objDesc));
-        StaticIntrinsic copy = (builder, target, arguments) -> {
-            Value cls = arguments.get(0);
-            Value src = arguments.get(1);
-            Value dst = arguments.get(2);
-            Value size32 = builder.load(builder.instanceFieldOf(builder.decodeReference(cls), coreClasses.getClassInstanceSizeField()));
-            Value size = builder.extend(size32, ctxt.getTypeSystem().getSignedInteger64Type());
-
-            // TODO: This is a kludge in multiple ways:
-            //  1. We should not directly call a NoGc method here.
-            //  2. We are overwriting the object header fields initialized by new when doing the copy
-            //     (to make sure we copy any instance fields that have been assigned to use the padding bytes in the basic object header).
-            MethodElement method = NoGc.get(ctxt).getCopyMethod();
-            return builder.call(builder.getLiteralFactory().literalOf(method), List.of(dst, src, size));
-        };
-        intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "copyInstanceFields", copyDesc, copy);
+        // copyInstanceFields is registered in the GC plugin
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
@@ -1041,5 +1024,40 @@ public final class CoreIntrinsics {
             return builder.and(builder.load(builder.instanceFieldOf(builder.decodeReference(cls), modField)), ctxt.getLiteralFactory().literalOf(0x1fff));
         };
         intrinsics.registerIntrinsic(Phase.ANALYZE, reflect, "getClassAccessFlags", intClass, getClassAccessFlags);
+    }
+
+    private static void registerJDKInternalThreadIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor threadNativeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/thread/ThreadNative");
+        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+
+        intrinsics.registerIntrinsic(threadNativeDesc, "getSystemThreadGroup", (builder, targetPtr, arguments) -> builder.getLiteralFactory().literalOf(builder.getContext().getVm().getMainThreadGroup()));
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        MethodDescriptor emptyToThreadNativeStruct = MethodDescriptor.synthesize(classContext, ptrDesc, List.of());
+
+        //static native void bind(ptr<thread_native> threadPtr);
+        StaticIntrinsic bind = (builder, targetPtr, arguments) ->
+            builder.call(builder.threadBound(arguments.get(0), builder.resolveStaticMethod(jltDesc, "run0", emptyToVoid)), List.of());
+        intrinsics.registerIntrinsic(threadNativeDesc, "bind", bind);
+
+        // current thread native pointer
+        StaticIntrinsic currentThreadNativePtr = (builder, targetPtr, arguments) -> {
+            // todo: baseOf(currentThread(), "ref") or similar instead of duplicating this code from org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder
+            ExecutableElement currentElement = builder.getCurrentElement();
+            if (currentElement instanceof FunctionElement fe) {
+                ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
+                StructType threadNativeType = (StructType) builder.getCurrentClassContext().resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
+                DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadNativeType.getPointer());
+                decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                final LiteralFactory lf = ctxt.getLiteralFactory();
+                return builder.load(lf.literalOf(decl));
+            }
+            return builder.getParam(builder.getEntryLabel(), Slot.thread());
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, threadNativeDesc, "currentThreadNativePtr", emptyToThreadNativeStruct, currentThreadNativePtr);
     }
 }

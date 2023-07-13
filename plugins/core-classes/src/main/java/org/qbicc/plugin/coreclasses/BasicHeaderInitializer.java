@@ -14,8 +14,8 @@ import org.qbicc.type.definition.element.InstanceFieldElement;
  */
 public class BasicHeaderInitializer {
 
-    public static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final Value handle, final Value typeId) {
-        initializeObjectHeader(ctxt, bb, CoreClasses.get(ctxt), handle, typeId);
+    public static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final Value handle, final Value typeId, boolean stackAlloc) {
+        initializeObjectHeader(ctxt, bb, CoreClasses.get(ctxt), handle, typeId, stackAlloc);
     }
 
     public static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final Value handle, final Value typeId, final Value size) {
@@ -27,12 +27,16 @@ public class BasicHeaderInitializer {
     }
 
 
-    private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final Value handle, final Value typeId) {
+    private static void initializeObjectHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final Value handle, final Value typeId, boolean stackAlloc) {
+        if (stackAlloc) {
+            HeaderBits headerBits = HeaderBits.get(ctxt);
+            bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectHeaderField()), bb.getLiteralFactory().literalOf(headerBits.getHeaderType(), headerBits.getHeaderBits(CoreClasses.STACK_ALLOCATED_BIT)));
+        }
         bb.store(bb.instanceFieldOf(handle, coreClasses.getObjectTypeIdField()), typeId, SinglePlain);
     }
 
     private static void initializeArrayHeader(final CompilationContext ctxt, final BasicBlockBuilder bb, final CoreClasses coreClasses, final Value handle, final Value typeId, final Value size) {
-        initializeObjectHeader(ctxt, bb, coreClasses, handle, typeId);
+        initializeObjectHeader(ctxt, bb, coreClasses, handle, typeId, false);
         bb.store(bb.instanceFieldOf(handle, coreClasses.getArrayLengthField()), size, SinglePlain);
     }
 

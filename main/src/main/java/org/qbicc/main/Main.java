@@ -11,8 +11,8 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,19 +56,9 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
-import org.qbicc.plugin.apploader.AppClassLoader;
-import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
-import org.qbicc.plugin.correctness.DeferenceBasicBlockBuilder;
-import org.qbicc.plugin.initializationcontrol.QbiccFeature;
-import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
-import org.qbicc.plugin.llvm.LLVMConfiguration;
-import org.qbicc.plugin.llvm.ReferenceStrategy;
-import org.qbicc.plugin.llvm.LLVMStackMapCollector;
-import org.qbicc.plugin.methodinfo.CallSiteTable;
-import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
-import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Platform;
@@ -77,27 +67,33 @@ import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.VFSUtils;
 import org.qbicc.machine.vfs.VirtualFileSystem;
+import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.apploader.InitAppClassLoaderHook;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
-import org.qbicc.plugin.coreclasses.CoreClassesBasicBlockBuilder;
 import org.qbicc.plugin.coreclasses.BasicHeaderManualInitializer;
 import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.plugin.coreclasses.CoreClassesBasicBlockBuilder;
 import org.qbicc.plugin.correctness.BuildTimeOnlyElementHandler;
+import org.qbicc.plugin.correctness.ConstraintMaterializingBasicBlockBuilder;
+import org.qbicc.plugin.correctness.DeferenceBasicBlockBuilder;
 import org.qbicc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import org.qbicc.plugin.correctness.StaticChecksBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
-import org.qbicc.plugin.gc.common.GcCommon;
+import org.qbicc.plugin.gc.common.AbstractGc;
+import org.qbicc.plugin.gc.common.GcBasicBlockBuilder;
+import org.qbicc.plugin.gc.common.HeapCommon;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
 import org.qbicc.plugin.gc.common.safepoint.SafePointPlacementBasicBlockBuilder;
 import org.qbicc.plugin.gc.common.safepoint.SafePoints;
-import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
-import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
+import org.qbicc.plugin.initializationcontrol.InitAtRuntimeTypeBuilder;
+import org.qbicc.plugin.initializationcontrol.QbiccFeature;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
+import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
@@ -106,10 +102,13 @@ import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
 import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompatibleBasicBlockBuilder;
+import org.qbicc.plugin.llvm.LLVMConfiguration;
 import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.llvm.LLVMIntrinsics;
+import org.qbicc.plugin.llvm.LLVMStackMapCollector;
 import org.qbicc.plugin.llvm.LLVMStripStackMapStage;
+import org.qbicc.plugin.llvm.ReferenceStrategy;
 import org.qbicc.plugin.lowering.AbortingThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
@@ -119,6 +118,7 @@ import org.qbicc.plugin.lowering.MemberPointerCopier;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
+import org.qbicc.plugin.methodinfo.CallSiteTable;
 import org.qbicc.plugin.native_.ConstTypeResolver;
 import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
@@ -132,7 +132,6 @@ import org.qbicc.plugin.native_.NativeXtorLoweringHook;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
-import org.qbicc.plugin.initializationcontrol.InitAtRuntimeTypeBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.BlockParameterOptimizingVisitor;
 import org.qbicc.plugin.opt.FinalFieldLoadOptimizer;
@@ -152,6 +151,7 @@ import org.qbicc.plugin.patcher.PatcherResolverBasicBlockBuilder;
 import org.qbicc.plugin.patcher.PatcherTypeResolver;
 import org.qbicc.plugin.reachability.ReachabilityAnnotationTypeBuilder;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.reachability.ReachabilityFactsSetup;
 import org.qbicc.plugin.reachability.ReachabilityInfo;
 import org.qbicc.plugin.reachability.ReachabilityRoots;
 import org.qbicc.plugin.reachability.ServiceLoaderAnalyzer;
@@ -163,8 +163,8 @@ import org.qbicc.plugin.reflection.ReflectiveElementTypeBuilder;
 import org.qbicc.plugin.reflection.VarHandleResolvingBasicBlockBuilder;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
-import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.InitialHeapLiteralSerializingVisitor;
+import org.qbicc.plugin.serialization.MethodDataStringsSerializer;
 import org.qbicc.plugin.serialization.StringInternTableEmitter;
 import org.qbicc.plugin.source.SourceEmittingElementHandler;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
@@ -246,13 +246,10 @@ public class Main implements Callable<DiagnosticContext> {
         bootPaths.addAll(builder.bootPathsPrepend);
         // add core things
         bootPaths.add(getCoreComponent("qbicc-runtime-api"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-gc-heap"));
         bootPaths.add(getCoreComponent("qbicc-runtime-llvm"));
         bootPaths.add(getCoreComponent("qbicc-runtime-main"));
         bootPaths.add(getCoreComponent("qbicc-runtime-unwind"));
-        boolean nogc = gc.equals("none");
-        if (nogc) {
-            bootPaths.add(getCoreComponent("qbicc-runtime-gc-nogc"));
-        }
         bootPaths.add(ClassPathEntry.ofClassLibraries(builder.classLibVersion));
         bootPaths.addAll(builder.bootPathsAppend);
         this.bootPaths = bootPaths;
@@ -300,7 +297,7 @@ public class Main implements Callable<DiagnosticContext> {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         builder.setOptLevel(optLevel);
-        boolean nogc = gc.equals("none");
+        boolean semiGc = gc.equals("semi");
         boolean llvm = backend.equals(Backend.llvm);
         int errors = initialContext.errors();
         if (errors == 0) {
@@ -340,14 +337,14 @@ public class Main implements Callable<DiagnosticContext> {
                         PlatformTypeSystemLoader platformTypeSystemLoader = new PlatformTypeSystemLoader(
                             platform, toolChain, objectFileProvider, initialContext,
                             PlatformTypeSystemLoader.ReferenceType.POINTER,
-                            smallTypeIds, nogc);
+                            smallTypeIds);
                         TypeSystem typeSystem = platformTypeSystemLoader.load();
 
                         builder.setTypeSystem(typeSystem);
                         // add additional manual initializers by chaining `.andThen(...)`
                         builder.setVmFactory(cc -> {
-                            GcCommon.reserveMarkBit(cc);
-                            GcCommon.reserveMovedBit(cc);
+                            AbstractGc.reserveMovedBit(cc);
+                            CoreClasses.reserveStackAllocatedBit(cc);
                             QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
                             CoreClasses.init(cc);
                             ExceptionOnThreadStrategy.initialize(cc);
@@ -437,7 +434,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
                             builder.addPreHook(Phase.ADD, Reflection::get);
                             builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
-                            builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
+                            builder.addPreHook(Phase.ADD, HeapCommon::registerIntrinsics);
                             builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());
                             builder.addPreHook(Phase.ADD, VIO::get);
                             builder.addPreHook(Phase.ADD, VFS::initialize);
@@ -446,9 +443,8 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
                             builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize2());
                             builder.addPreHook(Phase.ADD, new AddMainClassHook());
-                            if (nogc) {
-                                builder.addPreHook(Phase.ADD, new NoGcSetupHook());
-                            }
+                            // common GC setup
+                            builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
                             builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                             builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
                             builder.addPreHook(Phase.ADD, compilationContext -> {
@@ -474,9 +470,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                             builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
-                            if (nogc) {
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
-                            }
+                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PatcherResolverBasicBlockBuilder::createIfNeeded);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
@@ -598,9 +592,8 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, UnwindThrowBasicBlockBuilder::new);
                             }
                             builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                            if (nogc) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
-                            }
+                            // use the common GC BBB for most algorithms
+                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, GcBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
                             builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
@@ -626,6 +619,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
                             builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                             builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
+                            builder.addPreHook(Phase.GENERATE, BuildtimeHeap::emitEndMarkers);
 
                             if (llvm) {
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));
@@ -895,7 +889,7 @@ public class Main implements Callable<DiagnosticContext> {
     @CommandLine.Command(versionProvider = VersionProvider.class, mixinStandardHelpOptions = true)
     private static final class CommandLineProcessor {
         private enum GCType {
-            NONE("none"),
+            SEMI("semi"),
             ;
             private final String gcType;
 
@@ -980,7 +974,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugInit;
         @CommandLine.Option(names = "--emit-asm", negatable = true, defaultValue = "false", description = "Enable emitting assembly for each class")
         private boolean emitAssembly;
-        @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
+        @CommandLine.Option(names = "--gc", defaultValue = "semi", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--heap-stats")
         private boolean heapStats;
@@ -1142,7 +1136,7 @@ public class Main implements Callable<DiagnosticContext> {
         private String mainClass;
         private List<String> buildTimeInitRootClasses = new ArrayList<>();
         private List<String> propertyDefines = new ArrayList<>(); // pairs of strings: property, value
-        private String gc = "none";
+        private String gc = "semi";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
         private boolean compileOutput = true;
