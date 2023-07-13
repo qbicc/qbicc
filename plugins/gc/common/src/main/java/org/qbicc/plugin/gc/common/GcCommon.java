@@ -14,47 +14,51 @@ import org.qbicc.type.descriptor.MethodDescriptor;
 /**
  * Common utilities and setup for GC.
  */
-public final class HeapCommon {
+public final class GcCommon {
 
-    private HeapCommon() {}
+    private GcCommon() {}
 
     public static void registerIntrinsics(CompilationContext ctxt) {
-        registerHeapIntrinsics(ctxt);
+        registerGcIntrinsics(ctxt);
     }
 
-    private static void registerHeapIntrinsics(final CompilationContext ctxt) {
+    private static void registerGcIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         LiteralFactory lf = classContext.getLiteralFactory();
         TypeSystem ts = classContext.getTypeSystem();
 
-        ClassTypeDescriptor heapDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/gc/heap/Heap");
+        ClassTypeDescriptor gcDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/gc/Gc");
 
         MethodDescriptor emptyToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of());
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMinHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
+        intrinsics.registerIntrinsic(gcDesc, "getConfiguredMinHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 16MB for now
             return lf.literalOf(16L * (1L << 20));
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredMaxHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
+        intrinsics.registerIntrinsic(gcDesc, "getConfiguredMaxHeapSize", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 128MB for now
             return lf.literalOf(128L * (1L << 20));
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredHeapAlignment", emptyToLong, (builder, targetPtr, arguments) -> {
+        intrinsics.registerIntrinsic(gcDesc, "getConfiguredHeapAlignment", emptyToLong, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded 16MB alignment for now
             return lf.literalOf(1L << 24);
         });
 
-        intrinsics.registerIntrinsic(heapDesc, "getConfiguredObjectAlignment", emptyToInt, (builder, targetPtr, arguments) -> {
+        intrinsics.registerIntrinsic(gcDesc, "getConfiguredObjectAlignment", emptyToInt, (builder, targetPtr, arguments) -> {
             // todo: configuration
             // hard-coded to pointer alignment for now
             return lf.literalOf(ts.getPointerAlignment());
         });
+
+        intrinsics.registerIntrinsic(gcDesc, "getGcAlgorithmName", (builder, targetPtr, arguments) ->
+            builder.getLiteralFactory().literalOf(ctxt.getVm().intern(AbstractGc.get(ctxt).getName()))
+        );
     }
 }

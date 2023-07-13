@@ -86,7 +86,7 @@ import org.qbicc.plugin.dispatch.DispatchTableEmitter;
 import org.qbicc.plugin.dot.DotGenerator;
 import org.qbicc.plugin.gc.common.AbstractGc;
 import org.qbicc.plugin.gc.common.GcBasicBlockBuilder;
-import org.qbicc.plugin.gc.common.HeapCommon;
+import org.qbicc.plugin.gc.common.GcCommon;
 import org.qbicc.plugin.gc.common.MultiNewArrayExpansionBasicBlockBuilder;
 import org.qbicc.plugin.gc.common.safepoint.SafePointPlacementBasicBlockBuilder;
 import org.qbicc.plugin.gc.common.safepoint.SafePoints;
@@ -434,7 +434,8 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
                             builder.addPreHook(Phase.ADD, Reflection::get);
                             builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
-                            builder.addPreHook(Phase.ADD, HeapCommon::registerIntrinsics);
+                            builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
+                            builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
                             builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());
                             builder.addPreHook(Phase.ADD, VIO::get);
                             builder.addPreHook(Phase.ADD, VFS::initialize);
@@ -444,7 +445,6 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize2());
                             builder.addPreHook(Phase.ADD, new AddMainClassHook());
                             // common GC setup
-                            builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
                             builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                             builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
                             builder.addPreHook(Phase.ADD, compilationContext -> {

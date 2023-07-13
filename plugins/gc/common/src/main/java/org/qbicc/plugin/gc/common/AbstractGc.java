@@ -205,8 +205,6 @@ public abstract class AbstractGc {
         final IntegerLiteral stackAllocatedBitLiteral = lf.literalOf(headerBits.getHeaderType(), 1L << saIdx);
         intrinsics.registerIntrinsic(gcDesc, "headerStackAllocatedBit", (builder, targetPtr, arguments) -> stackAllocatedBitLiteral);
 
-        intrinsics.registerIntrinsic(gcDesc, "getGcAlgorithmName", (builder, targetPtr, arguments) -> builder.getLiteralFactory().literalOf(ctxt.getVm().intern(AbstractGc.get(ctxt).name)));
-
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor ciDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/CompilerIntrinsics");

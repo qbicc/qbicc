@@ -22,7 +22,8 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public class AddMainClassHook implements Consumer<CompilationContext> {
 
-    private static final String MAIN_CLASS = "jdk/internal/org/qbicc/runtime/Main";
+    private static final String MAIN_CLASS_OLD = "jdk/internal/org/qbicc/runtime/Main";
+    private static final String MAIN_CLASS = "jdk/internal/main/Main";
 
     public AddMainClassHook() {
     }
@@ -75,10 +76,13 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
             // now, load and resolve the class with the real entry point on it, causing it to be registered
             DefinedTypeDefinition runtimeMain = ctxt.getBootstrapClassContext().findDefinedType(MAIN_CLASS);
             if (runtimeMain == null) {
-                ctxt.error("Unable to find runtime main class \"%s\"", MAIN_CLASS);
-            } else {
-                runtimeMain.load();
+                runtimeMain = ctxt.getBootstrapClassContext().findDefinedType(MAIN_CLASS_OLD);
+                if (runtimeMain == null) {
+                    ctxt.error("Unable to find runtime main class \"%s\"", MAIN_CLASS);
+                    return;
+                }
             }
+            runtimeMain.load();
         }
     }
 }
