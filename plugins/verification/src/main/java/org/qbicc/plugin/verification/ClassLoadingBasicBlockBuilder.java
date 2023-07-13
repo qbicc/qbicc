@@ -195,6 +195,9 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (desc == getCurrentElement().getEnclosingType().getDescriptor()) {
             return true;
         }
+        if (desc.packageAndClassNameEquals("", "[") || desc.packageAndClassNameEquals("", "[L")) {
+            return true;
+        }
         final String typeName;
         if (desc.getPackageName().isEmpty()) {
             typeName = desc.getClassName();
