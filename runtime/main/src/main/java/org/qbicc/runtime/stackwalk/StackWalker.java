@@ -110,6 +110,8 @@ public final class StackWalker extends StackObject {
      *
      * @return the call site pointer, or {@code null} if the call site is not known
      */
+    @NoSafePoint
+    @NoThrow
     public ptr<struct_call_site> getCallSite() {
         return findInsnTableEntry(getIp());
     }

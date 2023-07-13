@@ -13,6 +13,7 @@ import static org.qbicc.runtime.stdc.String.*;
 import java.lang.invoke.VarHandle;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.NoSafePoint;
 
 /**
  * Heap management utilities.
@@ -128,6 +129,7 @@ public final class Heap {
      * @return the page size
      */
     @export
+    @NoSafePoint
     public static long getPageSize() {
         return pageSize;
     }

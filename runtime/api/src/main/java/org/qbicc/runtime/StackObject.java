@@ -11,6 +11,10 @@ import java.lang.ref.Reference;
  * Arrays of stack objects are also stack objects.
  */
 public abstract class StackObject {
+    @NoSafePoint
+    protected StackObject() {
+    }
+
     /**
      * Destructor for this object, which is <em>always</em> called when instances go out of scope, which happens
      * implicitly at the point where the last reference to the object is used.

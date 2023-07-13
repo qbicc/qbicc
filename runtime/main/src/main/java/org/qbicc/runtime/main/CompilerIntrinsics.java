@@ -20,6 +20,7 @@ public class CompilerIntrinsics {
     public static native Object emitNew(Class<?> clazz);
 
     @Hidden
+    @NoSafePoint
     public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
 
     /**
@@ -27,12 +28,14 @@ public class CompilerIntrinsics {
      * Classes, interfaces, and primitive arrays have dimensionality 0.
      */
     @Hidden
+    @NoSafePoint
     public static native uint8_t getDimensionsFromClass(Class<?> cls);
 
     /**
      * Get the concrete type ID for the represented type from a java.lang.Class instance.
      */
     @Hidden
+    @NoSafePoint
     public static native type_id getTypeIdFromClass(Class<?> cls);
 
     /**
@@ -55,6 +58,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
+    @NoSafePoint
     public static native Class<?> getArrayClassOf(Class<?> componentClass);
 
     /**
@@ -66,53 +70,62 @@ public class CompilerIntrinsics {
      * @return boolean true if atomic operation succeeds, false otherwise
      */
     @Hidden
+    @NoSafePoint
     public static native boolean setArrayClass(Class<?> componentClass, Class<?> arrayClass);
 
     /**
      * Is the argument typeId the typeId for java.lang.Object?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isJavaLangObject(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.lang.Cloneable?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isJavaLangCloneable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.io.Serializable?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isJavaIoSerializable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a Class?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isClass(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of an Interface?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isInterface(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive array?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isPrimArray(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean isPrimitive(type_id typeId);
 
     /**
      * Is the argument typeId the typeId use for reference arrays?
      */
+    @NoSafePoint
     @Hidden
     public static native boolean isReferenceArray(type_id typeId);
 
@@ -120,6 +133,7 @@ public class CompilerIntrinsics {
      * Returns the typeId used for reference arrays
      */
     @Hidden
+    @NoSafePoint
     public static native type_id getReferenceArrayTypeId();
 
     /**
@@ -127,6 +141,7 @@ public class CompilerIntrinsics {
      * This will be 1 higher than the highest typeid
      */
     @Hidden
+    @NoSafePoint
     public static native type_id getNumberOfTypeIds();
 
     /**
@@ -139,6 +154,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
+    @NoSafePoint
     public static native Class<?> createClass(String name, type_id id, uint8_t dimension, Class<?> componentType);
 
     /**
@@ -149,6 +165,7 @@ public class CompilerIntrinsics {
      * @return the type ID of the object
      */
     @Hidden
+    @NoSafePoint
     public static native type_id typeIdOf(Object reference);
 
     /**
@@ -158,6 +175,7 @@ public class CompilerIntrinsics {
      * @return the dimensionality of the array
      */
     @Hidden
+    @NoSafePoint
     public static native uint8_t dimensionsOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
@@ -167,6 +185,7 @@ public class CompilerIntrinsics {
      * @return the array element type ID
      */
     @Hidden
+    @NoSafePoint
     public static native type_id elementTypeIdOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
@@ -176,21 +195,25 @@ public class CompilerIntrinsics {
      * @return the array length
      */
     @Hidden
+    @NoSafePoint
     public static native int lengthOf(Object array);
 
     /**
      * Get the maxTypeId assigned to subclasses of the argument typeId
      */
     @Hidden
+    @NoSafePoint
     public static native type_id maxSubClassTypeIdOf(type_id typeId);
 
     /**
      * Does a typeId implement the argument interface?
      */
     @Hidden
+    @NoSafePoint
     public static native boolean doesImplement(type_id valueTypeId, type_id interfaceTypeId);
 
     @Hidden
+    @NoSafePoint
     public static native void callRuntimeInitializer(int initID);
 
     /**
@@ -199,14 +222,18 @@ public class CompilerIntrinsics {
      * @return superclass's type_id
      */
     @Hidden
+    @NoSafePoint
     public static native type_id getSuperClassTypeId(type_id typeId);
 
     @Hidden
+    @NoSafePoint
     public static native type_id getFirstInterfaceTypeId();
 
     @Hidden
+    @NoSafePoint
     public static native int getNumberOfBytesInInterfaceBitsArray();
 
     @Hidden
+    @NoSafePoint
     public static native byte getByteOfInterfaceBits(type_id typeId, int index);
 }

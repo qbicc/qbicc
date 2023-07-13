@@ -5,6 +5,7 @@ import org.qbicc.runtime.Hidden;
 import org.qbicc.runtime.Inline;
 import org.qbicc.runtime.InlineCondition;
 import org.qbicc.runtime.NoReturn;
+import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.NotReachableException;
 
@@ -20,6 +21,7 @@ import static org.qbicc.runtime.stdc.Stdint.*;
 public final class VMHelpers {
 
     @NoSideEffects
+    @NoSafePoint
     @Hidden
     @AutoQueued
     public static boolean instanceofClass(Object instance, Class<?> cls) {
@@ -32,6 +34,7 @@ public final class VMHelpers {
     }
 
     @NoSideEffects
+    @NoSafePoint
     @Hidden
     @AutoQueued
     public static boolean instanceofTypeId(Object instance, type_id typeId, uint8_t dimensions) {
@@ -68,6 +71,7 @@ public final class VMHelpers {
     }
 
     // Invariant: value is not null
+    @NoSafePoint
     @NoSideEffects
     @Hidden
     public static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
@@ -79,6 +83,7 @@ public final class VMHelpers {
         }
     }
 
+    @NoSafePoint
     @NoSideEffects
     @Hidden
     public static boolean isTypeIdAssignableTo(type_id fromTypeId, uint8_t fromDimensions, type_id toTypeId, uint8_t toDimensions) {
@@ -86,6 +91,7 @@ public final class VMHelpers {
             || fromDimensions.isGt(toDimensions) && isAssignableToLeaf(CompilerIntrinsics.getReferenceArrayTypeId(), toTypeId);
     }
 
+    @NoSafePoint
     @NoSideEffects
     @Hidden
     private static boolean isAssignableToLeaf(type_id fromTypeId, type_id toTypeId) {
