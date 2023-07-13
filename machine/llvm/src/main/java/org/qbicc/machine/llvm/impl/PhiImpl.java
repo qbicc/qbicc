@@ -40,23 +40,16 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
         final Item lastItem = this.lastItem;
+        target.append("phi");
+        final Set<FastMathFlag> mathFlags = this.mathFlags;
+        for (FastMathFlag mathFlag : mathFlags) {
+            target.append(' ').append(mathFlag.name());
+        }
+        target.append(' ');
+        type.appendTo(target);
+        target.append(' ');
         if (lastItem != null) {
-            target.append("phi");
-            final Set<FastMathFlag> mathFlags = this.mathFlags;
-            for (FastMathFlag mathFlag : mathFlags) {
-                target.append(' ').append(mathFlag.name());
-            }
-            target.append(' ');
-            type.appendTo(target);
-            target.append(' ');
             lastItem.appendTo(target);
-        } else {
-            target.append("select").append(' ');
-            target.append("i1").append(' ').append("true").append(',').append(' ');
-            type.appendTo(target);
-            target.append(' ').append("undef").append(',').append(' ');
-            type.appendTo(target);
-            target.append(' ').append("undef");
         }
         return appendTrailer(target);
     }
