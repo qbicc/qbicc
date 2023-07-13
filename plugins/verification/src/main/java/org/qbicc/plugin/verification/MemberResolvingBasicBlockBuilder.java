@@ -23,6 +23,8 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
@@ -178,15 +180,22 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
+        ValueType valueType = value.getType();
+        if (valueType instanceof InvokableType) {
+            // we can't checkcast invokable types
+            return value;
+        }
         // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
         ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
-        ValueType valueType = value.getType();
         if (value instanceof ConstantLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().constantLiteralOfType(castType);
         } else if (value instanceof UndefinedLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
+        } else if (castType instanceof InterfaceObjectType && valueType instanceof PointerType) {
+            // this is likely a functional interface cast for invocation; we don't transform these
+            return value;
         } else if (castType instanceof ObjectType originalToType) {
             ObjectType toType = originalToType;
             int toDimensions = 0;
@@ -343,12 +352,16 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // special case - resolving on a hidden class
             return enclosingType;
         }
-        if (owner instanceof ClassTypeDescriptor) {
+        if (owner instanceof ClassTypeDescriptor ctd) {
             final String typeName;
-            if (((ClassTypeDescriptor) owner).getPackageName().isEmpty()) {
-                typeName = ((ClassTypeDescriptor) owner).getClassName();
+            if (ctd.packageAndClassNameEquals("", "[")) {
+                return CoreClasses.get(ctxt).getArrayBaseTypeDefinition();
+            } else if (ctd.packageAndClassNameEquals("", "[L")) {
+                return CoreClasses.get(ctxt).getReferenceArrayTypeDefinition();
+            } else if (ctd.getPackageName().isEmpty()) {
+                typeName = ctd.getClassName();
             } else {
-                typeName = ((ClassTypeDescriptor) owner).getPackageName() + "/" + ((ClassTypeDescriptor) owner).getClassName();
+                typeName = ctd.getPackageName() + "/" + ctd.getClassName();
             }
             return getClassContext().findDefinedType(typeName);
         } else if (owner instanceof ArrayTypeDescriptor atd) {
