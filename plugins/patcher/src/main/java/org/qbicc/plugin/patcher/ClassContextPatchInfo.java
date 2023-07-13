@@ -11,7 +11,6 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
 import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ClassAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.InitializerResolver;
