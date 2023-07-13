@@ -170,14 +170,14 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
         StructType st = layoutInfo.getStructType();
         try {
-            return new IntegerAsPointer(bitMapType, computeSmallBitMap(ts, st, 0L, 0));
+            return new IntegerAsPointer(bitMapType, computeSmallBitMap(st, 0L, 0));
         } catch (BigBitMapException e) {
             // do the more complex job for big bitmaps
             int refSize = ts.getReferenceSize();
             long size = st.getSize();
             int ec = (int) ((size + refSize - 1) / refSize);
             int[] bitMap = new int[ec];
-            computeBigBitMap(ts, st, bitMap, 0);
+            computeBigBitMap(st, bitMap, 0);
             // define the data
             LiteralFactory lf = ctxt.getLiteralFactory();
             List<Literal> values = new ArrayList<>(bitMap.length);
@@ -210,49 +210,34 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         }
     }
 
-    long computeSmallBitMap(TypeSystem ts, ArrayType at, long bitMap, int base) {
-        // treat array[0] as a flexible array; set 1x the bits for it
-        long ec = Math.max(at.getElementCount(), 1);
+    long computeSmallBitMap(ArrayType at, long bitMap, int base) {
+        long ec = at.getElementCount();
         long es = at.getElementSize();
         ValueType elementType = at.getElementType();
+        long off = 0;
         for (long i = 0; i < ec; i ++) {
-            bitMap |= computeSmallBitMap(ts, elementType, bitMap, (int) (base + i * es));
+            bitMap |= computeSmallBitMap(elementType, bitMap, (int) (base + off));
+            off += es;
         }
         return bitMap;
     }
 
-    void computeBigBitMap(TypeSystem ts, ArrayType at, int[] bitMap, int base) {
-        // treat array[0] as a flexible array; set 1x the bits for it
-        long ec = Math.max(at.getElementCount(), 1);
-        long es = at.getElementSize();
-        ValueType elementType = at.getElementType();
-        for (long i = 0; i < ec; i ++) {
-            computeBigBitMap(ts, elementType, bitMap, (int) (base + i * es));
-        }
-    }
-
-    long computeSmallBitMap(TypeSystem ts, StructType st, long bitMap, int base) {
+    long computeSmallBitMap(StructType st, long bitMap, int base) {
         for (StructType.Member member : st.getMembers()) {
-            bitMap |= computeSmallBitMap(ts, member.getType(), bitMap, base + member.getOffset());
+            bitMap |= computeSmallBitMap(member.getType(), bitMap, base + member.getOffset());
         }
         return bitMap;
     }
 
-    void computeBigBitMap(TypeSystem ts, StructType st, int[] bitMap, int base) {
-        for (StructType.Member member : st.getMembers()) {
-            computeBigBitMap(ts, member.getType(), bitMap, base + member.getOffset());
-        }
-    }
-
-    long computeSmallBitMap(TypeSystem ts, ValueType itemType, long bitMap, int offset) {
+    long computeSmallBitMap(ValueType itemType, long bitMap, int base) {
         if (itemType instanceof StructType nct) {
-            bitMap |= computeSmallBitMap(ts, nct, bitMap, offset);
+            bitMap |= computeSmallBitMap(nct, bitMap, base);
         } else if (itemType instanceof ArrayType at) {
-            bitMap |= computeSmallBitMap(ts, at, bitMap, offset);
-        } else if (itemType instanceof ReferenceType) {
-            int refSize = ts.getReferenceSize();
+            bitMap |= computeSmallBitMap(at, bitMap, base);
+        } else if (itemType instanceof ReferenceType rt) {
+            int refSize = (int) rt.getSize();
             int refShift = Integer.numberOfTrailingZeros(refSize);
-            int idx = offset >> refShift;
+            int idx = base >> refShift;
             if (idx >= 64) {
                 throw new BigBitMapException();
             }
@@ -261,18 +246,32 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return bitMap;
     }
 
-    void computeBigBitMap(TypeSystem ts, ValueType itemType, int[] bitMap, int offset) {
+    void computeBigBitMap(ArrayType at, int[] bitMap, int base) {
+        long ec = at.getElementCount();
+        long es = at.getElementSize();
+        ValueType elementType = at.getElementType();
+        long off = 0;
+        for (long i = 0; i < ec; i ++) {
+            computeBigBitMap(elementType, bitMap, (int) (base + off));
+            off += es;
+        }
+    }
+
+    void computeBigBitMap(StructType st, int[] bitMap, int base) {
+        for (StructType.Member member : st.getMembers()) {
+            computeBigBitMap(member.getType(), bitMap, base + member.getOffset());
+        }
+    }
+
+    void computeBigBitMap(ValueType itemType, int[] bitMap, int offset) {
         if (itemType instanceof StructType nct) {
-            computeBigBitMap(ts, nct, bitMap, offset);
+            computeBigBitMap(nct, bitMap, offset);
         } else if (itemType instanceof ArrayType at) {
-            computeBigBitMap(ts, at, bitMap, offset);
-        } else if (itemType instanceof ReferenceType) {
-            int refSize = ts.getReferenceSize();
+            computeBigBitMap(at, bitMap, offset);
+        } else if (itemType instanceof ReferenceType rt) {
+            int refSize = (int) rt.getSize();
             int refShift = Integer.numberOfTrailingZeros(refSize);
             int idx = offset >> refShift;
-            if (idx >= 64) {
-                throw new BigBitMapException();
-            }
             bitMap[idx >> 5] |= 1 << idx;
         }
     }
