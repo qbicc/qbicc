@@ -18,11 +18,13 @@ import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
@@ -434,7 +436,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
             return value;
         }
         if (! (inputType instanceof ReferenceType)) {
-            throw new IllegalArgumentException("Only references can be checkcast");
+            getContext().error(getLocation(), "Only references can be checkcast (got type %s)", inputType);
+            throw new BlockEarlyTermination(unreachable());
         }
         ValueType toTypeTypeRaw = toType.getType();
         if (! (toTypeTypeRaw instanceof TypeIdType)) {
@@ -676,16 +679,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         return asDependency(new Call(callSite, element, line, bci, requireDependency(), targetPtr, receiver, arguments));
     }
 
     public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         return unique(new CallNoSideEffects(callSite, element, line, bci, targetPtr, receiver, arguments));
     }
 
@@ -779,30 +778,22 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     }
 
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments));
     }
 
     public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments, catchLabel, targetArguments));
     }
 
     public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments));
     }
 
     public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        if (receiver.getType() instanceof VoidType && targetPtr.getPointeeType() instanceof InstanceMethodType) {
-            getContext().error(getLocation(), "Call to instance method without receiver");
-        }
+        checkReceiver(targetPtr, receiver);
         final BlockLabel currentBlock = requireCurrentBlock();
         Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
         terminate(currentBlock, invoke);
@@ -882,6 +873,18 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         }
         assert currentBlock != null;
         return dependency;
+    }
+
+    private void checkReceiver(final Value targetPtr, final Value receiver) {
+        if (receiver.getType() instanceof VoidType) {
+            if (targetPtr.getPointeeType() instanceof InstanceMethodType) {
+                getContext().error(getLocation(), "Call to instance method without receiver");
+            }
+        } else {
+            if (targetPtr.getPointeeType() instanceof StaticMethodType) {
+                getContext().error(getLocation(), "Call to static method with receiver");
+            }
+        }
     }
 
     private IllegalStateException noBlock() {
