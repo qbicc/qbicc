@@ -449,7 +449,7 @@ public final class Scheduler {
                     for (int i = 0; i < cnt; i ++) {
                         final Value dep = node.getValueDependency(i);
                         if (! (dep instanceof Literal)) {
-                            if (! (dep instanceof BlockParameter) && used.add(dep)) {
+                            if ((! (dep instanceof BlockParameter bp) || bp.getPinnedBlock() != b) && used.add(dep)) {
                                 upAndMark(b.getIndex(), dep);
                             }
                         }
