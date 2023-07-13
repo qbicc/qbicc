@@ -21,3 +21,5 @@ a.out
 *.versionsBackup
 hs_err*.log
 .mvn
+.gdb_history
+.gdbinit
