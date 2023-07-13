@@ -515,6 +515,11 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
+    @Override
+    public Value notNull(Value v) {
+        return v;
+    }
+
     private boolean isTailCallSafe() {
         if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
             Node callSite = getCallSite();
