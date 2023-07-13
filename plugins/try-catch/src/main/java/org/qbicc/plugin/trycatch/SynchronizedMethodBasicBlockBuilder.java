@@ -11,6 +11,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -81,6 +82,10 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr.getPointeeType() instanceof FunctionType) {
+            // invoke is forbidden
+            return super.call(targetPtr, receiver, arguments);
+        }
         BlockLabel resumeLabel = new BlockLabel();
         BlockLabel handlerLabel = new BlockLabel();
         Value rv = invoke(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
@@ -90,6 +95,10 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr.getPointeeType() instanceof FunctionType) {
+            // invoke is forbidden
+            return super.callNoReturn(targetPtr, receiver, arguments);
+        }
         BlockLabel handlerLabel = new BlockLabel();
         return invokeNoReturn(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), Map.of());
     }
