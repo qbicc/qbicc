@@ -27,6 +27,7 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Dereference;
+import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.Auto;
@@ -52,6 +53,7 @@ import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -1498,10 +1500,7 @@ final class MethodParser {
                         // todo: signature context
                         Value handle = gf.resolveStaticField(owner, name, desc);
                         Value value;
-                        if (handle instanceof GlobalVariableLiteral || handle instanceof ProgramObjectLiteral || handle.getPointeeType() instanceof StructType) {
-                            if (desc == BaseTypeDescriptor.B || desc == BaseTypeDescriptor.C || desc == BaseTypeDescriptor.S || desc == BaseTypeDescriptor.Z) {
-                                ctxt.getCompilationContext().warning(gf.getLocation(), "Type promotion to `int` causes an eager load");
-                            }
+                        if (handle instanceof GlobalVariableLiteral || handle instanceof ProgramObjectLiteral || handle.getPointeeType() instanceof StructType || handle.getPointeeType() instanceof ArrayType) {
                             value = promote(gf.deref(handle), desc);
                         } else {
                             value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
@@ -1530,28 +1529,37 @@ final class MethodParser {
                             Value pointer = deref.getPointer();
                             ValueType valueType = pointer.getPointeeType();
                             if (valueType instanceof StructType st) {
-                                push1(gf.deref(gf.memberOf(pointer, st.getMember(name))));
+                                push(gf.deref(gf.memberOf(pointer, st.getMember(name))), desc.isClass2());
                             } else if (valueType instanceof UnionType ut) {
-                                push1(gf.deref(gf.memberOfUnion(pointer,  ut.getMember(name))));
+                                push(gf.deref(gf.memberOfUnion(pointer,  ut.getMember(name))), desc.isClass2());
                             } else if (valueType instanceof PhysicalObjectType) {
-                                push1(gf.deref(gf.instanceFieldOf(pointer, owner, name, desc)));
+                                push(gf.deref(gf.instanceFieldOf(pointer, owner, name, desc)), desc.isClass2());
                             } else {
                                 ctxt.getCompilationContext().error(gf.getLocation(), "Invalid field dereference of '%s'", name);
                                 throw new BlockEarlyTermination(gf.unreachable());
                             }
                         } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof StructType st) {
                             // always a dereference
-                            push1(gf.deref(gf.memberOf(v1, st.getMember(name))));
+                            push(gf.deref(gf.memberOf(v1, st.getMember(name))), desc.isClass2());
                         } else if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof UnionType ut) {
                             // always a dereference
-                            push1(gf.deref(gf.memberOfUnion(v1, ut.getMember(name))));
+                            push(gf.deref(gf.memberOfUnion(v1, ut.getMember(name))), desc.isClass2());
                         } else if (v1.getType() instanceof StructType st) {
                             final StructType.Member member = st.getMember(name);
                             push(promote(gf.extractMember(v1, member)), desc.isClass2());
                         } else {
                             v1 = replaceAll(v1, gf.nullCheck(v1));
                             Value handle = gf.instanceFieldOf(gf.decodeReference(v1), owner, name, desc);
-                            Value value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
+                            Value value;
+                            if (handle.getType() instanceof PointerType pt && pt.getPointeeType() instanceof StructType) {
+                                value = promote(gf.deref(handle), desc);
+                            } else if (handle.getType() instanceof PointerType pt && pt.getPointeeType() instanceof ArrayType) {
+                                value = promote(gf.deref(handle), desc);
+                            } else if (handle.getType() instanceof PointerType pt && pt.getPointeeType() instanceof UnionType) {
+                                value = promote(gf.deref(handle), desc);
+                            } else {
+                                value = promote(gf.load(handle, handle.getDetectedMode().getReadAccess()), desc);
+                            }
                             push(value, desc.isClass2());
                         }
                         break;
@@ -1636,13 +1644,18 @@ final class MethodParser {
                             Value handle;
                             if (opcode == OP_INVOKESTATIC) {
                                 handle = gf.resolveStaticMethod(owner, name, desc);
-                            } else if (opcode == OP_INVOKESPECIAL) {
+                            } else if (opcode == OP_INVOKESPECIAL || ! (v1.getType() instanceof ReferenceType)) {
                                 handle = gf.resolveInstanceMethod(owner, name, desc);
                             } else if (opcode == OP_INVOKEVIRTUAL) {
                                 handle = gf.lookupVirtualMethod(v1, owner, name, desc);
                             } else {
                                 assert opcode == OP_INVOKEINTERFACE;
                                 handle = gf.lookupInterfaceMethod(v1, owner, name, desc);
+                            }
+                            if (v1.getType() instanceof PointerType pt && pt.getPointeeType() instanceof InvokableType) {
+                                // call via invoker
+                                handle = v1;
+                                v1 = gf.emptyVoid();
                             }
                             if (handle.isNoReturn()) {
                                 gf.callNoReturn(handle, v1, List.of(demote(args, desc)));
@@ -1911,6 +1924,9 @@ final class MethodParser {
     }
 
     Value promote(Value value) {
+        if (value instanceof Dereference) {
+            ctxt.getCompilationContext().warning(gf.getLocation(), "Type promotion to `int` causes an eager load");
+        }
         ValueType type = value.getType();
         if (type instanceof IntegerType && ((IntegerType) type).getMinBits() < 32) {
             // extend
