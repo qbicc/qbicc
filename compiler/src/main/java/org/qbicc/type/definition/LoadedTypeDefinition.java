@@ -20,6 +20,7 @@ import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
 import org.qbicc.type.definition.element.StaticFieldElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
@@ -117,7 +118,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         int idx = getFieldIndex(name, includeNoResolve);
         if (idx >= 0) {
             FieldElement field = getField(idx);
-            if (field.getTypeDescriptor().equals(descriptor)) {
+            if (field.getTypeDescriptor() == BaseTypeDescriptor.V || field.getTypeDescriptor().equals(descriptor)) {
                 return field;
             } else {
                 // no match (wrong type)
