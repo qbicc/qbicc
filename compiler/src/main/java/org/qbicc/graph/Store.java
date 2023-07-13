@@ -59,6 +59,8 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     public StringBuilder toString(StringBuilder b) {
         super.toString(b);
         b.append('(');
+        pointer.toReferenceString(b);
+        b.append(',');
         value.toReferenceString(b);
         b.append(',');
         b.append(mode);
