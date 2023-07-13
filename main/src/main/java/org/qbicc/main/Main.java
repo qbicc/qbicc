@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -873,12 +875,12 @@ public class Main implements Callable<DiagnosticContext> {
         int warnings = context.warnings();
         if (errors > 0) {
             if (warnings > 0) {
-                System.err.printf("Compilation failed with %d error(s) and %d warning(s)%n", Integer.valueOf(errors), Integer.valueOf(warnings));
+                System.err.printf("Compilation failed at %s with %d error(s) and %d warning(s)%n", Instant.now().atZone(ZoneId.systemDefault()), Integer.valueOf(errors), Integer.valueOf(warnings));
             } else {
-                System.err.printf("Compilation failed with %d error(s)%n", Integer.valueOf(errors));
+                System.err.printf("Compilation failed at %s with %d error(s)%n", Instant.now().atZone(ZoneId.systemDefault()), Integer.valueOf(errors));
             }
         } else if (warnings > 0) {
-            System.err.printf("Compilation completed with %d warning(s)%n", Integer.valueOf(warnings));
+            System.err.printf("Compilation completed at %s with %d warning(s)%n", Instant.now().atZone(ZoneId.systemDefault()), Integer.valueOf(warnings));
         }
         System.exit(errors == 0 ? 0 : 1);
     }
