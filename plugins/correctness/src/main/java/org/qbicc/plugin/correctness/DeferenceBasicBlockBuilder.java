@@ -26,7 +26,9 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.InvokableType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -431,6 +433,11 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
+    public Value pointerDifference(Value v1, Value v2) {
+        return super.pointerDifference(rhs(v1), rhs(v2));
+    }
+
+    @Override
     public Value divide(Value v1, Value v2) {
         return super.divide(rhs(v1), rhs(v2));
     }
@@ -592,7 +599,12 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     private Value rhs(final Value val) {
         if (val instanceof Dereference d) {
-            return getFirstBuilder().load(d.getPointer(), SingleUnshared);
+            if (d.getPointer().getPointeeType() instanceof InvokableType) {
+                // deref is just used to change the Java-shape of val
+                return d.getPointer();
+            } else {
+                return getFirstBuilder().load(d.getPointer(), SingleUnshared);
+            }
         } else {
             return val;
         }
