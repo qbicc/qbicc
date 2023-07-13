@@ -327,7 +327,7 @@ public final class CallSiteTable {
                     int regNum = state >>> 10 & 0x1f;
                     unw_get_reg(cursor_ptr, word(regNum), addr_of(regVal));
                     ptr<reference<?>> refPtr = regVal.cast();
-                    int offset = state & 0x1ff;
+                    int offset = state << 22 >> 22; // sign-extend and drop high bits
                     address = refPtr.plus(offset).cast();
                 }
                 case LVI_IN_MEMORY -> {
