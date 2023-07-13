@@ -116,8 +116,6 @@ final class CNativeIntrinsics {
         MethodDescriptor wordToReference = MethodDescriptor.synthesize(classContext, referenceDesc, List.of(wordDesc));
         MethodDescriptor toObject = MethodDescriptor.synthesize(classContext, objDesc, List.of());
 
-        MethodDescriptor objToFunction = MethodDescriptor.synthesize(classContext, functionDesc, List.of(objDesc));
-
         intrinsics.registerIntrinsic(referenceDesc, "of", objToReference, (builder, targetPtr, arguments) -> arguments.get(0));
         intrinsics.registerIntrinsic(referenceDesc, "fromWord", wordToReference, (builder, targetPtr, arguments) -> {
             Value wordVal = arguments.get(0);
@@ -138,16 +136,23 @@ final class CNativeIntrinsics {
         });
         intrinsics.registerIntrinsic(referenceDesc, "toObject", toObject, (builder, instance, targetPtr, arguments) -> instance);
 
-        intrinsics.registerIntrinsic(functionDesc, "of", objToFunction, (builder, targetPtr, arguments) -> {
+        intrinsics.registerIntrinsic(functionDesc, "of", (builder, targetPtr, arguments) -> {
             Value value = arguments.get(0);
-            if (value instanceof Dereference d && d.getType() instanceof FunctionType) {
+            if (value instanceof Dereference d && d.getPointer().getPointeeType() instanceof FunctionType) {
                 return value;
             } else {
                 builder.getContext().error(builder.getLocation(), "Invalid argument to `function.of()`; expected a dereferenced function pointer but got %s", value);
                 throw new BlockEarlyTermination(builder.unreachable());
             }
         });
-        intrinsics.registerIntrinsic(functionDesc, "toInvokable", toObject, (builder, instance, targetPtr, arguments) -> instance);
+        intrinsics.registerIntrinsic(functionDesc, "asInvokable", (builder, instance, targetPtr, arguments) -> {
+            if (instance instanceof Dereference d && d.getPointer().getPointeeType() instanceof FunctionType) {
+                return d.getPointer();
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid receiver for `function.asInvokable()`; expected a dereferenced function pointer but got %s", instance);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.loadTypeId(arguments.get(0));
@@ -319,15 +324,20 @@ final class CNativeIntrinsics {
 
         StaticIntrinsic sizeofClass = (builder, target, arguments) -> {
             Value arg = arguments.get(0);
+            IntegerType returnType = (IntegerType) target.getReturnType();
             long size;
             /* Class should be ClassOf(TypeLiteral) */
-            if (arg instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral input && !(input.getValue() instanceof ObjectType)) {
-                size = input.getValue().getSize();
+            if (arg instanceof ClassOf co && co.getInput() instanceof TypeIdLiteral input) {
+                if (input.getValue() instanceof ObjectType) {
+                    // literal reference.class
+                    size = ctxt.getTypeSystem().getReferenceSize();
+                } else {
+                    size = input.getValue().getSize();
+                }
             } else {
                 ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
                 size = arg.getType().getSize();
             }
-            IntegerType returnType = (IntegerType) target.getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
