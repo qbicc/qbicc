@@ -16,6 +16,15 @@ public final class Truncate extends AbstractWordCastValue {
     }
 
     @Override
+    boolean equals(AbstractWordCastValue other) {
+        return other instanceof Truncate tr && equals(tr);
+    }
+
+    boolean equals(Truncate other) {
+        return super.equals(other);
+    }
+
+    @Override
     String getNodeName() {
         return "Truncate";
     }

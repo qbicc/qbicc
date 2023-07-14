@@ -33,7 +33,7 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
     }
 
     public boolean equals(final Object other) {
-        return other.getClass() == getClass() && equals((AbstractWordCastValue) other);
+        return other instanceof AbstractWordCastValue wc && equals(wc);
     }
 
     boolean equals(AbstractWordCastValue other) {

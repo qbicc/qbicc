@@ -28,6 +28,15 @@ public final class IntToFp extends AbstractWordCastValue {
     }
 
     @Override
+    boolean equals(AbstractWordCastValue other) {
+        return other instanceof IntToFp i2f && equals(i2f);
+    }
+
+    boolean equals(IntToFp other) {
+        return super.equals(other);
+    }
+
+    @Override
     String getNodeName() {
         return "IntToFp";
     }

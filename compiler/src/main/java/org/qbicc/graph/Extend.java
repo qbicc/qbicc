@@ -16,6 +16,15 @@ public final class Extend extends AbstractWordCastValue {
     }
 
     @Override
+    boolean equals(AbstractWordCastValue other) {
+        return other instanceof Extend ex && equals(ex);
+    }
+
+    boolean equals(Extend other) {
+        return super.equals(other);
+    }
+
+    @Override
     String getNodeName() {
         return "Extend";
     }
