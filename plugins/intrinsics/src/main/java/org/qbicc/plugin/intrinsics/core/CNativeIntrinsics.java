@@ -35,15 +35,15 @@ import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
-import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.object.Data;
 import org.qbicc.object.ModuleSection;
-import org.qbicc.plugin.apploader.AppClassLoader;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.stdc.Stddef;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
@@ -58,8 +58,6 @@ import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -88,24 +86,9 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
         ClassTypeDescriptor functionDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$function");
-        ClassTypeDescriptor constCharPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$const_char_ptr");
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
-        ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
-        ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
-
-        ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Bool_ptr");
-
-        ClassTypeDescriptor float32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Float32_ptr");
-        ClassTypeDescriptor float64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Float64_ptr");
-
-        ClassTypeDescriptor uint16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint16_t_ptr");
-
-        ClassTypeDescriptor int8ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int8_t_ptr");
-        ClassTypeDescriptor int16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int16_t_ptr");
-        ClassTypeDescriptor int32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int32_t_ptr");
-        ClassTypeDescriptor int64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int64_t_ptr");
 
         ClassTypeDescriptor sizeTDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stddef$size_t");
 
@@ -182,18 +165,7 @@ final class CNativeIntrinsics {
             }
         };
 
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int8ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, uint16ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, float64ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, float32ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int32ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int64ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int16ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, boolPtrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), addrOf);
-        // todo: this one is deprecated
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", addrOf);
 
         StaticIntrinsic refToPtr = (builder, target, arguments) -> {
             Value value = arguments.get(0);
@@ -239,82 +211,33 @@ final class CNativeIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), ptrToRef);
 
-        StaticIntrinsic attachNewThread = (builder, target, arguments) -> {
-            // Allocate uninitialized Thread object
-            Value thread = builder.new_(thrDesc);
-            // immediately set the newly allocated thread object to be the current thread
-            builder.store(builder.currentThread(), thread, SingleUnshared);
-
-            // now start initializing
-            DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-            LoadedTypeDefinition jltVal = jlt.load();
-            // find all the fields
-            InstanceFieldElement nameFld = jltVal.findInstanceField("name");
-            InstanceFieldElement tidFld = jltVal.findInstanceField("tid");
-            InstanceFieldElement groupFld = jltVal.findInstanceField("group");
-            InstanceFieldElement threadStatusFld = jltVal.findInstanceField("threadStatus");
-            InstanceFieldElement priorityFld = jltVal.findInstanceField("priority");
-            InstanceFieldElement contextClassLoaderFld = jltVal.findInstanceField("contextClassLoader");
-
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            Value threadRef = builder.decodeReference(thread);
-            builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), SingleUnshared);
-            builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), SingleUnshared);
-            Value tid = builder.call(builder.resolveStaticMethod(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of())), List.of());
-            builder.store(builder.instanceFieldOf(threadRef, tidFld), tid, SingleUnshared);
-            // priority default is Thread.NORM_PRIORITY
-            Value normPriority = builder.load(lf.literalOf(jltVal.findStaticField("NORM_PRIORITY")), SingleUnshared);
-            builder.store(builder.instanceFieldOf(threadRef, priorityFld), normPriority, SingleUnshared);
-
-            // set thread to be running with JVMTI status for RUNNABLE and ALIVE
-            builder.store(builder.instanceFieldOf(threadRef, threadStatusFld), lf.literalOf(0x05), SingleUnshared);
-
-            // set contextClassLoader to the application classloader
-            VmClassLoader appCl = AppClassLoader.get(ctxt).getAppClassLoader();
-            builder.store(builder.instanceFieldOf(threadRef, contextClassLoaderFld), lf.literalOf(appCl));
-
-            return lf.zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-        };
-
-        intrinsics.registerIntrinsic(cNativeDesc, "attachNewThread", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
-            strDesc, tgDesc
-        )), attachNewThread);
-
         StaticIntrinsic identityStatic = (builder, target, arguments) -> arguments.get(0);
 
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.Z)), identityStatic);
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.I)), identityStatic);
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.J)), identityStatic);
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.F)), identityStatic);
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.D)), identityStatic);
-        intrinsics.registerIntrinsic(cNativeDesc, "word", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.Z)), identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "word", identityStatic);
+        intrinsics.registerIntrinsic(cNativeDesc, "wordExact", identityStatic);
 
         StaticIntrinsic toUnsigned = (builder, target, arguments) ->
-            builder.bitCast(arguments.get(0), ((IntegerType)arguments.get(0).getType()).asUnsigned());
+            builder.bitCast(arguments.get(0), arguments.get(0).getType(IntegerType.class).asUnsigned());
 
-        intrinsics.registerIntrinsic(cNativeDesc, "uword", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.I)), toUnsigned);
-        intrinsics.registerIntrinsic(cNativeDesc, "uword", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.J)), toUnsigned);
+        intrinsics.registerIntrinsic(cNativeDesc, "uword", toUnsigned);
 
         // bitwise operations
 
-        MethodDescriptor wordWordToWord = MethodDescriptor.synthesize(classContext, wordDesc, List.of(wordDesc, wordDesc));
-        MethodDescriptor wordToWord = MethodDescriptor.synthesize(classContext, wordDesc, List.of(wordDesc));
-
         StaticIntrinsic wordAnd = (builder, target, arguments) -> builder.and(arguments.get(0), arguments.get(1));
 
-        intrinsics.registerIntrinsic(cNativeDesc, "wordAnd", wordWordToWord, wordAnd);
+        intrinsics.registerIntrinsic(cNativeDesc, "wordAnd", wordAnd);
 
         StaticIntrinsic wordOr = (builder, target, arguments) -> builder.or(arguments.get(0), arguments.get(1));
 
-        intrinsics.registerIntrinsic(cNativeDesc, "wordOr", wordWordToWord, wordOr);
+        intrinsics.registerIntrinsic(cNativeDesc, "wordOr", wordOr);
 
         StaticIntrinsic wordXor = (builder, target, arguments) -> builder.xor(arguments.get(0), arguments.get(1));
 
-        intrinsics.registerIntrinsic(cNativeDesc, "wordXor", wordWordToWord, wordXor);
+        intrinsics.registerIntrinsic(cNativeDesc, "wordXor", wordXor);
 
         StaticIntrinsic wordComp = (builder, target, arguments) -> builder.complement(arguments.get(0));
 
-        intrinsics.registerIntrinsic(cNativeDesc, "wordComp", wordToWord, wordComp);
+        intrinsics.registerIntrinsic(cNativeDesc, "wordComp", wordComp);
 
         StaticIntrinsic sizeof = (builder, target, arguments) -> {
             long size = arguments.get(0).getType().getSize();
@@ -462,7 +385,7 @@ final class CNativeIntrinsics {
             return builder.elementOf(global, z);
         };
 
-        intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, constCharPtrDesc, List.of(strDesc)), utf8z);
+        intrinsics.registerIntrinsic(cNativeDesc, "utf8z", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(strDesc)), utf8z);
 
         StaticIntrinsic alloca = (builder, target, arguments) -> builder.stackAllocate(ctxt.getTypeSystem().getUnsignedInteger8Type(), arguments.get(0), ctxt.getLiteralFactory().literalOf(1));
 
@@ -471,6 +394,28 @@ final class CNativeIntrinsics {
         StaticIntrinsic cast = ((builder, targetPtr, arguments) -> arguments.get(0));
 
         intrinsics.registerIntrinsic(cNativeDesc, "cast", MethodDescriptor.synthesize(classContext, objDesc, List.of(objDesc)), cast);
+
+        ClassTypeDescriptor stdcStringDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/String");
+        MethodDescriptor memcpyDesc = MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDesc, ptrDesc, sizeTDesc));
+        MethodDescriptor ptrPtrToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, ptrDesc));
+        MethodDescriptor ptrPtrLongToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, ptrDesc, BaseTypeDescriptor.J));
+
+        StaticIntrinsic copy1 = (builder, targetPtr, arguments) -> {
+            // for now, just memcpy; todo: Copy node
+            Value memcpy = builder.resolveStaticMethod(stdcStringDesc, "memcpy", memcpyDesc);
+            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getSize())));
+            return builder.emptyVoid();
+        };
+
+        StaticIntrinsic copy2 = (builder, targetPtr, arguments) -> {
+            // for now, just memcpy; todo: Copy node
+            Value memcpy = builder.resolveStaticMethod(stdcStringDesc, "memcpy", memcpyDesc);
+            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), builder.multiply(arguments.get(2), ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getSize()))));
+            return builder.emptyVoid();
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "copy", ptrPtrToVoid, copy1);
+        intrinsics.registerIntrinsic(cNativeDesc, "copy", ptrPtrLongToVoid, copy2);
     }
 
     private static void registerNObjectIntrinsics(final CompilationContext ctxt) {

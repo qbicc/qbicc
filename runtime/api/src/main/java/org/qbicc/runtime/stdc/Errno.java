@@ -36,7 +36,7 @@ public final class Errno {
 
 final class GLibCErrnoAccessor implements Accessor<Integer> {
     @extern
-    private static native int_ptr __errno_location();
+    private static native ptr<c_int> __errno_location();
 
     @NoSafePoint
     @NoThrow
@@ -53,7 +53,7 @@ final class GLibCErrnoAccessor implements Accessor<Integer> {
 
 final class MacOsErrnoAccessor implements Accessor<Integer> {
     @extern
-    private static native int_ptr __error();
+    private static native ptr<c_int> __error();
 
     @NoSafePoint
     @NoThrow
@@ -70,7 +70,7 @@ final class MacOsErrnoAccessor implements Accessor<Integer> {
 
 final class AixErrnoAccessor implements Accessor<Integer> {
     @extern
-    private static native int_ptr _Errno();
+    private static native ptr<c_int> _Errno();
 
     @NoSafePoint
     @NoThrow

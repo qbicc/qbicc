@@ -25,7 +25,7 @@ public final class Unwind {
     public static native void _Unwind_SetIP(ptr<struct__Unwind_Context> context, unsigned_long new_value);
     public static native unsigned_long _Unwind_GetRegionStart(ptr<struct__Unwind_Context> context);
     public static native unsigned_long _Unwind_GetLanguageSpecificData(ptr<struct__Unwind_Context> context);
-    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, function_ptr<_Unwind_Stop_Fn> stop, void_ptr stop_parameter);
+    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, ptr<function<_Unwind_Stop_Fn>> stop, ptr<?> stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
 
@@ -94,7 +94,7 @@ public final class Unwind {
         /**
          * The function which frees this object.
          */
-        public function_ptr<_Unwind_Exception_Cleanup_Fn> exception_cleanup;
+        public ptr<function<_Unwind_Exception_Cleanup_Fn>> exception_cleanup;
     }
 
     @FunctionalInterface
@@ -107,7 +107,7 @@ public final class Unwind {
 
     @FunctionalInterface
     public interface _Unwind_Stop_Fn {
-        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, void_ptr stop_parameter);
+        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, ptr<?> stop_parameter);
     }
 
     @export

@@ -24,7 +24,7 @@ public class String {
 
     public static native c_int strncmp(ptr<@c_const c_char> src1, ptr<@c_const c_char> src2, size_t len);
 
-    public static native c_int strncpy(ptr<c_char> dst, const_char_ptr src, size_t len);
+    public static native c_int strncpy(ptr<c_char> dst, ptr<@c_const c_char> src, size_t len);
 
     public static native ptr<c_char> strncat(@restrict ptr<c_char> s1, @restrict ptr<c_char> s2, size_t n);
 

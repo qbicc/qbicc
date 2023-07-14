@@ -54,7 +54,7 @@ public final class StackWalker extends StackObject {
 
     @NoSafePoint
     @NoThrow
-    public void_ptr getIp() {
+    public <T> ptr<T> getIp() {
         if (! ready) return zero();
         unw_word_t ip = auto();
         unw_get_reg(addr_of(deref(refToPtr(this)).cursor), UNW_REG_IP, addr_of(ip));
@@ -68,7 +68,7 @@ public final class StackWalker extends StackObject {
 
     @NoSafePoint
     @NoThrow
-    public void_ptr getSp() {
+    public <T> ptr<T> getSp() {
         if (! ready) return zero();
         unw_word_t sp = auto();
         unw_get_reg(addr_of(deref(refToPtr(this)).cursor), UNW_REG_SP, addr_of(sp));

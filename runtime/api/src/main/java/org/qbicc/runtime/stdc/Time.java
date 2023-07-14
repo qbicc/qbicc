@@ -2,8 +2,6 @@ package org.qbicc.runtime.stdc;
 
 import static org.qbicc.runtime.CNative.*;
 
-import org.qbicc.runtime.Build;
-
 /**
  *
  */
@@ -12,9 +10,6 @@ public class Time {
     public static final class time_t extends word {
     }
 
-    public static final class time_t_ptr extends ptr<time_t> {}
-    public static final class const_time_t_ptr extends ptr<@c_const time_t> {}
-
     public static final class clock_t extends object {
     }
 
@@ -22,13 +17,6 @@ public class Time {
         public time_t tv_sec;
         public c_long tv_nsec;
     }
-
-    public static final class struct_timespec_ptr extends ptr<struct_timespec> {}
-    public static final class const_struct_timespec_ptr extends ptr<@c_const struct_timespec> {}
-    public static final class struct_timespec_ptr_ptr extends ptr<struct_timespec_ptr> {}
-    public static final class const_struct_timespec_ptr_ptr extends ptr<const_struct_timespec_ptr> {}
-    public static final class struct_timespec_ptr_const_ptr extends ptr<@c_const struct_timespec_ptr> {}
-    public static final class const_struct_timespec_ptr_const_ptr extends ptr<@c_const const_struct_timespec_ptr> {}
 
     public static final class struct_tm extends object {
         public c_int tm_sec;
@@ -45,12 +33,5 @@ public class Time {
         public c_int tm_gmtoff;
     }
 
-    public static final class struct_tm_ptr extends ptr<struct_tm> {}
-    public static final class const_struct_tm_ptr extends ptr<@c_const struct_tm> {}
-    public static final class struct_tm_ptr_ptr extends ptr<struct_tm_ptr> {}
-    public static final class const_struct_tm_ptr_ptr extends ptr<const_struct_tm_ptr> {}
-    public static final class struct_tm_ptr_const_ptr extends ptr<@c_const struct_tm_ptr> {}
-    public static final class const_struct_tm_ptr_const_ptr extends ptr<@c_const const_struct_tm_ptr> {}
-
-    public static native time_t time(time_t_ptr timePtr);
+    public static native time_t time(ptr<time_t> timePtr);
 }

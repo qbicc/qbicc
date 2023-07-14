@@ -17,17 +17,17 @@ public final class LLVM {
     @extern
     @name("llvm.va_start")
     @NoThrow
-    public static native void va_start(va_list_ptr arglist);
+    public static native void va_start(ptr<va_list> arglist);
 
     @extern
     @name("llvm.va_end")
     @NoThrow
-    public static native void va_end(va_list_ptr arglist);
+    public static native void va_end(ptr<va_list> arglist);
 
     @extern
     @name("llvm.va_copy")
     @NoThrow
-    public static native void va_copy(va_list_ptr dest_arglist, va_list_ptr src_arglist);
+    public static native void va_copy(ptr<va_list> dest_arglist, ptr<va_list> src_arglist);
 
     // Code generator
 
@@ -35,47 +35,47 @@ public final class LLVM {
     @extern
     @name("llvm.returnaddress")
     @NoThrow
-    public static native void_ptr returnAddress(uint32_t level);
+    public static native ptr<?> returnAddress(uint32_t level);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.addressofreturnaddress")
     @NoThrow
-    public static native void_ptr addressOfReturnAddress();
+    public static native ptr<?> addressOfReturnAddress();
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.sponentry")
     @NoThrow
-    public static native void_ptr spOnEntry();
+    public static native ptr<?> spOnEntry();
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.frameaddress")
     @NoThrow
-    public static native void_ptr frameAddress(uint32_t level);
+    public static native ptr<?> frameAddress(uint32_t level);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.stacksave")
     @NoThrow
-    public static native void_ptr stackSave();
+    public static native ptr<?> stackSave();
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.stackrestore")
     @NoThrow
-    public static native void stackRestore(void_ptr ptr);
+    public static native void stackRestore(ptr<?> ptr);
 
     @extern
     @name("llvm.prefetch")
     @NoThrow
-    public static native void prefetch(void_ptr address, uint32_t rw, uint32_t locality, uint32_t cacheType);
+    public static native void prefetch(ptr<?> address, uint32_t rw, uint32_t locality, uint32_t cacheType);
 
     @extern
     @name("llvm.thread.pointer")
     @NoThrow
-    public static native void_ptr threadPointer();
+    public static native ptr<?> threadPointer();
 
     // Standard C
 
@@ -1339,7 +1339,7 @@ public final class LLVM {
     @extern
     @name("llvm.ptrmask")
     @NoThrow
-    public static native void_ptr ptrMask(void_ptr orig, long mask);
+    public static native ptr<?> ptrMask(ptr<?> orig, long mask);
 
     // memory move/set
 
@@ -1347,85 +1347,85 @@ public final class LLVM {
     @extern
     @name("llvm.memcpy.p0i8.p0i8.i32")
     @NoThrow
-    public static native void memCopy(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
+    public static native void memCopy(ptr<?> dest, ptr<@c_const ?> src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memcpy.p0i8.p0i8.i64")
     @NoThrow
-    public static native void memCopy(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
+    public static native void memCopy(ptr<?> dest, ptr<@c_const ?> src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memcpy.inline.p0i8.p0i8.i32")
     @NoThrow
-    public static native void memCopyInline(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
+    public static native void memCopyInline(ptr<?> dest, ptr<@c_const ?> src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memcpy.inline.p0i8.p0i8.i64")
     @NoThrow
-    public static native void memCopyInline(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
+    public static native void memCopyInline(ptr<?> dest, ptr<@c_const ?> src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memmove.p0i8.p0i8.i32")
     @NoThrow
-    public static native void memMove(void_ptr dest, const_void_ptr src, int size, boolean setToFalse);
+    public static native void memMove(ptr<?> dest, ptr<@c_const ?> src, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memmove.p0i8.p0i8.i64")
     @NoThrow
-    public static native void memMove(void_ptr dest, const_void_ptr src, long size, boolean setToFalse);
+    public static native void memMove(ptr<?> dest, ptr<@c_const ?> src, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i32")
     @NoThrow
-    public static native void memCopyUnordered(void_ptr dest, const_void_ptr src, int size, int elementSize);
+    public static native void memCopyUnordered(ptr<?> dest, ptr<@c_const ?> src, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memcpy.element.unordered.atomic.p0i8.p0i8.i64")
     @NoThrow
-    public static native void memCopyUnordered(void_ptr dest, const_void_ptr src, int size, long elementSize);
+    public static native void memCopyUnordered(ptr<?> dest, ptr<@c_const ?> src, int size, long elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memmove.element.unordered.atomic.p0i8.p0i8.i32")
     @NoThrow
-    public static native void memMoveUnordered(void_ptr dest, const_void_ptr src, int size, int elementSize);
+    public static native void memMoveUnordered(ptr<?> dest, ptr<@c_const ?> src, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memmove.element.unordered.atomic.p0i8.p0i8.i64")
     @NoThrow
-    public static native void memMoveUnordered(void_ptr dest, const_void_ptr src, int size, long elementSize);
+    public static native void memMoveUnordered(ptr<?> dest, ptr<@c_const ?> src, int size, long elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memset.p0i8.i32")
     @NoThrow
-    public static native void memSet(void_ptr dest, byte val, int size, boolean setToFalse);
+    public static native void memSet(ptr<?> dest, byte val, int size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memset.p0i8.i64")
     @NoThrow
-    public static native void memSet(void_ptr dest, byte val, long size, boolean setToFalse);
+    public static native void memSet(ptr<?> dest, byte val, long size, boolean setToFalse);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memset.element.unordered.atomic.p0i8.i32")
     @NoThrow
-    public static native void memSetUnordered(void_ptr dest, byte val, int size, int elementSize);
+    public static native void memSetUnordered(ptr<?> dest, byte val, int size, int elementSize);
 
     @SuppressWarnings("SpellCheckingInspection")
     @extern
     @name("llvm.memset.element.unordered.atomic.p0i8.i64")
     @NoThrow
-    public static native void memSetUnordered(void_ptr dest, byte val, long size, int elementSize);
+    public static native void memSetUnordered(ptr<?> dest, byte val, long size, int elementSize);
 
     // inline assembly
 

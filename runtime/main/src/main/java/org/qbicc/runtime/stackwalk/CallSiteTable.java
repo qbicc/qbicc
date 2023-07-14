@@ -71,7 +71,7 @@ public final class CallSiteTable {
         /**
          * The instruction pointer for this entry.
          */
-        public void_ptr ip;
+        public ptr<?> ip;
         /**
          * The index into the source code information table for this entry.
          */

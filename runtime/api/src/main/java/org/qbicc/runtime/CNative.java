@@ -11,6 +11,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -134,12 +135,6 @@ public final class CNative {
     public static native <T, P extends ptr<T>> P addr_of(T obj);
 
     /**
-     * @hidden
-     */
-    @Deprecated
-    public static native <T extends object, P extends ptr<T>> P addr_of$$bridge(T obj);
-
-    /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
      * {@linkplain Pin pinned} heap object or array, or a {@linkplain StackObject stack object} or array.  The value
      * <em>must not</em> be a member or element of an unpinned heap object or array.
@@ -147,7 +142,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native int64_t_ptr addr_of(long obj);
+    public static native ptr<int64_t> addr_of(long obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -157,7 +152,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native int32_t_ptr addr_of(int obj);
+    public static native ptr<int32_t> addr_of(int obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -167,7 +162,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native int16_t_ptr addr_of(short obj);
+    public static native ptr<int16_t> addr_of(short obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -177,7 +172,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native int8_t_ptr addr_of(byte obj);
+    public static native ptr<int8_t> addr_of(byte obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -187,7 +182,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native uint16_t_ptr addr_of(char obj);
+    public static native ptr<uint16_t> addr_of(char obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -197,7 +192,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native _Bool_ptr addr_of(boolean obj);
+    public static native ptr<_Bool> addr_of(boolean obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -207,7 +202,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native _Float32_ptr addr_of(float obj);
+    public static native ptr<_Float32> addr_of(float obj);
 
     /**
      * Get the address of the given value.  The value may be a local variable, or it may be a member or element of a
@@ -217,7 +212,7 @@ public final class CNative {
      * @param obj the value to get the address of
      * @return a pointer to the native representation of the value
      */
-    public static native _Float64_ptr addr_of(double obj);
+    public static native ptr<_Float64> addr_of(double obj);
 
     /**
      * Get the pointer to a structure containing the given member.  The actual return type will be the type of
@@ -328,37 +323,21 @@ public final class CNative {
 
     public static native <T extends word> T word(boolean booleanValue);
 
-    public static int8_t wordExact(byte byteValue) {
-        return word(byteValue);
-    }
+    public static native int8_t wordExact(byte byteValue);
 
-    public static int16_t wordExact(short shortValue) {
-        return word(shortValue);
-    }
+    public static native int16_t wordExact(short shortValue);
 
-    public static int32_t wordExact(int intValue) {
-        return word(intValue);
-    }
+    public static native int32_t wordExact(int intValue);
 
-    public static int64_t wordExact(long longValue) {
-        return word(longValue);
-    }
+    public static native int64_t wordExact(long longValue);
 
-    public static uint16_t wordExact(char charValue) {
-        return word(charValue);
-    }
+    public static native uint16_t wordExact(char charValue);
 
-    public static _Bool wordExact(boolean booleanValue) {
-        return word(booleanValue);
-    }
+    public static native _Bool wordExact(boolean booleanValue);
 
-    public static _Float32 wordExact(float floatValue) {
-        return word(floatValue);
-    }
+    public static native _Float32 wordExact(float floatValue);
 
-    public static _Float64 wordExact(double doubleValue) {
-        return word(doubleValue);
-    }
+    public static native _Float64 wordExact(double doubleValue);
 
     /**
      * Get the bitwise-AND of two words, which must be the same type.
@@ -399,47 +378,87 @@ public final class CNative {
      */
     public static native <W extends word> W wordComp(W w);
 
-    public static void copy(int8_t_ptr dest, byte[] src, int srcOff, int len) {
-        memcpy(dest.cast(), addr_of(src[srcOff]).cast(), word((long)len));
+    public static native <T, P extends ptr<T>> void fill(P ptr, T value, long cnt);
+
+    public static native void clear(ptr<?> ptr);
+
+    public static native void clear(ptr<?> ptr, long cnt);
+
+    public static native <T> void copy(ptr<T> dest, ptr<T> src);
+
+    public static native <T> void copy(ptr<T> dest, ptr<T> src, long cnt);
+
+    public static native <T> void copy_rev(ptr<T> dest, ptr<T> src, long cnt);
+
+    public static native <T> void swap(ptr<T> ptr1, ptr<T> ptr2);
+
+    public static void copy(ptr<int8_t> dest, byte[] src, int srcOff, int len) {
+        Objects.checkFromIndexSize(srcOff, len, src.length);
+        copy(dest, addr_of(src[srcOff]), len);
     }
 
-    public static native void copy(int16_t_ptr dest, short[] src, int srcOff, int len);
-
-    public static native void copy(int32_t_ptr dest, int[] src, int srcOff, int len);
-
-    public static native void copy(int64_t_ptr dest, long[] src, int srcOff, int len);
-
-    public static native void copy(uint16_t_ptr dest, char[] src, int srcOff, int len);
-
-    public static void copy(byte[] dest, int destOff, int destLen, const_int8_t_ptr src) {
-        memcpy(addr_of(dest[destOff]).cast(), src.cast(), word((long)destLen));
+    public static void copy(ptr<int16_t> dest, short[] src, int srcOff, int len) {
+        Objects.checkFromIndexSize(srcOff, len, src.length);
+        copy(dest, addr_of(src[srcOff]), len);
     }
 
-    public static native void copy(short[] dest, int destOff, int destLen, const_int16_t_ptr src);
+    public static void copy(ptr<int32_t> dest, int[] src, int srcOff, int len) {
+        Objects.checkFromIndexSize(srcOff, len, src.length);
+        copy(dest, addr_of(src[srcOff]), len);
+    }
 
-    public static native void copy(int[] dest, int destOff, int destLen, const_int32_t_ptr src);
+    public static void copy(ptr<int64_t> dest, long[] src, int srcOff, int len) {
+        Objects.checkFromIndexSize(srcOff, len, src.length);
+        copy(dest, addr_of(src[srcOff]), len);
+    }
 
-    public static native void copy(long[] dest, int destOff, int destLen, const_int64_t_ptr src);
+    public static void copy(ptr<uint16_t> dest, char[] src, int srcOff, int len) {
+        Objects.checkFromIndexSize(srcOff, len, src.length);
+        copy(dest, addr_of(src[srcOff]), len);
+    }
 
-    public static native void copy(char[] dest, int destOff, int destLen, const_uint16_t_ptr src);
+    public static void copy(byte[] dest, int destOff, int destLen, ptr<@c_const int8_t> src) {
+        Objects.checkFromIndexSize(destOff, destLen, dest.length);
+        copy(addr_of(dest[destOff]).cast(), src.cast(), destLen);
+    }
 
-    public static String utf8zToJavaString(const_uint8_t_ptr ptr) {
+    public static void copy(short[] dest, int destOff, int destLen, ptr<@c_const int16_t> src) {
+        Objects.checkFromIndexSize(destOff, destLen, dest.length);
+        copy(addr_of(dest[destOff]).cast(), src.cast(), destLen);
+    }
+
+    public static void copy(int[] dest, int destOff, int destLen, ptr<@c_const int32_t> src) {
+        Objects.checkFromIndexSize(destOff, destLen, dest.length);
+        copy(addr_of(dest[destOff]).cast(), src.cast(), destLen);
+    }
+
+    public static void copy(long[] dest, int destOff, int destLen, ptr<@c_const int64_t> src) {
+        Objects.checkFromIndexSize(destOff, destLen, dest.length);
+        copy(addr_of(dest[destOff]).cast(), src.cast(), destLen);
+    }
+
+    public static void copy(char[] dest, int destOff, int destLen, ptr<@c_const uint16_t> src) {
+        Objects.checkFromIndexSize(destOff, destLen, dest.length);
+        copy(addr_of(dest[destOff]).cast(), src.cast(), destLen);
+    }
+
+    public static String utf8zToJavaString(ptr<@c_const uint8_t> ptr) {
         return utf8ToJavaString(ptr, strlen(ptr.cast()).intValue());
     }
 
-    public static String utf8ToJavaString(const_uint8_t_ptr ptr, int len) {
+    public static String utf8ToJavaString(ptr<@c_const uint8_t> ptr, int len) {
         final byte[] bytes = new byte[len];
         copy(bytes, 0, len, ptr.cast());
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    public static String asciizToJavaString(const_int8_t_ptr ptr) {
-        return asciiToJavaString(ptr, strlen(ptr.cast()).intValue());
+    public static String asciizToJavaString(ptr<@c_const c_char> ptr) {
+        return asciiToJavaString(ptr, strlen(ptr).intValue());
     }
 
-    public static String asciiToJavaString(const_int8_t_ptr ptr, int len) {
+    public static String asciiToJavaString(ptr<@c_const c_char> ptr, int len) {
         final byte[] bytes = new byte[len];
-        copy(bytes, 0, len, ptr);
+        copy(bytes, 0, len, ptr.cast());
         return new String(bytes, StandardCharsets.US_ASCII);
     }
 
@@ -495,7 +514,6 @@ public final class CNative {
      * @return the cast object
      * @param <T> the target type
      */
-    @SuppressWarnings("unchecked")
     public native static <T> T cast(Object obj);
 
     // intrinsic
@@ -577,24 +595,6 @@ public final class CNative {
      */
     public static native <P extends ptr<?>> P alloca(size_t size);
 
-    // thread attach
-
-    /**
-     * Attach to a thread which is created and started.  Only call if there is no currently attached thread.
-     *
-     * @param name the name of the new thread
-     * @param threadGroup the thread group to use
-     */
-    public static native void attachNewThread(String name, ThreadGroup threadGroup);
-
-    /**
-     * Reattach to the given running thread (used for native-to-Java call-ins).  The thread must be reattached from
-     * the same system thread or the resultant behavior will be undefined.
-     *
-     * @param thread the running thread to reattach to
-     */
-    public static native void reattach(Thread thread);
-
     /**
      * Get a constant character pointer to the UTF-8 representation of the given string literal.  If the string
      * is not already zero-terminated, a zero is added to the end of the string.
@@ -602,7 +602,7 @@ public final class CNative {
      * @param stringLiteral the string literal (must not be {@code null}, must be a literal)
      * @return the pointer to the string
      */
-    public static native const_char_ptr utf8z(String stringLiteral);
+    public static native ptr<@c_const c_char> utf8z(String stringLiteral);
 
     /**
      * A native object. Native objects are allocated on the stack or in the system heap, or are otherwise externally
@@ -642,7 +642,8 @@ public final class CNative {
          * take place, depending on the types.
          * <p>
          * The target cast type is normally inferred, but sometimes it is not possible to infer the target type.
-         * In these cases, the type must be specified, for example: {@code var result = obj.<int32_t_ptr>cast();}
+         * In these cases, for simple types the type can be specified, for example: {@code var result = obj.cast(int32_t.class);},
+         * and for complex (generic) types the cast value must be assigned to a temporary variable of the correct type.
          *
          * @param <T> the type of the object
          * @return the cast object
@@ -824,22 +825,7 @@ public final class CNative {
     @name("char")
     @size(1) // by definition
     public static final class c_char extends word {}
-
-    public static final class char_ptr extends ptr<c_char> {}
-    public static final class const_char_ptr extends ptr<@c_const c_char> {}
-    public static final class char_ptr_ptr extends ptr<char_ptr> {}
-    public static final class const_char_ptr_ptr extends ptr<const_char_ptr> {}
-    public static final class char_ptr_const_ptr extends ptr<@c_const char_ptr> {}
-    public static final class const_char_ptr_const_ptr extends ptr<@c_const const_char_ptr> {}
-
     public static final class _Bool extends word {}
-
-    public static final class _Bool_ptr extends ptr<_Bool> {}
-    public static final class const__Bool_ptr extends ptr<@c_const _Bool> {}
-    public static final class _Bool_ptr_ptr extends ptr<_Bool_ptr> {}
-    public static final class const__Bool_ptr_ptr extends ptr<const__Bool_ptr> {}
-    public static final class _Bool_ptr_const_ptr extends ptr<@c_const _Bool_ptr> {}
-    public static final class const__Bool_ptr_const_ptr extends ptr<@c_const const__Bool_ptr> {}
 
     // basic signed types
 
@@ -848,57 +834,21 @@ public final class CNative {
     @signed(true) // by definition
     public static final class signed_char extends word {}
 
-    public static final class signed_char_ptr extends ptr<signed_char> {}
-    public static final class const_signed_char_ptr extends ptr<@c_const signed_char> {}
-    public static final class signed_char_ptr_ptr extends ptr<signed_char_ptr> {}
-    public static final class const_signed_char_ptr_ptr extends ptr<const_signed_char_ptr> {}
-    public static final class signed_char_ptr_const_ptr extends ptr<@c_const signed_char_ptr> {}
-    public static final class const_signed_char_ptr_const_ptr extends ptr<@c_const const_signed_char_ptr> {}
-
-
     @name("short")
     @signed(true) // by definition
     public static final class c_short extends word {}
-
-    public static final class short_ptr extends ptr<c_short> {}
-    public static final class const_short_ptr extends ptr<@c_const c_short> {}
-    public static final class short_ptr_ptr extends ptr<short_ptr> {}
-    public static final class const_short_ptr_ptr extends ptr<const_short_ptr> {}
-    public static final class short_ptr_const_ptr extends ptr<@c_const short_ptr> {}
-    public static final class const_short_ptr_const_ptr extends ptr<@c_const const_short_ptr> {}
 
     @name("int")
     @signed(true) // by definition
     public static final class c_int extends word {}
 
-    public static final class int_ptr extends ptr<c_int> {}
-    public static final class const_int_ptr extends ptr<@c_const c_int> {}
-    public static final class int_ptr_ptr extends ptr<int_ptr> {}
-    public static final class const_int_ptr_ptr extends ptr<const_int_ptr> {}
-    public static final class int_ptr_const_ptr extends ptr<@c_const int_ptr> {}
-    public static final class const_int_ptr_const_ptr extends ptr<@c_const const_int_ptr> {}
-
     @name("long")
     @signed(true) // by definition
     public static final class c_long extends word {}
 
-    public static final class long_ptr extends ptr<c_long> {}
-    public static final class const_long_ptr extends ptr<@c_const c_long> {}
-    public static final class long_ptr_ptr extends ptr<long_ptr> {}
-    public static final class const_long_ptr_ptr extends ptr<const_long_ptr> {}
-    public static final class long_ptr_const_ptr extends ptr<@c_const long_ptr> {}
-    public static final class const_long_ptr_const_ptr extends ptr<@c_const const_long_ptr> {}
-
     @name("long long")
     @signed(true) // by definition
     public static final class long_long extends word {}
-
-    public static final class long_long_ptr extends ptr<long_long> {}
-    public static final class const_long_long_ptr extends ptr<@c_const long_long> {}
-    public static final class long_long_ptr_ptr extends ptr<long_long_ptr> {}
-    public static final class const_long_long_ptr_ptr extends ptr<const_long_long_ptr> {}
-    public static final class long_long_ptr_const_ptr extends ptr<@c_const long_long_ptr> {}
-    public static final class const_long_long_ptr_const_ptr extends ptr<@c_const const_long_long_ptr> {}
 
     // basic unsigned types
 
@@ -907,90 +857,32 @@ public final class CNative {
     @signed(false) // by definition
     public static final class unsigned_char extends word {}
 
-    public static final class unsigned_char_ptr extends ptr<unsigned_char> {}
-    public static final class const_unsigned_char_ptr extends ptr<@c_const unsigned_char> {}
-    public static final class unsigned_char_ptr_ptr extends ptr<unsigned_char_ptr> {}
-    public static final class const_unsigned_char_ptr_ptr extends ptr<const_unsigned_char_ptr> {}
-    public static final class unsigned_char_ptr_const_ptr extends ptr<@c_const unsigned_char_ptr> {}
-    public static final class const_unsigned_char_ptr_const_ptr extends ptr<@c_const const_unsigned_char_ptr> {}
-
-
     @name("unsigned short")
     @signed(false) // by definition
     public static final class unsigned_short extends word {}
-
-    public static final class unsigned_short_ptr extends ptr<unsigned_short> {}
-    public static final class const_unsigned_short_ptr extends ptr<@c_const unsigned_short> {}
-    public static final class unsigned_short_ptr_ptr extends ptr<unsigned_short_ptr> {}
-    public static final class const_unsigned_short_ptr_ptr extends ptr<const_unsigned_short_ptr> {}
-    public static final class unsigned_short_ptr_const_ptr extends ptr<@c_const unsigned_short_ptr> {}
-    public static final class const_unsigned_short_ptr_const_ptr extends ptr<@c_const const_unsigned_short_ptr> {}
 
     @name("unsigned int")
     @signed(false) // by definition
     public static final class unsigned_int extends word {}
 
-    public static final class unsigned_int_ptr extends ptr<unsigned_int> {}
-    public static final class const_unsigned_int_ptr extends ptr<@c_const unsigned_int> {}
-    public static final class unsigned_int_ptr_ptr extends ptr<unsigned_int_ptr> {}
-    public static final class const_unsigned_int_ptr_ptr extends ptr<const_unsigned_int_ptr> {}
-    public static final class unsigned_int_ptr_const_ptr extends ptr<@c_const unsigned_int_ptr> {}
-    public static final class const_unsigned_int_ptr_const_ptr extends ptr<@c_const const_unsigned_int_ptr> {}
-
     @name("unsigned long")
     @signed(false) // by definition
     public static final class unsigned_long extends word {}
 
-    public static final class unsigned_long_ptr extends ptr<unsigned_long> {}
-    public static final class const_unsigned_long_ptr extends ptr<@c_const unsigned_long> {}
-    public static final class unsigned_long_ptr_ptr extends ptr<unsigned_long_ptr> {}
-    public static final class const_unsigned_long_ptr_ptr extends ptr<const_unsigned_long_ptr> {}
-    public static final class unsigned_long_ptr_const_ptr extends ptr<@c_const unsigned_long_ptr> {}
-    public static final class const_unsigned_long_ptr_const_ptr extends ptr<@c_const const_unsigned_long_ptr> {}
-
     @name("unsigned long long")
     @signed(false) // by definition
     public static final class unsigned_long_long extends word {}
-
-    public static final class unsigned_long_long_ptr extends ptr<unsigned_long_long> {}
-    public static final class const_unsigned_long_long_ptr extends ptr<@c_const unsigned_long_long> {}
-    public static final class unsigned_long_long_ptr_ptr extends ptr<unsigned_long_long_ptr> {}
-    public static final class const_unsigned_long_long_ptr_ptr extends ptr<const_unsigned_long_long_ptr> {}
-    public static final class unsigned_long_long_ptr_const_ptr extends ptr<@c_const unsigned_long_long_ptr> {}
-    public static final class const_unsigned_long_long_ptr_const_ptr extends ptr<@c_const const_unsigned_long_long_ptr> {}
 
     // basic FP types
 
     @name("float")
     public static final class c_float extends word {}
 
-    public static final class float_ptr extends ptr<c_float> {}
-    public static final class const_float_ptr extends ptr<@c_const c_float> {}
-    public static final class float_ptr_ptr extends ptr<float_ptr> {}
-    public static final class const_float_ptr_ptr extends ptr<const_float_ptr> {}
-    public static final class float_ptr_const_ptr extends ptr<@c_const float_ptr> {}
-    public static final class const_float_ptr_const_ptr extends ptr<@c_const const_float_ptr> {}
-
     @name("double")
     public static final class c_double extends word {}
 
-    public static final class double_ptr extends ptr<c_double> {}
-    public static final class const_double_ptr extends ptr<@c_const c_double> {}
-    public static final class double_ptr_ptr extends ptr<double_ptr> {}
-    public static final class const_double_ptr_ptr extends ptr<const_double_ptr> {}
-    public static final class double_ptr_const_ptr extends ptr<@c_const double_ptr> {}
-    public static final class const_double_ptr_const_ptr extends ptr<@c_const const_double_ptr> {}
-
-
     @name("long double")
     public static final class long_double extends word {}
-
-    public static final class long_double_ptr extends ptr<long_double> {}
-    public static final class const_long_double_ptr extends ptr<@c_const long_double> {}
-    public static final class long_double_ptr_ptr extends ptr<long_double_ptr> {}
-    public static final class const_long_double_ptr_ptr extends ptr<const_long_double_ptr> {}
-    public static final class long_double_ptr_const_ptr extends ptr<@c_const long_double_ptr> {}
-    public static final class const_long_double_ptr_const_ptr extends ptr<@c_const const_long_double_ptr> {}
 
     @incomplete
     public static final class c_void extends object {}
@@ -1246,11 +1138,6 @@ public final class CNative {
         public native boolean isPinned();
     }
 
-    public static final class void_ptr extends ptr<c_void> {}
-    public static final class void_ptr_ptr extends ptr<void_ptr> {}
-    public static final class const_void_ptr extends ptr<@c_const c_void> {}
-    public static final class const_void_ptr_ptr extends ptr<const_void_ptr> {}
-
     /**
      * A function object. Function objects are always considered incomplete. If the function has an invokable interface,
      * that interface can be used to dereference the function pointer. The type of the invokable must be statically
@@ -1273,34 +1160,15 @@ public final class CNative {
         public static native <F> function<F> of(F invokable);
     }
 
-    @Deprecated public interface void_ptr_to_void_ptr {
-        void_ptr run(void_ptr arg);
-    }
-    public static final class function_ptr<F> extends ptr<function<F>> {}
-
     // floating point
 
     // todo: revisit this with a more sophisticated probe
     @name("float")
     public static final class _Float32 extends word {}
 
-    public static final class _Float32_ptr extends ptr<_Float32> {}
-    public static final class const__Float32_ptr extends ptr<@c_const _Float32> {}
-    public static final class _Float32_ptr_ptr extends ptr<_Float32_ptr> {}
-    public static final class const__Float32_ptr_ptr extends ptr<const__Float32_ptr> {}
-    public static final class _Float32_ptr_const_ptr extends ptr<@c_const _Float32_ptr> {}
-    public static final class const__Float32_ptr_const_ptr extends ptr<@c_const const__Float32_ptr> {}
-
     // todo: revisit this with a more sophisticated probe
     @name("double")
     public static final class _Float64 extends word {}
-
-    public static final class _Float64_ptr extends ptr<_Float64> {}
-    public static final class const__Float64_ptr extends ptr<@c_const _Float64> {}
-    public static final class _Float64_ptr_ptr extends ptr<_Float64_ptr> {}
-    public static final class const__Float64_ptr_ptr extends ptr<const__Float64_ptr> {}
-    public static final class _Float64_ptr_const_ptr extends ptr<@c_const _Float64_ptr> {}
-    public static final class const__Float64_ptr_const_ptr extends ptr<@c_const const__Float64_ptr> {}
 
     // directives
 

@@ -12,13 +12,6 @@ public final class Stdarg {
      */
     public static final class va_list extends object {}
 
-    public static final class va_list_ptr extends ptr<va_list> {}
-    public static final class const_va_list_ptr extends ptr<@c_const va_list> {}
-    public static final class va_list_ptr_ptr extends ptr<va_list_ptr> {}
-    public static final class const_va_list_ptr_ptr extends ptr<const_va_list_ptr> {}
-    public static final class va_list_ptr_const_ptr extends ptr<@c_const va_list_ptr> {}
-    public static final class const_va_list_ptr_const_ptr extends ptr<@c_const const_va_list_ptr> {}
-
     /**
      * Start the variable argument processing.  May only be called from methods which have a final
      * variadic argument of type {@code object...}.

@@ -44,7 +44,7 @@ public final class LibUnwind {
         public unw_word_t flags;
         public c_int format;
         public c_int unwind_info_size;
-        public void_ptr unwind_info;
+        public ptr<?> unwind_info;
     }
 
     public static final unw_regnum_t UNW_REG_IP = constant();

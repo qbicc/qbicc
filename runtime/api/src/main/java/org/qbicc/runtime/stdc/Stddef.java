@@ -12,13 +12,6 @@ public final class Stddef {
      */
     public static final class size_t extends word {}
 
-    public static final class size_t_ptr extends ptr<size_t> {}
-    public static final class const_size_t_ptr extends ptr<@c_const size_t> {}
-    public static final class size_t_ptr_ptr extends ptr<size_t_ptr> {}
-    public static final class const_size_t_ptr_ptr extends ptr<const_size_t_ptr> {}
-    public static final class size_t_ptr_const_ptr extends ptr<@c_const size_t_ptr> {}
-    public static final class const_size_t_ptr_const_ptr extends ptr<@c_const const_size_t_ptr> {}
-
     /**
      * A signed number of native units (defined as {@code char}s).
      */
