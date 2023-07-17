@@ -2,13 +2,13 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 abstract class AbstractUnaryValue extends AbstractValue implements UnaryValue {
     final Value input;
 
-    AbstractUnaryValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input) {
-        super(callSite, element, line, bci);
+    AbstractUnaryValue(final ProgramLocatable pl, final Value input) {
+        super(pl);
         this.input = input;
     }
 

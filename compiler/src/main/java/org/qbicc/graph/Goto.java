@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import java.util.Map;
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  * A terminator which designates a subsequent block for normal execution.
@@ -13,8 +13,8 @@ public final class Goto extends AbstractTerminator implements Resume {
     private final BlockLabel targetLabel;
     private final BasicBlock terminatedBlock;
 
-    Goto(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel, Map<Slot, Value> targetArguments) {
-        super(callSite, element, line, bci, targetArguments);
+    Goto(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel, Map<Slot, Value> targetArguments) {
+        super(pl, targetArguments);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.targetLabel = targetLabel;

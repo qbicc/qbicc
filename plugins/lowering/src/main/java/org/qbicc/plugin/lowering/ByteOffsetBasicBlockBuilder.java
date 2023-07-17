@@ -26,7 +26,7 @@ public final class ByteOffsetBasicBlockBuilder extends DelegatingBasicBlockBuild
         BasicBlockBuilder fb = getFirstBuilder();
         LiteralFactory lf = getLiteralFactory();
         long size = arrayPointer.getPointeeType(ArrayType.class).getElementType().getSize();
-        return fb.byteOffsetPointer(arrayPointer, fb.multiply(index, lf.literalOf(size)), arrayPointer.getElement().getType());
+        return fb.byteOffsetPointer(arrayPointer, fb.multiply(index, lf.literalOf(size)), arrayPointer.element().getType());
     }
 
     @Override

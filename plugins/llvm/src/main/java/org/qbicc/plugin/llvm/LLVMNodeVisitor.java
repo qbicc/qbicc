@@ -368,7 +368,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         if (metadataNode == null) {
             // first occurrence
             // todo: get alignment from variable
-            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(valueType), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), valueType.getAlign() * 8);
+            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(valueType), topSubprogram, debugInfo.createSourceFile(node.element()), node.lineNumber(), valueType.getAlign() * 8);
             ParameterElement param = variable.getReflectsParameter();
             if (param != null) {
                 // debug args are 1-based
@@ -1539,20 +1539,20 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     // mapping
 
     private LLValue createDbgLocation(final Node node, final boolean distinct) {
-        LLValue inlinedAt = dbgInlinedCallSite(node.getCallSite());
+        LLValue inlinedAt = dbgInlinedCallSite(node.callSite());
 
-        if (inlinedAt == null && node.getElement() != functionObj.getOriginalElement()) {
+        if (inlinedAt == null && node.element() != functionObj.getOriginalElement()) {
             ctxt.error(Location.builder().setNode(node).build(), "LLVM: Node is not part of the root function, but has no call site");
         }
 
         LLValue scope = (topSubprogram != null && inlinedAt == null)
                 ? topSubprogram
-                : debugInfo.getDebugInfoForFunction(node.getElement()).getScope(node.getBytecodeIndex());
+                : debugInfo.getDebugInfoForFunction(node.element()).getScope(node.bytecodeIndex());
 
         if (distinct) {
-            return module.diLocation(node.getSourceLine(), 0, scope, inlinedAt).distinct(true).asRef();
+            return module.diLocation(node.lineNumber(), 0, scope, inlinedAt).distinct(true).asRef();
         } else {
-            return debugInfo.createDeduplicatedLocation(node.getSourceLine(), 0, scope, inlinedAt);
+            return debugInfo.createDeduplicatedLocation(node.lineNumber(), 0, scope, inlinedAt);
         }
     }
 
@@ -1572,7 +1572,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     }
 
     private LLValue dbg(final Node node) {
-        if (node.getElement() == null || debugInfo == null) {
+        if (node.element() == null || debugInfo == null) {
             return null;
         }
 
@@ -1882,7 +1882,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
 
     private void addLineComment(final Node node, final Instruction instruction) {
         if (instruction != null) {
-            instruction.comment(node.getElement().getSourceFileName() + ":" + node.getSourceLine() + " bci@" + node.getBytecodeIndex());
+            instruction.comment(node.element().getSourceFileName() + ":" + node.lineNumber() + " bci@" + node.bytecodeIndex());
         }
     }
 

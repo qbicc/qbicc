@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A node representing the encoding of a reference from a pointer value.
@@ -15,8 +15,8 @@ public final class EncodeReference extends AbstractValue implements WordCastValu
     private final Value pointer;
     private final ReferenceType refType;
 
-    EncodeReference(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value pointer, ReferenceType refType) {
-        super(callSite, element, line, bci);
+    EncodeReference(final ProgramLocatable pl, Node dependency, Value pointer, ReferenceType refType) {
+        super(pl);
         // eagerly resolve dependency
         while (dependency instanceof OrderedNode on && ! on.maySafePoint()) {
             dependency = on.getDependency();

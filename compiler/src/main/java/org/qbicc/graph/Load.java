@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A load from memory.
@@ -14,8 +14,8 @@ public class Load extends AbstractValue implements OrderedNode {
     private final Value pointer;
     private final ReadAccessMode mode;
 
-    Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value pointer, ReadAccessMode mode) {
-        super(callSite, element, line, bci);
+    Load(final ProgramLocatable pl, Node dependency, Value pointer, ReadAccessMode mode) {
+        super(pl);
         this.dependency = dependency;
         this.pointer = pointer;
         this.mode = mode;

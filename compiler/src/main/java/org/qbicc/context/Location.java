@@ -278,9 +278,9 @@ public final class Location {
         }
 
         public Builder setNode(Node node) {
-            setElement(node.getElement());
-            setLineNumber(node.getSourceLine());
-            setByteCodeIndex(node.getBytecodeIndex());
+            setElement(node.element());
+            setLineNumber(node.lineNumber());
+            setByteCodeIndex(node.bytecodeIndex());
             return this;
         }
 

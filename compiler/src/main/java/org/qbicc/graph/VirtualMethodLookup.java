@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 
 /**
@@ -8,8 +8,8 @@ import org.qbicc.type.definition.element.InstanceMethodElement;
  */
 public final class VirtualMethodLookup extends AbstractMethodLookup {
 
-    VirtualMethodLookup(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value typeId, final InstanceMethodElement method) {
-        super(callSite, element, line, bci, dependency, typeId, method);
+    VirtualMethodLookup(final ProgramLocatable pl, final Node dependency, final Value typeId, final InstanceMethodElement method) {
+        super(pl, dependency, typeId, method);
     }
 
     @Override

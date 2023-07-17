@@ -106,7 +106,7 @@ public final class BooleanAccessCopier implements NodeVisitor.Delegating<Node.Co
         param.copyNode(node.getDependency());
         Value copiedReturnValue = param.copyValue(node.getReturnValue());
 
-        if (node.getElement().getType().getReturnType() instanceof BooleanType bt   && copiedReturnValue.getType() instanceof IntegerType) {
+        if (node.element().getType().getReturnType() instanceof BooleanType bt   && copiedReturnValue.getType() instanceof IntegerType) {
             return b.return_(b.truncate(copiedReturnValue, bt));
         } else {
             return b.return_(copiedReturnValue);

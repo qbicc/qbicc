@@ -458,7 +458,7 @@ public class UnsafeIntrinsics {
         record FenceIntrinsic(GlobalAccessMode mode) implements InstanceIntrinsic {
             public Value emitIntrinsic(BasicBlockBuilder builder, Value instance, InstanceMethodLiteral targetPtr, List<Value> arguments) {
                 builder.fence(mode);
-                ClassContext context = builder.getCurrentElement().getEnclosingType().getContext();
+                ClassContext context = builder.element().getEnclosingType().getContext();
                 return context.getLiteralFactory().zeroInitializerLiteralOfType(context.getTypeSystem().getVoidType());
             }
         }

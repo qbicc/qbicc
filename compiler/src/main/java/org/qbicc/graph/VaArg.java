@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A fetch of a variable argument from an argument list.
@@ -13,8 +13,8 @@ public final class VaArg extends AbstractValue implements OrderedNode {
     private final ValueType type;
     private final Value vaList;
 
-    VaArg(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value vaList, ValueType type) {
-        super(callSite, element, line, bci);
+    VaArg(final ProgramLocatable pl, Node dependency, Value vaList, ValueType type) {
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.vaList = vaList;

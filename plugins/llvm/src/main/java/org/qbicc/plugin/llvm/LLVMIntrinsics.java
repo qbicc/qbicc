@@ -223,7 +223,7 @@ public final class LLVMIntrinsics {
      * @return the assembly result (if any)
      */
     private static Value asm(final BasicBlockBuilder bb, final StaticMethodLiteral handle, final List<Value> parameters) {
-        ExecutableElement element = bb.getCurrentElement();
+        ExecutableElement element = bb.element();
         DefinedTypeDefinition enclosingType = element.getEnclosingType();
         ClassContext classContext = enclosingType.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();

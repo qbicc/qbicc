@@ -256,7 +256,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             LoadedTypeDefinition vtdExpectedType = toType.getDefinition().load();
             final int byteIndex = tables.getInterfaceByteIndex(vtdExpectedType);
             final int mask = tables.getInterfaceBitMask(vtdExpectedType);
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().element());
             Value inputTypeId = load(instanceFieldOf(decodeReference(input), CoreClasses.get(ctxt).getObjectTypeIdField()));
             // typeIdStruct = qbicc_typeid_array[typeId]
             Value typeIdStruct = elementOf(lf.literalOf(typeIdGlobal), inputTypeId);
@@ -301,7 +301,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (shape instanceof ClassObjectType && shape.hasSuperClass()) {
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
             // 1. use toType (a TypeId) to load the corresponding maxTypeId
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().element());
             Value typeIdStruct = elementOf(ctxt.getLiteralFactory().literalOf(typeIdGlobal), toType);
             Value maxTypeId = load(memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")));
 

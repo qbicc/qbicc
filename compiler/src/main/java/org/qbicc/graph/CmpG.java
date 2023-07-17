@@ -1,13 +1,13 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 public class CmpG extends AbstractBinaryValue implements NonCommutativeBinaryValue {
     private final SignedIntegerType integerType;
 
-    CmpG(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2, SignedIntegerType integerType) {
-        super(callSite, element, line, bci, v1, v2);
+    CmpG(final ProgramLocatable pl, final Value v1, final Value v2, SignedIntegerType integerType) {
+        super(pl, v1, v2);
         this.integerType = integerType;
     }
 

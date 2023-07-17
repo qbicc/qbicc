@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * The class object for a given type ID value.
@@ -13,8 +13,8 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     private final Value dimensions;
     private final ReferenceType type;
 
-    ClassOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, Value dimensions, final ReferenceType type) {
-        super(callSite, element, line, bci);
+    ClassOf(final ProgramLocatable pl, final Value input, Value dimensions, final ReferenceType type) {
+        super(pl);
         this.input = input;
         this.dimensions = dimensions;
         this.type = type;

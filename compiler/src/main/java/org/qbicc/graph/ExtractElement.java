@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An extracted element of an array value.
@@ -14,8 +14,8 @@ public final class ExtractElement extends AbstractValue {
     private final ArrayType arrayType;
     private final Value index;
 
-    ExtractElement(Node callSite, ExecutableElement element, int line, int bci, Value arrayValue, Value index) {
-        super(callSite, element, line, bci);
+    ExtractElement(final ProgramLocatable pl, Value arrayValue, Value index) {
+        super(pl);
         this.arrayValue = arrayValue;
         arrayType = (ArrayType) arrayValue.getType();
         this.index = index;

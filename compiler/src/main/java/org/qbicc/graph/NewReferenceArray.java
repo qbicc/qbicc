@@ -1,9 +1,9 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation for reference array objects.
@@ -20,9 +20,9 @@ public final class NewReferenceArray extends AbstractValue implements OrderedNod
     private final Value dimensions;
     private final Value size;
 
-    NewReferenceArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ReferenceArrayObjectType type,
+    NewReferenceArray(final ProgramLocatable pl, Node dependency, final ReferenceArrayObjectType type,
                       final Value elemTypeId, final Value dimensions, final Value size) {
-        super(callSite, element, line, bci);
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.elemTypeId = elemTypeId;

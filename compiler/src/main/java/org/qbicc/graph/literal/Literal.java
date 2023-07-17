@@ -24,20 +24,20 @@ public abstract class Literal implements Unschedulable, Value {
 
     Literal() {}
 
-    public Node getCallSite() {
+    public Node callSite() {
         // no call site for literals
         return null;
     }
 
-    public ExecutableElement getElement() {
+    public ExecutableElement element() {
         return null;
     }
 
-    public int getSourceLine() {
+    public int lineNumber() {
         return 0;
     }
 
-    public int getBytecodeIndex() {
+    public int bytecodeIndex() {
         return -1;
     }
 

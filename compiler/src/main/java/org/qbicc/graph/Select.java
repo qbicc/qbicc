@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -13,8 +13,8 @@ public final class Select extends AbstractValue {
     private final Value trueValue;
     private final Value falseValue;
 
-    Select(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value condition, final Value trueValue, final Value falseValue) {
-        super(callSite, element, line, bci);
+    Select(final ProgramLocatable pl, final Value condition, final Value trueValue, final Value falseValue) {
+        super(pl);
         this.condition = condition;
         this.trueValue = trueValue;
         this.falseValue = falseValue;

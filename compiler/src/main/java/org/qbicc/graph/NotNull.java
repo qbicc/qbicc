@@ -1,13 +1,13 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  * A value that asserts non-nullity.
  */
 public final class NotNull extends AbstractUnaryValue {
-    NotNull(Node callSite, ExecutableElement element, int line, int bci, Value input) {
-        super(callSite, element, line, bci, input);
+    NotNull(ProgramLocatable pl, Value input) {
+        super(pl, input);
     }
 
     @Override

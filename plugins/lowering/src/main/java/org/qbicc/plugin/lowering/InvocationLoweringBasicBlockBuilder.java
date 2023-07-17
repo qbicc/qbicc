@@ -72,7 +72,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         super(delegate);
         CompilationContext ctxt = getContext();
         this.ctxt = ctxt;
-        originalElement = delegate.getCurrentElement();
+        originalElement = delegate.element();
         final ClassContext bcc = ctxt.getBootstrapClassContext();
         threadNativeType = (StructType) bcc.resolveTypeFromClassName("jdk/internal/thread", "ThreadNative$thread_native");
         currentThreadMember = threadNativeType.getMember("ref");
@@ -88,9 +88,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             lveBuilder.setSignature(BaseTypeSignature.V);
             lveBuilder.setEnclosingType(originalElement.getEnclosingType());
             lveBuilder.setType(threadNativeType.getPointer());
-            lveBuilder.setLine(node.getSourceLine());
-            lveBuilder.setBci(node.getBytecodeIndex());
-            lveBuilder.setTypeParameterContext(getCurrentElement().getTypeParameterContext());
+            lveBuilder.setLine(node.lineNumber());
+            lveBuilder.setBci(node.bytecodeIndex());
+            lveBuilder.setTypeParameterContext(element().getTypeParameterContext());
             lveBuilder.setSourceFileName(originalElement.getSourceFileName());
             final LocalVariableElement lve = lveBuilder.build();
             if (originalElement instanceof FunctionElement fe) {
@@ -104,7 +104,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
                 peBuilder.setSignature(BaseTypeSignature.V);
                 peBuilder.setEnclosingType(originalElement.getEnclosingType());
                 peBuilder.setType(threadNativeType.getPointer());
-                peBuilder.setTypeParameterContext(getCurrentElement().getTypeParameterContext());
+                peBuilder.setTypeParameterContext(element().getTypeParameterContext());
                 peBuilder.setSourceFileName(originalElement.getSourceFileName());
                 lveBuilder.setReflectsParameter(peBuilder.build());
                 thrParam = addParam(blockLabel, Slot.thread(), threadNativeType.getPointer(), false);

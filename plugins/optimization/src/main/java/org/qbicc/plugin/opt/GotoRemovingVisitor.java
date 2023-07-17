@@ -32,7 +32,7 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public BasicBlock visit(final Node.Copier param, final Goto node) {
         BasicBlock target = node.getResumeTarget();
-        if (target.getIncoming().size() == 1 && Objects.equals(node.getCallSite(), target.getTerminator().getCallSite())) {
+        if (target.getIncoming().size() == 1 && Objects.equals(node.callSite(), target.getTerminator().callSite())) {
             // delete the goto target and fold it into the current block
             deleted.add(target);
             param.copyNode(node.getDependency());
@@ -73,8 +73,8 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
             && node.getTrueBranch().getIncoming().size() == 1
             && node.getFalseBranch().getIncoming().size() == 1
             && g1.getResumeTarget().getIncoming().size() == 2
-            && Objects.equals(node.getCallSite(), g1.getResumeTarget().getTerminator().getCallSite())
-            && Objects.equals(node.getCallSite(), g2.getResumeTarget().getTerminator().getCallSite())
+            && Objects.equals(node.callSite(), g1.getResumeTarget().getTerminator().callSite())
+            && Objects.equals(node.callSite(), g2.getResumeTarget().getTerminator().callSite())
         ) {
             // either branch works, because we want the successor's successor
             final BasicBlock tb = node.getTrueBranch();

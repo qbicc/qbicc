@@ -4,17 +4,17 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 abstract class AbstractTerminator extends AbstractNode implements Terminator {
     private final Map<Slot, Value> targetValues;
 
-    AbstractTerminator(Node callSite, ExecutableElement element, int line, int bci) {
-        this(callSite, element, line, bci, Map.of());
+    AbstractTerminator(ProgramLocatable pl) {
+        this(pl, Map.of());
     }
 
-    AbstractTerminator(Node callSite, ExecutableElement element, int line, int bci, Map<Slot, Value> targetValues) {
-        super(callSite, element, line, bci);
+    AbstractTerminator(ProgramLocatable pl, Map<Slot, Value> targetValues) {
+        super(pl);
         targetValues.forEach((s, v) -> {
             if (v == null) {
                 throw new IllegalArgumentException("Null value given for slot " + s);

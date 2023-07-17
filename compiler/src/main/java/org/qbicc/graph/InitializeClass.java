@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -11,8 +11,8 @@ public final class InitializeClass extends AbstractNode implements Action, Order
     private final Node dependency;
     private final Value classToInitialize;
 
-    InitializeClass(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value classToInitialize) {
-        super(callSite, element, line, bci);
+    InitializeClass(final ProgramLocatable pl, Node dependency, Value classToInitialize) {
+        super(pl);
         this.dependency = dependency;
         this.classToInitialize = classToInitialize;
     }

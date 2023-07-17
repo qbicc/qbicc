@@ -211,7 +211,7 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     private Value check(Value targetPtr) {
         checkTargetType(targetPtr);
-        if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
+        if (element().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
             ExecutableElement target;
             // not an exhaustive check but good enough for detecting common errors
             // todo: targetPtr.isNoSafePoints()

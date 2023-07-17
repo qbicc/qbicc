@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -17,8 +17,8 @@ public final class Switch extends AbstractTerminator implements Terminator {
     private final Value switchValue;
     private final BasicBlock terminatedBlock;
 
-    Switch(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue, Map<Slot, Value> targetArguments) {
-        super(callSite, element, line, bci, targetArguments);
+    Switch(final ProgramLocatable pl, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue, Map<Slot, Value> targetArguments) {
+        super(pl, targetArguments);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;

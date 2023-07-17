@@ -27,7 +27,6 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Dereference;
-import org.qbicc.graph.InterfaceMethodLookup;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.Auto;
@@ -53,7 +52,6 @@ import org.qbicc.type.UnionType;
 import org.qbicc.type.UnresolvedType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -696,13 +694,13 @@ final class MethodParser {
                         push1(lf.literalOf((int) buffer.getShort()));
                         break;
                     case OP_LDC:
-                        push1(getConstantValue(buffer.get() & 0xff, TypeParameterContext.of(gf.getCurrentElement())));
+                        push1(getConstantValue(buffer.get() & 0xff, TypeParameterContext.of(gf.element())));
                         break;
                     case OP_LDC_W:
-                        push1(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
+                        push1(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.element())));
                         break;
                     case OP_LDC2_W:
-                        push2(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
+                        push2(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.element())));
                         break;
                     case OP_ILOAD:
                     case OP_FLOAD:
@@ -1459,7 +1457,7 @@ final class MethodParser {
                         return;
                     }
                     case OP_IRETURN: {
-                        InvokableType fnType = gf.getCurrentElement().getType();
+                        InvokableType fnType = gf.element().getType();
                         ValueType returnType = fnType.getReturnType();
                         gf.return_(gf.truncate(pop1(), (WordType) returnType));
                         // block complete
@@ -1473,7 +1471,7 @@ final class MethodParser {
                     case OP_ARETURN: {
                         v1 = pop1();
                         if (v1 instanceof Literal lit && lit.isZero()) {
-                            InvokableType fnType = gf.getCurrentElement().getType();
+                            InvokableType fnType = gf.element().getType();
                             ValueType returnType = fnType.getReturnType();
                             gf.return_(lf.zeroInitializerLiteralOfType(returnType));
                         } else {

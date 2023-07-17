@@ -73,7 +73,7 @@ public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegati
     }
 
     private boolean isStackAllocate(New new_, BasicBlockBuilder bbb) {
-        return escapeAnalysisState.isNotEscapingMethod(new_, bbb.getCurrentElement())
+        return escapeAnalysisState.isNotEscapingMethod(new_, bbb.element())
             && notInLoop(new_);
     }
 

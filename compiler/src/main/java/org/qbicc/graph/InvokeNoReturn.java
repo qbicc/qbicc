@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A catching method or function call which never returns normally.
@@ -23,8 +23,8 @@ public final class InvokeNoReturn extends AbstractTerminator implements Invocati
     private final InvokableType calleeType;
     private final BlockLabel catchLabel;
 
-    InvokeNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
-        super(callSite, element, line, bci, targetArguments);
+    InvokeNoReturn(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        super(pl, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;

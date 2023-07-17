@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A catching method or function call.
@@ -29,8 +29,8 @@ public final class Invoke extends AbstractTerminator implements Resume, Invocati
     private final BlockLabel resumeLabel;
     private final ReturnValue returnValue;
 
-    Invoke(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
-        super(callSite, element, line, bci, targetArguments);
+    Invoke(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        super(pl, targetArguments);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
@@ -142,7 +142,7 @@ public final class Invoke extends AbstractTerminator implements Resume, Invocati
     public final class ReturnValue extends AbstractValue implements PinnedNode, OrderedNode {
 
         ReturnValue() {
-            super(Invoke.this.getCallSite(), Invoke.this.getElement(), Invoke.this.getSourceLine(), Invoke.this.getBytecodeIndex());
+            super(Invoke.this);
         }
 
         @Override

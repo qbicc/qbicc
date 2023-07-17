@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
@@ -13,8 +13,8 @@ public final class DebugValueDeclaration extends AbstractNode implements Action,
     private final LocalVariableElement variable;
     private final Value value;
 
-    DebugValueDeclaration(Node callSite, ExecutableElement element, int line, int bci, Node dependency, LocalVariableElement variable, Value value) {
-        super(callSite, element, line, bci);
+    DebugValueDeclaration(final ProgramLocatable pl, Node dependency, LocalVariableElement variable, Value value) {
+        super(pl);
         this.dependency = dependency;
         this.variable = variable;
         this.value = value;

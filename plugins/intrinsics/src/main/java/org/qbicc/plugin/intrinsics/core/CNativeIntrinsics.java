@@ -42,8 +42,6 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
-import org.qbicc.runtime.CNative;
-import org.qbicc.runtime.stdc.Stddef;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
@@ -375,12 +373,12 @@ final class CNativeIntrinsics {
             assert bytes[bytes.length - 1] == 0;
             Literal literal = lf.literalOf(ts.getArrayType(ts.getNativeCharType(), bytes.length), bytes);
             Data data = utf8zCache.computeIfAbsent(literal, bal -> {
-                ExecutableElement currentElement = builder.getCurrentElement();
+                ExecutableElement currentElement = builder.element();
                 ModuleSection section = ctxt.getImplicitSection(currentElement);
                 return section.addData(null, "utf8z_" + cnt.incrementAndGet(), bal);
             });
             final IntegerLiteral z = lf.literalOf(0);
-            final ProgramObjectLiteral global = lf.literalOf(ctxt.getOrAddProgramModule(builder.getCurrentElement().getEnclosingType()).declareData(data));
+            final ProgramObjectLiteral global = lf.literalOf(ctxt.getOrAddProgramModule(builder.element().getEnclosingType()).declareData(data));
             // get the zeroth array element of the zeroth pointer element of the global
             return builder.elementOf(global, z);
         };
@@ -919,7 +917,7 @@ final class CNativeIntrinsics {
         if (input instanceof Dereference deref) {
             return smartConvert(builder, builder.load(deref.getPointer(), SinglePlain), toType, cRules);
         }
-        CompilationContext ctxt = builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext();
+        CompilationContext ctxt = builder.element().getEnclosingType().getContext().getCompilationContext();
         ValueType fromType = input.getType();
         // work out the behavior based on input and output types
         if (toType instanceof BooleanType) {

@@ -4,8 +4,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A parameter to a basic block.
@@ -16,8 +16,8 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
     private final BlockLabel blockLabel;
     private final Slot slot;
 
-    BlockParameter(Node callSite, ExecutableElement element, int line, int bci, ValueType type, boolean nullable, BlockLabel blockLabel, Slot slot) {
-        super(callSite, element, line, bci);
+    BlockParameter(final ProgramLocatable pl, ValueType type, boolean nullable, BlockLabel blockLabel, Slot slot) {
+        super(pl);
         this.type = type;
         this.nullable = nullable;
         this.blockLabel = blockLabel;
@@ -76,7 +76,7 @@ public final class BlockParameter extends AbstractValue implements PinnedNode {
     }
 
     public boolean isEntryParameter() {
-        return getPinnedBlock() == getElement().getMethodBody().getEntryBlock();
+        return getPinnedBlock() == element().getMethodBody().getEntryBlock();
     }
 
     public int getIndex() {

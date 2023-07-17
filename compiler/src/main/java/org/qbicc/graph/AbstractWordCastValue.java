@@ -2,15 +2,15 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractWordCastValue extends AbstractValue implements WordCastValue {
     final Value value;
     final WordType toType;
 
-    AbstractWordCastValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value value, final WordType toType) {
-        super(callSite, element, line, bci);
+    AbstractWordCastValue(final ProgramLocatable pl, final Value value, final WordType toType) {
+        super(pl);
         this.value = value;
         this.toType = toType;
     }

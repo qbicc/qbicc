@@ -65,7 +65,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         VmObject[] steArray = ((VmRefArrayImpl) array).getArray();
         for (int i = 0; i < backTrace.length; i++) {
             Node ip = backTrace[i];
-            ExecutableElement frameElement = ip.getElement();
+            ExecutableElement frameElement = ip.element();
             VmObjectImpl ste = vm.stackTraceElementClass.newInstance();
             vm.manuallyInitialize(ste);
             Memory steMemory = ste.getMemory();
@@ -73,7 +73,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
             DefinedTypeDefinition frameClassDef = frameElement.getEnclosingType();
             VmClassImpl frameClass = vm.getClassLoaderForContext(frameClassDef.getContext()).getOrDefineClass(frameClassDef.load());
             steMemory.storeRef(declaringClassObjectIdx, frameClass, SinglePlain);
-            steMemory.store32(lineNumberIdx, ip.getSourceLine(), SinglePlain);
+            steMemory.store32(lineNumberIdx, ip.lineNumber(), SinglePlain);
             if (frameElement.getSourceFileName() != null) {
                 steMemory.storeRef(fileNameIdx, vm.intern(frameElement.getSourceFileName()), SinglePlain);
             }
@@ -139,7 +139,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         StackTraceElement[] stackTrace = new StackTraceElement[backTrace.length];
         for (int i = 0; i < backTrace.length; i++) {
             Node ip = backTrace[i];
-            ExecutableElement frameElement = ip.getElement();
+            ExecutableElement frameElement = ip.element();
             VmClass elementClass = frameElement.getEnclosingType().load().getVmClass();
             String classLoaderName = null; // todo fill in from frame element
             String moduleName = null; // todo fill in from frame element
@@ -156,7 +156,7 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
                 methodName = "<unknown>";
             }
             String fileName = frameElement.getSourceFileName();
-            int lineNumber = ip.getSourceLine();
+            int lineNumber = ip.lineNumber();
             stackTrace[i] = new StackTraceElement(classLoaderName, moduleName, moduleVersion, declaringClass, methodName, fileName, lineNumber);
         }
         return stackTrace;

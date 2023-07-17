@@ -1,13 +1,13 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
  */
 public final class Neg extends AbstractUnaryValue {
-    Neg(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v) {
-        super(callSite, element, line, bci, v);
+    Neg(final ProgramLocatable pl, final Value v) {
+        super(pl, v);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

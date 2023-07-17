@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  * A return from an invokable program element.
@@ -13,8 +13,8 @@ public final class Return extends AbstractTerminator implements Terminator {
 
     private final BasicBlock terminatedBlock;
 
-    Return(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
-        super(callSite, element, line, bci);
+    Return(final ProgramLocatable pl, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
+        super(pl);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnValue = returnValue;

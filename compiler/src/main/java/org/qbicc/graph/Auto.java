@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A token indicating the automatic stack allocation and initialization of a value.
@@ -12,8 +12,8 @@ public final class Auto extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final Value initializer;
 
-    Auto(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value initializer) {
-        super(callSite, element, line, bci);
+    Auto(ProgramLocatable pl, Node dependency, Value initializer) {
+        super(pl);
         this.dependency = dependency;
         this.initializer = initializer;
     }

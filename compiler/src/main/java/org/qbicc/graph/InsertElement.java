@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An array value with an inserted element.
@@ -15,8 +15,8 @@ public final class InsertElement extends AbstractValue {
     private final Value index;
     private final Value insertedValue;
 
-    InsertElement(Node callSite, ExecutableElement element, int line, int bci, Value arrayValue, Value index, Value insertedValue) {
-        super(callSite, element, line, bci);
+    InsertElement(final ProgramLocatable pl, Value arrayValue, Value index, Value insertedValue) {
+        super(pl);
         this.arrayValue = arrayValue;
         arrayType = (ArrayType) arrayValue.getType();
         this.index = index;

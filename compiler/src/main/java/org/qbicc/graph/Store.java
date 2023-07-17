@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.WriteAccessMode;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -14,8 +14,8 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     private final Value value;
     private final WriteAccessMode mode;
 
-    Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value pointer, Value value, WriteAccessMode mode) {
-        super(callSite, element, line, bci);
+    Store(final ProgramLocatable pl, Node dependency, Value pointer, Value value, WriteAccessMode mode) {
+        super(pl);
         this.dependency = dependency;
         this.pointer = pointer;
         this.value = value;

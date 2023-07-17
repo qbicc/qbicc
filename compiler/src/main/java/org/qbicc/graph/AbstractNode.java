@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Set;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractNode implements Node {
@@ -15,26 +16,26 @@ abstract class AbstractNode implements Node {
     private Set<Value> liveIns;
     private Set<Value> liveOuts;
 
-    AbstractNode(final Node callSite, final ExecutableElement element, final int line, final int bci) {
-        this.callSite = callSite;
-        this.element = element;
-        this.line = line;
-        this.bci = bci;
+    AbstractNode(ProgramLocatable pl) {
+        this.callSite = pl.callSite();
+        this.element = pl.element();
+        this.line = pl.lineNumber();
+        this.bci = pl.bytecodeIndex();
     }
 
-    public Node getCallSite() {
+    public Node callSite() {
         return callSite;
     }
 
-    public ExecutableElement getElement() {
+    public ExecutableElement element() {
         return element;
     }
 
-    public int getSourceLine() {
+    public int lineNumber() {
         return line;
     }
 
-    public int getBytecodeIndex() {
+    public int bytecodeIndex() {
         return bci;
     }
 

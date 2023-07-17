@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ValueType;
@@ -15,8 +16,8 @@ public final class ReadModifyWrite extends AbstractValue implements OrderedNode 
     private final WriteAccessMode writeMode;
     private final Op op;
 
-    ReadModifyWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value pointer, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
-        super(callSite, element, line, bci);
+    ReadModifyWrite(final ProgramLocatable pl, final Node dependency, final Value pointer, Op op, final Value updateValue, ReadAccessMode readMode, WriteAccessMode writeMode) {
+        super(pl);
         this.dependency = dependency;
         this.pointer = pointer;
         this.updateValue = updateValue;

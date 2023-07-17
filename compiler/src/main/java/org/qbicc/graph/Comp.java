@@ -1,14 +1,14 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * Represents the bitwise complement of the integer or boolean input.
  */
 public final class Comp extends AbstractUnaryValue {
-    Comp(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v) {
-        super(callSite, element, line, bci, v);
+    Comp(final ProgramLocatable pl, final Value v) {
+        super(pl, v);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

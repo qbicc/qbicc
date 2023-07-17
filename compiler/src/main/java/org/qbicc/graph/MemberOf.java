@@ -2,10 +2,10 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.AccessMode;
-import org.qbicc.type.StructType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.StructType;
 
 /**
  * A handle for a structure member.  The input handle must have compound type.
@@ -15,8 +15,8 @@ public final class MemberOf extends AbstractValue {
     private final PointerType pointerType;
     private final StructType.Member member;
 
-    MemberOf(Node callSite, ExecutableElement element, int line, int bci, Value structurePointer, StructType.Member member) {
-        super(callSite, element, line, bci);
+    MemberOf(final ProgramLocatable pl, Value structurePointer, StructType.Member member) {
+        super(pl);
         this.structurePointer = structurePointer;
         this.member = member;
         pointerType = member.getType().getPointer().withQualifiersFrom(structurePointer.getType(PointerType.class));

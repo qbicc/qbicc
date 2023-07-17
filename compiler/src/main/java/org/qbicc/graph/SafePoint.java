@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -10,8 +10,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class SafePoint extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
 
-    SafePoint(Node callSite, ExecutableElement element, int line, int bci, Node dependency) {
-        super(callSite, element, line, bci);
+    SafePoint(final ProgramLocatable pl, Node dependency) {
+        super(pl);
         this.dependency = dependency;
     }
 

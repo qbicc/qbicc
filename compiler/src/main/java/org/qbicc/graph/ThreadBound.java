@@ -3,9 +3,9 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An invocation target with a thread binding.
@@ -14,8 +14,8 @@ public final class ThreadBound extends AbstractValue {
     private final Value threadPtr;
     private final Value target;
 
-    ThreadBound(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value threadPtr, final Value target) {
-        super(callSite, element, line, bci);
+    ThreadBound(final ProgramLocatable pl, final Value threadPtr, final Value target) {
+        super(pl);
         this.threadPtr = Assert.checkNotNullParam("threadPtr", threadPtr);
         this.target = Assert.checkNotNullParam("target", target);
         threadPtr.getPointeeType();

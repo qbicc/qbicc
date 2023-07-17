@@ -3,8 +3,8 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A plain method or function call which never returns normally.
@@ -21,8 +21,8 @@ public final class CallNoReturn extends AbstractTerminator implements Invocation
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoReturn(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
-        super(callSite, element, line, bci);
+    CallNoReturn(ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
+        super(pl);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;

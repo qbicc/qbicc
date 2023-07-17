@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A node that represents a check of the upper bound of the value against the given type.
@@ -17,9 +17,9 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     private final int checkDimensions;
     private final BooleanType booleanType;
 
-    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final Value input,
+    InstanceOf(final ProgramLocatable pl, Node dependency, final Value input,
                Value valueIfTrue, final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
-        super(callSite, element, line, bci);
+        super(pl);
         this.dependency = dependency;
         this.input = input;
         this.valueIfTrue = valueIfTrue;

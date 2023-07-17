@@ -11,8 +11,8 @@ import java.util.function.Consumer;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -52,7 +52,7 @@ import org.qbicc.type.methodhandle.MethodMethodHandleConstant;
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
  */
-public interface BasicBlockBuilder extends Locatable {
+public interface BasicBlockBuilder extends ProgramLocatable {
     // parameters
 
     /**
@@ -100,7 +100,7 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the class context (not {@code null})
      */
     default ClassContext getCurrentClassContext() {
-        return getCurrentElement().getEnclosingType().getContext();
+        return element().getEnclosingType().getContext();
     }
 
     /**
@@ -149,7 +149,7 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the element currently being built
      */
-    ExecutableElement getCurrentElement();
+    ExecutableElement element();
 
     /**
      * Get the root element currently being built.
@@ -171,7 +171,7 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the currently set call site node
      */
-    Node getCallSite();
+    Node callSite();
 
     /**
      * Set the call site node.  Used for inlining.
@@ -209,7 +209,7 @@ public interface BasicBlockBuilder extends Locatable {
      *
      * @return the current bytecode index
      */
-    int getBytecodeIndex();
+    int bytecodeIndex();
 
     /**
      * Indicate that all construction is complete.

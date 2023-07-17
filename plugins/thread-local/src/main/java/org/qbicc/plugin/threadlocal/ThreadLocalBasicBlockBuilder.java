@@ -52,7 +52,7 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (pointer instanceof StaticFieldLiteral sfl) {
             StaticFieldElement fieldElement = sfl.getVariableElement();
             boolean isTL = fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
-            if (getCurrentElement() instanceof InitializerElement) {
+            if (element() instanceof InitializerElement) {
                 if (isTL) {
                     ctxt.warning(fieldElement, "Initialization of thread locals is not yet supported");
                     return getLiteralFactory().literalOf(fieldElement);

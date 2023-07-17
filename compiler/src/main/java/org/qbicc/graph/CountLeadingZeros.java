@@ -1,7 +1,7 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -9,8 +9,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class CountLeadingZeros extends AbstractUnaryValue {
     private final IntegerType resultType;
 
-    CountLeadingZeros(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v, final IntegerType resultType) {
-        super(callSite, element, line, bci, v);
+    CountLeadingZeros(final ProgramLocatable pl, final Value v, final IntegerType resultType) {
+        super(pl, v);
         this.resultType = resultType;
     }
 

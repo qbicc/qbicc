@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An opaque member selection.  The wrapped value is a pointer to any memory object.
@@ -12,8 +12,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class Dereference extends AbstractValue {
     private final Value pointer;
 
-    Dereference(Node callSite, ExecutableElement element, int line, int bci, Value pointer) {
-        super(callSite, element, line, bci);
+    Dereference(final ProgramLocatable pl, Value pointer) {
+        super(pl);
         this.pointer = pointer;
     }
 

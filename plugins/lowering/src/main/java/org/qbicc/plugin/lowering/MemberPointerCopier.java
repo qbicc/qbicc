@@ -78,7 +78,7 @@ public final class MemberPointerCopier implements NodeVisitor.Delegating<Node.Co
     @Override
     public Literal visit(Node.Copier copier, GlobalVariableLiteral literal) {
         GlobalVariableElement global = literal.getVariableElement();
-        ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().getCurrentElement().getEnclosingType());
+        ProgramModule programModule = ctxt.getOrAddProgramModule(copier.getBlockBuilder().element().getEnclosingType());
         DataDeclaration decl = programModule.declareData(null, global.getName(), global.getType());
         return ctxt.getLiteralFactory().literalOf(decl);
     }

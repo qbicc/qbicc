@@ -279,10 +279,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         while (frame != null) {
             Node ip = frame.ip;
             while (ip != null) {
-                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                if (ip.element().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     depth++;
                 }
-                ip = ip.getCallSite();
+                ip = ip.callSite();
             }
             frame = frame.enclosing;
         }
@@ -292,10 +292,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         while (frame != null) {
             Node ip = frame.ip;
             while (ip != null) {
-                if (ip.getElement().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+                if (ip.element().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     backTrace[depth++] = ip;
                 }
-                ip = ip.getCallSite();
+                ip = ip.callSite();
             }
             frame = frame.enclosing;
         }
@@ -2219,7 +2219,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
 
     @Override
     public Object visit(VmThreadImpl thread, New node) {
-        DefinedTypeDefinition enclosingType = node.getElement().getEnclosingType();
+        DefinedTypeDefinition enclosingType = node.element().getEnclosingType();
         VmClassLoaderImpl cl = thread.vm.getClassLoaderForContext(enclosingType.getContext());
         VmClassImpl clazz = (VmClassImpl) node.getClassObjectType().getDefinition().load().getVmClass();
         clazz.initialize(thread);

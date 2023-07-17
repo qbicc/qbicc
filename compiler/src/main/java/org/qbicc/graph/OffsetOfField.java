@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -13,8 +13,8 @@ public final class OffsetOfField extends AbstractValue {
     private final FieldElement fieldElement;
     private final SignedIntegerType type;
 
-    OffsetOfField(final Node callSite, final ExecutableElement element, final int line, final int bci, FieldElement fieldElement, final SignedIntegerType type) {
-        super(callSite, element, line, bci);
+    OffsetOfField(final ProgramLocatable pl, FieldElement fieldElement, final SignedIntegerType type) {
+        super(pl);
         this.fieldElement = fieldElement;
         this.type = type;
     }

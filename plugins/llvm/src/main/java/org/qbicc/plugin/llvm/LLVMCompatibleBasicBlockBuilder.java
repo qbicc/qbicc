@@ -41,7 +41,6 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.WordType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -521,14 +520,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     private boolean isTailCallSafe() {
-        if (getCurrentElement().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-            Node callSite = getCallSite();
+        if (element().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
+            Node callSite = callSite();
             while (callSite != null) {
-                ExecutableElement element = callSite.getElement();
+                ExecutableElement element = callSite.element();
                 if (!element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     return false;
                 }
-                callSite = callSite.getCallSite();
+                callSite = callSite.callSite();
             }
             return true;
         }

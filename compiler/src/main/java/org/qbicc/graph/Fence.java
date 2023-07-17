@@ -2,15 +2,15 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.GlobalAccessMode;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 public class Fence extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final GlobalAccessMode accessMode;
 
-    Fence(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final GlobalAccessMode accessMode) {
-        super(callSite, element, line, bci);
+    Fence(final ProgramLocatable pl, final Node dependency, final GlobalAccessMode accessMode) {
+        super(pl);
         this.dependency = dependency;
         this.accessMode = accessMode;
     }

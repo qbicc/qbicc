@@ -3,8 +3,8 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A method or function tail call.
@@ -24,8 +24,8 @@ public final class TailCall extends AbstractTerminator implements InvocationNode
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    TailCall(Node callSite, ExecutableElement element, int line, int bci, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
-        super(callSite, element, line, bci);
+    TailCall(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
+        super(pl);
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;

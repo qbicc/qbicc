@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  * An instruction which throws an exception <em>to the caller</em>.  To throw an exception to a catch block,
@@ -13,8 +13,8 @@ public final class Throw extends AbstractTerminator implements Terminator {
     private final Value thrownValue;
     private final BasicBlock terminatedBlock;
 
-    Throw(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
-        super(callSite, element, line, bci);
+    Throw(final ProgramLocatable pl, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
+        super(pl);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.thrownValue = thrownValue;
