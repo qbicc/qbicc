@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -11,8 +11,8 @@ public class MonitorExit extends AbstractNode implements Action, InstanceOperati
     private final Node dependency;
     private final Value instance;
 
-    MonitorExit(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value instance) {
-        super(callSite, element, line, bci);
+    MonitorExit(final ProgramLocatable pl, final Node dependency, final Value instance) {
+        super(pl);
         this.dependency = dependency;
         this.instance = instance;
     }

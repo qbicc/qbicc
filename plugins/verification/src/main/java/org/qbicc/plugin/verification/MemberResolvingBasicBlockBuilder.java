@@ -186,7 +186,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             return value;
         }
         // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+        ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(element()), TypeSignature.synthesize(cc, desc));
         if (value instanceof ConstantLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().constantLiteralOfType(castType);
@@ -255,7 +255,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ObjectType ot;
         int dimensions = 0;
         if (desc instanceof ArrayTypeDescriptor) {
-            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(element()), TypeSignature.synthesize(cc, desc));
             if (ot instanceof ReferenceArrayObjectType) {
                 dimensions = ((ReferenceArrayObjectType) ot).getDimensionCount();
                 ot = ((ReferenceArrayObjectType) ot).getLeafElementType();
@@ -274,12 +274,12 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value new_(final ClassTypeDescriptor desc) {
         ClassContext cc = getClassContext();
         ValueType type;
-        DefinedTypeDefinition enclosingType = getCurrentElement().getEnclosingType();
+        DefinedTypeDefinition enclosingType = element().getEnclosingType();
         if (desc == enclosingType.getDescriptor()) {
             // always the current class
             type = enclosingType.load().getObjectType();
         } else {
-            type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+            type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(element()), TypeSignature.synthesize(cc, desc));
         }
         if (type instanceof ClassObjectType cot) {
             Layout layout = Layout.get(ctxt);
@@ -292,7 +292,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(element()), TypeSignature.synthesize(cc, desc));
         if (type instanceof PrimitiveArrayObjectType pat) {
             return super.newArray(pat, size);
         } else if (type instanceof ReferenceArrayObjectType rat) {
@@ -313,7 +313,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc));
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(element()), TypeSignature.synthesize(cc, desc));
         if (type instanceof ArrayObjectType) {
             return super.multiNewArray((ArrayObjectType) type, dimensions);
         }
@@ -347,7 +347,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     private DefinedTypeDefinition resolveDescriptor(final TypeDescriptor owner) {
-        DefinedTypeDefinition enclosingType = getCurrentElement().getEnclosingType();
+        DefinedTypeDefinition enclosingType = element().getEnclosingType();
         if (owner == enclosingType.getDescriptor()) {
             // special case - resolving on a hidden class
             return enclosingType;
@@ -419,7 +419,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     private ClassContext getClassContext() {
-        return getCurrentElement().getEnclosingType().getContext();
+        return element().getEnclosingType().getContext();
     }
 
     static final class Info {

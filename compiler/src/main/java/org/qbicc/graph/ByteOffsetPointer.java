@@ -1,11 +1,11 @@
 package org.qbicc.graph;
 
+import java.util.Objects;
+
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
-
-import java.util.Objects;
 
 /**
  * A pointer that is offset from another pointer by some number of bytes.
@@ -15,8 +15,8 @@ public final class ByteOffsetPointer extends AbstractValue {
     private final Value offset;
     private final ValueType outputType;
 
-    ByteOffsetPointer(Node callSite, ExecutableElement element, int line, int bci, Value base, Value offset, ValueType outputType) {
-        super(callSite, element, line, bci);
+    ByteOffsetPointer(final ProgramLocatable pl, Value base, Value offset, ValueType outputType) {
+        super(pl);
         this.base = base;
         this.offset = offset;
         this.outputType = outputType;

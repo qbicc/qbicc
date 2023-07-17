@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  * A node representing block entry.  Block entry nodes have no dependencies.
@@ -8,8 +8,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class BlockEntry extends AbstractNode implements PinnedNode, Action {
     private final BlockLabel blockLabel;
 
-    BlockEntry(final Node callSite, final ExecutableElement element, final BlockLabel blockLabel) {
-        super(callSite, element, 0, -1);
+    BlockEntry(final ProgramLocatable pl, final BlockLabel blockLabel) {
+        super(pl);
         this.blockLabel = blockLabel;
     }
 

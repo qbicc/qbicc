@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A pointer that is offset from the base pointer by a number of base-pointee-typed elements.
@@ -12,8 +12,8 @@ public final class OffsetPointer extends AbstractValue {
     private final Value basePointer;
     private final Value offset;
 
-    OffsetPointer(Node callSite, ExecutableElement element, int line, int bci, Value basePointer, Value offset) {
-        super(callSite, element, line, bci);
+    OffsetPointer(final ProgramLocatable pl, Value basePointer, Value offset) {
+        super(pl);
         this.basePointer = basePointer;
         this.offset = offset;
     }

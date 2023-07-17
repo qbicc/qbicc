@@ -33,7 +33,6 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -340,7 +339,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         NativeInfo nativeInfo = NativeInfo.get(ctxt);
                         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, targetMethodName, mhc.getDescriptor());
                         if (functionInfo != null) {
-                            ExecutableElement currentElement = getCurrentElement();
+                            ExecutableElement currentElement = element();
                             return deref(getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(currentElement).declareFunction(currentElement, functionInfo.getName(), functionInfo.getType())));
                         }
                     }

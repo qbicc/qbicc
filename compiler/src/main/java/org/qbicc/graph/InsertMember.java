@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.StructType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A compound (structure) value with an inserted member.
@@ -15,8 +15,8 @@ public final class InsertMember extends AbstractValue {
     private final StructType structType;
     private final StructType.Member member;
 
-    InsertMember(Node callSite, ExecutableElement element, int line, int bci, Value compoundValue, Value insertedValue, StructType.Member member) {
-        super(callSite, element, line, bci);
+    InsertMember(final ProgramLocatable pl, Value compoundValue, Value insertedValue, StructType.Member member) {
+        super(pl);
         this.structValue = compoundValue;
         this.insertedValue = insertedValue;
         structType = (StructType) compoundValue.getType();

@@ -1,14 +1,14 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
  */
 public final class Truncate extends AbstractWordCastValue {
-    Truncate(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value value, final WordType toType) {
-        super(callSite, element, line, bci, value, toType);
+    Truncate(final ProgramLocatable pl, final Value value, final WordType toType) {
+        super(pl, value, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

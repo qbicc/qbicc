@@ -2,12 +2,12 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A pointer to an array element.
@@ -17,8 +17,8 @@ public final class ElementOf extends AbstractValue {
     private final Value index;
     private final PointerType pointerType;
 
-    ElementOf(Node callSite, ExecutableElement element, int line, int bci, Value arrayPointer, Value index) {
-        super(callSite, element, line, bci);
+    ElementOf(final ProgramLocatable pl, Value arrayPointer, Value index) {
+        super(pl);
         this.arrayPointer = arrayPointer;
         this.index = index;
 

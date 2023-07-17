@@ -1,12 +1,12 @@
 package org.qbicc.graph;
 
+import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
+
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
-
-import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 /**
  * A pointer to the location where the current thread is stashed.
@@ -15,8 +15,8 @@ public final class CurrentThread extends AbstractValue {
 
     private final PointerType pointerType;
 
-    CurrentThread(Node callSite, ExecutableElement element, int line, int bci, ReferenceType valueType) {
-        super(callSite, element, line, bci);
+    CurrentThread(final ProgramLocatable pl, ReferenceType valueType) {
+        super(pl);
         this.pointerType = valueType.getPointer();
     }
 
@@ -46,7 +46,7 @@ public final class CurrentThread extends AbstractValue {
 
     @Override
     public boolean isWritable() {
-        return getElement() instanceof FunctionElement;
+        return element() instanceof FunctionElement;
     }
 
     @Override
@@ -66,11 +66,11 @@ public final class CurrentThread extends AbstractValue {
 
     @Override
     public boolean isPointeeConstant() {
-        return ! (getElement() instanceof FunctionElement);
+        return ! (element() instanceof FunctionElement);
     }
 
     public boolean isPointeeNullable() {
-        return getElement() instanceof FunctionElement;
+        return element() instanceof FunctionElement;
     }
 
     @Override

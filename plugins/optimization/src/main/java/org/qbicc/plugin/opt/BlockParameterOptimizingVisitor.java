@@ -40,7 +40,7 @@ public class BlockParameterOptimizingVisitor implements NodeVisitor.Delegating<N
             return copier.copyValue(first);
         }
         // *no* inputs; should be impossible!
-        context.error("internal: block parameter with no inputs (element: " + node.getElement() + ")");
+        context.error("internal: block parameter with no inputs (element: " + node.element() + ")");
         return NodeVisitor.Delegating.super.visit(copier, node);
     }
 }

@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 
 /**
@@ -14,8 +14,8 @@ public abstract class AbstractMethodLookup extends AbstractValue implements Orde
     private final Value reference;
     private final InstanceMethodElement method;
 
-    public AbstractMethodLookup(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final Value reference, final InstanceMethodElement method) {
-        super(callSite, element, line, bci);
+    AbstractMethodLookup(final ProgramLocatable pl, Node dependency, final Value reference, final InstanceMethodElement method) {
+        super(pl);
         // only bind to control flow to avoid bypassing null checks
         while (dependency instanceof OrderedNode on) {
             dependency = on.getDependency();

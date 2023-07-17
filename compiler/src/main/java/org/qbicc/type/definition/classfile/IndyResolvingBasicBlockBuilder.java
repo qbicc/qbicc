@@ -67,7 +67,7 @@ public class IndyResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             int bootstrapArgCnt = bootstrapArgs.size();
             List<ParameterElement> targetParameters = targetMethod.getParameters();
             TypeParameterContext tpc;
-            ExecutableElement currentElement = gf.getCurrentElement();
+            ExecutableElement currentElement = gf.element();
             if (currentElement instanceof TypeParameterContext) {
                 tpc = (TypeParameterContext) currentElement;
             } else {
@@ -98,12 +98,12 @@ public class IndyResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             VmReferenceArray appendixResult = vm.newArrayOf(objectClass, 1);
             MethodElement linkCallSite = ctxt.findDefinedType("java/lang/invoke/MethodHandleNatives").load().requireSingleMethod("linkCallSite");
             // 2. call into the VM to link the call site
-            final VmClass caller = getCurrentElement().getEnclosingType().load().getVmClass();
+            final VmClass caller = element().getEnclosingType().load().getVmClass();
             vm.invokeExact(
                 linkCallSite,
                 null,
                 List.of(
-                    gf.getCurrentElement().getEnclosingType().load().getVmClass(),
+                    gf.element().getEnclosingType().load().getVmClass(),
                     Integer.valueOf(-1), // not used
                     vm.createMethodHandle(ctxt, caller, bootstrapHandle),
                     vm.intern(name),

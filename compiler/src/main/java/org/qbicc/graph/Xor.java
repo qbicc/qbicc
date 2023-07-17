@@ -1,13 +1,13 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
  */
 public final class Xor extends AbstractBinaryValue implements CommutativeBinaryValue {
-    Xor(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2) {
-        super(callSite, element, line, bci, v1, v2);
+    Xor(final ProgramLocatable pl, final Value v1, final Value v2) {
+        super(pl, v1, v2);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

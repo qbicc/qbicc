@@ -7,13 +7,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.StructType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -30,8 +30,8 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     private final WriteAccessMode writeAccessMode;
     private final Strength strength;
 
-    CmpAndSwap(final Node callSite, final ExecutableElement element, final int line, final int bci, final StructType resultType, final Node dependency, final Value pointer, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
-        super(callSite, element, line, bci);
+    CmpAndSwap(final ProgramLocatable pl, final StructType resultType, final Node dependency, final Value pointer, final Value expectedValue, final Value updateValue, final ReadAccessMode readAccessMode, final WriteAccessMode writeAccessMode, Strength strength) {
+        super(pl);
         this.resultType = Assert.checkNotNullParam("resultType", resultType);
         this.dependency = Assert.checkNotNullParam("dependency", dependency);
         this.pointer = Assert.checkNotNullParam("pointer", pointer);

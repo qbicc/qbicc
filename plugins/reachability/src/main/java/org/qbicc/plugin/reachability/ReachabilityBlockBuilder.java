@@ -67,7 +67,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         // finish first so that all blocks are populated
         super.finish();
         BasicBlock entryBlock = getFirstBlock();
-        entryBlock.getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, getDelegate().getCurrentElement()));
+        entryBlock.getTerminator().accept(new ReachabilityVisitor(), new ReachabilityContext(ctxt, getDelegate().element()));
     }
 
     static final class ReachabilityContext {

@@ -1,14 +1,14 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
  */
 public final class BitCast extends AbstractWordCastValue {
-    BitCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value value, final WordType toType) {
-        super(callSite, element, line, bci, value, toType);
+    BitCast(final ProgramLocatable pl, final Value value, final WordType toType) {
+        super(pl, value, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

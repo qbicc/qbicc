@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -8,8 +8,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class Div extends AbstractBinaryValue implements NonCommutativeBinaryValue, OrderedNode {
     private final Node dependency;
 
-    Div(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2, Node dependency) {
-        super(callSite, element, line, bci, v1, v2);
+    Div(final ProgramLocatable pl, final Value v1, final Value v2, Node dependency) {
+        super(pl, v1, v2);
         // TODO: implementing OrderedNode is temporary
         while (dependency instanceof OrderedNode on) {
             dependency = on.getDependency();

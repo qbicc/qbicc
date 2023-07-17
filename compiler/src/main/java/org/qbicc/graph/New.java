@@ -1,9 +1,9 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation.
@@ -20,9 +20,9 @@ public final class New extends AbstractValue implements OrderedNode {
     private final Value size;
     private final Value align;
 
-    New(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ClassObjectType type,
+    New(final ProgramLocatable pl, Node dependency, final ClassObjectType type,
         final Value typeId, final Value size, final Value align) {
-        super(callSite, element, line, bci);
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.typeId = typeId;

@@ -3,9 +3,9 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A plain method or function call with no side-effects.
@@ -20,8 +20,8 @@ public final class CallNoSideEffects extends AbstractValue implements Invocation
     private final List<Value> arguments;
     private final InvokableType calleeType;
 
-    CallNoSideEffects(Node callSite, ExecutableElement element, int line, int bci, Value target, Value receiver, List<Value> arguments) {
-        super(callSite, element, line, bci);
+    CallNoSideEffects(final ProgramLocatable pl, Value target, Value receiver, List<Value> arguments) {
+        super(pl);
         this.target = target;
         this.receiver = receiver;
         this.arguments = arguments;

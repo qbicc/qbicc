@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.LocalVariableElement;
 
 /**
@@ -13,8 +13,8 @@ public final class DebugAddressDeclaration extends AbstractNode implements Actio
     private final LocalVariableElement variable;
     private final Value address;
 
-    DebugAddressDeclaration(Node callSite, ExecutableElement element, int line, int bci, Node dependency, LocalVariableElement variable, Value address) {
-        super(callSite, element, line, bci);
+    DebugAddressDeclaration(final ProgramLocatable pl, Node dependency, LocalVariableElement variable, Value address) {
+        super(pl);
         this.dependency = dependency;
         this.variable = variable;
         this.address = address;

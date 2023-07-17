@@ -15,7 +15,6 @@ import org.qbicc.context.Location;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.literal.Literal;
 import org.qbicc.machine.llvm.CallingConvention;
 import org.qbicc.machine.llvm.stackmap.LocationType;
 import org.qbicc.machine.llvm.stackmap.StackMap;
@@ -105,13 +104,13 @@ public final class LLVMStackMapCollector {
                             public void startRecord(long recIndex, long patchPointId, long offset, int locCnt, int liveOutCnt) {
                                 this.offset = offset;
                                 final Node node = callSitesById.get(Math.toIntExact(patchPointId));
-                                se = cst.getSubprogramEntry(node.getElement());
+                                se = cst.getSubprogramEntry(node.element());
                                 sc = getSourceCodeEntry(node);
                             }
 
                             private CallSiteTable.SourceCodeEntry getSourceCodeEntry(Node node) {
-                                final Node inlinedAt = node.getCallSite();
-                                return cst.intern(new CallSiteTable.SourceCodeEntry(cst.getSubprogramEntry(node.getElement()), node.getSourceLine(), node.getBytecodeIndex(), inlinedAt == null ? null : getSourceCodeEntry(inlinedAt)));
+                                final Node inlinedAt = node.callSite();
+                                return cst.intern(new CallSiteTable.SourceCodeEntry(cst.getSubprogramEntry(node.element()), node.lineNumber(), node.bytecodeIndex(), inlinedAt == null ? null : getSourceCodeEntry(inlinedAt)));
                             }
 
                             public void location(int locIndex, LocationType type, int size, int regNum, long data) {

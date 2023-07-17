@@ -50,7 +50,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
     }
 
     private boolean inRange() {
-        int bci = getBytecodeIndex();
+        int bci = bytecodeIndex();
         return startBci <= bci && bci < endBci;
     }
 
@@ -147,7 +147,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
             if (typeIdx == 0) {
                 exType = delegate.getCurrentClassContext().findDefinedType("java/lang/Throwable").load().getClassType();
             } else {
-                exType = (ClassObjectType) info.getClassFile().getTypeConstant(typeIdx, TypeParameterContext.of(delegate.getCurrentElement()));
+                exType = (ClassObjectType) info.getClassFile().getTypeConstant(typeIdx, TypeParameterContext.of(delegate.element()));
             }
             delegate = new BciRangeExceptionHandlerBasicBlockBuilder(delegate, startPc, endPc, handlerPc, exType, mp);
         }

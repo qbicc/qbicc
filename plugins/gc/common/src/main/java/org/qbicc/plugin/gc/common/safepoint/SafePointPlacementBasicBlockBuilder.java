@@ -17,7 +17,7 @@ public final class SafePointPlacementBasicBlockBuilder extends DelegatingBasicBl
     }
 
     public static BasicBlockBuilder createIfNeeded(FactoryContext ctxt, BasicBlockBuilder delegate) {
-        final ExecutableElement currentElement = delegate.getCurrentElement();
+        final ExecutableElement currentElement = delegate.element();
         final boolean noSafePoints = currentElement.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
         // functions should not automatically poll for safepoints, because there might not be a thread
         return currentElement instanceof FunctionElement || noSafePoints ? delegate : new SafePointPlacementBasicBlockBuilder(delegate);

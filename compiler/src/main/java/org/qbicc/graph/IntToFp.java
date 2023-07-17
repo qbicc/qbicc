@@ -1,15 +1,15 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An integer to floating point value conversion.
  */
 public final class IntToFp extends AbstractWordCastValue {
-    IntToFp(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value value, final FloatType toType) {
-        super(callSite, element, line, bci, value, toType);
+    IntToFp(final ProgramLocatable pl, final Value value, final FloatType toType) {
+        super(pl, value, toType);
         value.getType(IntegerType.class);
     }
 

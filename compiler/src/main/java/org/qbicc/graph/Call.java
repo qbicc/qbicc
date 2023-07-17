@@ -3,8 +3,8 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A plain method or function call.
@@ -19,8 +19,8 @@ public final class Call extends AbstractValue implements OrderedNode, Invocation
     private final Value receiver;
     private final List<Value> arguments;
 
-    Call(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value target, Value receiver, List<Value> arguments) {
-        super(callSite, element, line, bci);
+    Call(final ProgramLocatable pl, Node dependency, Value target, Value receiver, List<Value> arguments) {
+        super(pl);
         this.dependency = dependency;
         this.target = target;
         this.receiver = receiver;

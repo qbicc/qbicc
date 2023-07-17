@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -11,8 +11,8 @@ public final class Reachable extends AbstractNode implements Action, OrderedNode
     private final Node dependency;
     private final Value reachableValue;
 
-    Reachable(Node callSite, ExecutableElement element, int line, int bci, Node dependency, Value reachableValue) {
-        super(callSite, element, line, bci);
+    Reachable(final ProgramLocatable pl, Node dependency, Value reachableValue) {
+        super(pl);
         this.dependency = dependency;
         this.reachableValue = reachableValue;
     }

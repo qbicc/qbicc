@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -11,8 +11,8 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     final Value left;
     final Value right;
 
-    AbstractBinaryValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value left, final Value right) {
-        super(callSite, element, line, bci);
+    AbstractBinaryValue(ProgramLocatable pl, Value left, Value right) {
+        super(pl);
         this.left = left;
         this.right = right;
     }

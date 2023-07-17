@@ -192,7 +192,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean loadClass(ClassTypeDescriptor desc) {
-        if (desc == getCurrentElement().getEnclosingType().getDescriptor()) {
+        if (desc == element().getEnclosingType().getDescriptor()) {
             return true;
         }
         if (desc.packageAndClassNameEquals("", "[") || desc.packageAndClassNameEquals("", "[L")) {
@@ -217,7 +217,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private ClassContext getClassContext() {
-        return getCurrentElement().getEnclosingType().getContext();
+        return element().getEnclosingType().getContext();
     }
 
     static final class Info {

@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import java.util.Map;
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -15,8 +15,8 @@ public final class If extends AbstractTerminator implements Terminator {
     private final BlockLabel falseBranchLabel;
     private final BasicBlock terminatedBlock;
 
-    If(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel, Map<Slot, Value> blockArgs) {
-        super(callSite, element, line, bci, blockArgs);
+    If(final ProgramLocatable pl, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel, Map<Slot, Value> blockArgs) {
+        super(pl, blockArgs);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.condition = condition;

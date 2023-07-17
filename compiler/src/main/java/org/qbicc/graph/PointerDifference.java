@@ -1,8 +1,8 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A binary value which represents the number of elements between two pointers of the same type.
@@ -12,8 +12,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class PointerDifference extends AbstractBinaryValue implements NonCommutativeBinaryValue {
     private final SignedIntegerType type;
 
-    PointerDifference(Node callSite, ExecutableElement element, int line, int bci, Value left, Value right) {
-        super(callSite, element, line, bci, left, right);
+    PointerDifference(ProgramLocatable pl, Value left, Value right) {
+        super(pl, left, right);
         PointerType leftType = left.getType(PointerType.class);
         PointerType rightType = right.getType(PointerType.class);
         if (! leftType.equals(rightType)) {

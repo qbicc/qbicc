@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.StructType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An extracted member of a compound (structure) value.
@@ -14,8 +14,8 @@ public final class ExtractMember extends AbstractValue {
     private final StructType structType;
     private final StructType.Member member;
 
-    ExtractMember(Node callSite, ExecutableElement element, int line, int bci, Value structValue, StructType.Member member) {
-        super(callSite, element, line, bci);
+    ExtractMember(final ProgramLocatable pl, Value structValue, StructType.Member member) {
+        super(pl);
         this.structValue = structValue;
         structType = (StructType) structValue.getType();
         this.member = member;

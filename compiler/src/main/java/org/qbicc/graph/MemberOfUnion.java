@@ -2,10 +2,10 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.UnionType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A handle for a union member.  The input handle must have union type.
@@ -15,8 +15,8 @@ public final class MemberOfUnion extends AbstractValue {
     private final PointerType pointerType;
     private final UnionType.Member member;
 
-    MemberOfUnion(Node callSite, ExecutableElement element, int line, int bci, Value unionPointer, UnionType.Member member) {
-        super(callSite, element, line, bci);
+    MemberOfUnion(final ProgramLocatable pl, Value unionPointer, UnionType.Member member) {
+        super(pl);
         this.unionPointer = unionPointer;
         this.member = member;
         pointerType = member.getType().getPointer().withQualifiersFrom(unionPointer.getType(PointerType.class));

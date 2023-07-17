@@ -2,10 +2,10 @@ package org.qbicc.graph;
 
 import java.util.List;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation for multi-dimensional array objects.
@@ -15,8 +15,8 @@ public final class MultiNewArray extends AbstractValue implements OrderedNode {
     private final ArrayObjectType type;
     private final List<Value> dimensions;
 
-    MultiNewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
-        super(callSite, element, line, bci);
+    MultiNewArray(final ProgramLocatable pl, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.dimensions = dimensions;

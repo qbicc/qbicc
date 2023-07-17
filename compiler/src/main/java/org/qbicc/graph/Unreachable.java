@@ -2,14 +2,14 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 public class Unreachable extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
 
-    Unreachable(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
-        super(callSite, element, line, bci);
+    Unreachable(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency) {
+        super(pl);
         this.dependency = dependency;
         terminatedBlock = new BasicBlock(blockEntry, this);
     }

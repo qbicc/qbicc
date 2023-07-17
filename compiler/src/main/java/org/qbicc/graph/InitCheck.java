@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.InitializerElement;
 
 public class InitCheck extends AbstractNode implements Action, OrderedNode {
@@ -10,8 +10,8 @@ public class InitCheck extends AbstractNode implements Action, OrderedNode {
     private final InitializerElement initializerElement;
     private final Value initThunk;
 
-    InitCheck(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final InitializerElement initializerElement, final Value initThunk) {
-        super(callSite, element, line, bci);
+    InitCheck(final ProgramLocatable pl, final Node dependency, final InitializerElement initializerElement, final Value initThunk) {
+        super(pl);
         this.dependency = dependency;
         this.initializerElement = initializerElement;
         this.initThunk = initThunk;

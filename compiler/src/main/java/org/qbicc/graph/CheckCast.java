@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * Validate the soundness of a casting operation on a reference type, raising a runtime exception if unsound.
@@ -47,9 +47,9 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
         }
     }
 
-    CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value input, final Value toType,
+    CheckCast(final ProgramLocatable pl, final Node dependency, final Value input, final Value toType,
               final Value toDimensions, CastType kind, ObjectType expectedType) {
-        super(callSite, element, line, bci);
+        super(pl);
         this.dependency = dependency;
         this.input = input;
         this.toType = toType;

@@ -69,8 +69,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         last.setFirstBuilder(first);
     }
 
-    public ExecutableElement getCurrentElement() {
-        return getDelegate().getCurrentElement();
+    public ExecutableElement element() {
+        return getDelegate().element();
     }
 
     public ExecutableElement getRootElement() {
@@ -81,8 +81,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setCurrentElement(element);
     }
 
-    public Node getCallSite() {
-        return getDelegate().getCallSite();
+    public Node callSite() {
+        return getDelegate().callSite();
     }
 
     public Node setCallSite(final Node callSite) {
@@ -93,6 +93,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getLocation();
     }
 
+    public int lineNumber() {
+        return getDelegate().lineNumber();
+    }
+
     public int setLineNumber(final int newLineNumber) {
         return getDelegate().setLineNumber(newLineNumber);
     }
@@ -101,8 +105,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setBytecodeIndex(newBytecodeIndex);
     }
 
-    public int getBytecodeIndex() {
-        return getDelegate().getBytecodeIndex();
+    public int bytecodeIndex() {
+        return getDelegate().bytecodeIndex();
     }
 
     public void finish() {

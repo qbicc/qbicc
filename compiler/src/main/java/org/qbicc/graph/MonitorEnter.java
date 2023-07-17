@@ -2,7 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.context.ProgramLocatable;
 
 /**
  *
@@ -11,8 +11,8 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
     private final Node dependency;
     private final Value instance;
 
-    MonitorEnter(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value instance) {
-        super(callSite, element, line, bci);
+    MonitorEnter(final ProgramLocatable pl, final Node dependency, final Value instance) {
+        super(pl);
         this.dependency = dependency;
         this.instance = instance;
     }

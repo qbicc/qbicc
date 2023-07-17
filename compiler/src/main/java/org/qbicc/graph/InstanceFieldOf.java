@@ -2,8 +2,8 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 
 /**
@@ -14,8 +14,8 @@ public final class InstanceFieldOf extends AbstractValue {
     private final InstanceFieldElement field;
     private final PointerType type;
 
-    InstanceFieldOf(Node callSite, ExecutableElement element, int line, int bci, Value instancePointer, InstanceFieldElement field) {
-        super(callSite, element, line, bci);
+    InstanceFieldOf(final ProgramLocatable pl, Value instancePointer, InstanceFieldElement field) {
+        super(pl);
         this.instancePointer = instancePointer;
         instancePointer.getType(PointerType.class);
         this.field = field;

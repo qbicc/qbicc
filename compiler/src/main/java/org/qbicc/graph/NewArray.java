@@ -1,9 +1,9 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PrimitiveArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation for array objects.
@@ -13,8 +13,8 @@ public final class NewArray extends AbstractValue implements OrderedNode {
     private final PrimitiveArrayObjectType type;
     private final Value size;
 
-    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final PrimitiveArrayObjectType type, final Value size) {
-        super(callSite, element, line, bci);
+    NewArray(final ProgramLocatable pl, Node dependency, final PrimitiveArrayObjectType type, final Value size) {
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.size = size;

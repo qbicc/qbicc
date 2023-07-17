@@ -1,8 +1,8 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -13,8 +13,8 @@ public final class StackAllocation extends AbstractValue implements OrderedNode 
     private final Value count;
     private final Value align;
 
-    StackAllocation(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ValueType type, final Value count, final Value align) {
-        super(callSite, element, line, bci);
+    StackAllocation(final ProgramLocatable pl, Node dependency, final ValueType type, final Value count, final Value align) {
+        super(pl);
         this.dependency = dependency;
         this.type = type;
         this.count = count;

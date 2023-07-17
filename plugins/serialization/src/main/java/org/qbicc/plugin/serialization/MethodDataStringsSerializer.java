@@ -30,7 +30,7 @@ public final class MethodDataStringsSerializer extends DelegatingBasicBlockBuild
     }
 
     private void createMethodDataStrings() {
-        ExecutableElement element = getCurrentElement();
+        ExecutableElement element = element();
         Vm vm = ctxt.getVm();
         BuildtimeHeap heap = BuildtimeHeap.get(ctxt);
 

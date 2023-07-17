@@ -15,6 +15,7 @@ import io.smallrye.common.constraint.Assert;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.ImmutableMap;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
@@ -32,7 +33,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public interface Node {
+public interface Node extends ProgramLocatable {
     /**
      * Get the call site node if this node is part of an inlined function.  The call site node may be of
      * any type, but must refer to the source line, bytecode index, and enclosing element of the call site
@@ -40,18 +41,18 @@ public interface Node {
      *
      * @return the call site node, or {@code null} if this node was not inlined from another function
      */
-    Node getCallSite();
+    Node callSite();
 
     /**
      * Get the source element.  Literals will have no source element.
      *
      * @return the source element, or {@code null} if there is none
      */
-    ExecutableElement getElement();
+    ExecutableElement element();
 
-    int getSourceLine();
+    int lineNumber();
 
-    int getBytecodeIndex();
+    int bytecodeIndex();
 
     int getScheduleIndex();
 
@@ -236,7 +237,7 @@ public interface Node {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
                 if (! (original instanceof Unschedulable) && original.getScheduledBlock() == null) {
-                    blockBuilder.getContext().warning(blockBuilder.getCurrentElement(), "Converting unscheduled node %s to unreachable()", original.toString());
+                    blockBuilder.getContext().warning(blockBuilder.element(), "Converting unscheduled node %s to unreachable()", original.toString());
                     throw new BlockEarlyTermination(blockBuilder.unreachable());
                 }
                 if (original instanceof Literal lit) {
@@ -245,11 +246,11 @@ public interface Node {
                     copiedNodes.put(original, copy);
                     return copy;
                 }
-                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
-                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
-                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node origCallSite = original.getCallSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                int oldLine = blockBuilder.setLineNumber(original.lineNumber());
+                int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
+                Node origCallSite = original.callSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -312,11 +313,11 @@ public interface Node {
                 if (! (original instanceof Unschedulable) && original.getScheduledBlock() == null) {
                     throw new IllegalStateException("Missing schedule for node");
                 }
-                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
-                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
-                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node origCallSite = original.getCallSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                int oldLine = blockBuilder.setLineNumber(original.lineNumber());
+                int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
+                Node origCallSite = original.callSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -337,11 +338,11 @@ public interface Node {
                     throw new IllegalStateException("Missing schedule for node");
                 }
                 // copy the terminator and its dependencies
-                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
-                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
-                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node origCallSite = original.getCallSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                int oldLine = blockBuilder.setLineNumber(original.lineNumber());
+                int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
+                Node origCallSite = original.callSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 BasicBlock block;
                 try {
                     block = original.accept(nodeVisitor, this);

@@ -2,9 +2,9 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -16,8 +16,8 @@ public final class ExtractInstanceField extends AbstractValue {
     private final FieldElement fieldElement;
     private final ValueType valueType;
 
-    ExtractInstanceField(Node callSite, ExecutableElement element, int line, int bci, Value objectValue, FieldElement fieldElement, ValueType valueType) {
-        super(callSite, element, line, bci);
+    ExtractInstanceField(final ProgramLocatable pl, Value objectValue, FieldElement fieldElement, ValueType valueType) {
+        super(pl);
         this.objectValue = objectValue;
         objectType = (PhysicalObjectType) objectValue.getType();
         this.fieldElement = fieldElement;

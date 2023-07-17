@@ -1,14 +1,14 @@
 package org.qbicc.graph;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.IntegerType;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
  */
 public final class BitReverse extends AbstractUnaryValue {
-    BitReverse(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v) {
-        super(callSite, element, line, bci, v);
+    BitReverse(final ProgramLocatable pl, final Value v) {
+        super(pl, v);
         //noinspection RedundantClassCall
         IntegerType.class.cast(v.getType());
     }

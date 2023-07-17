@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.literal.BlockLiteral;
-import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An indirect branch node, used for implementing the legacy {@code ret} bytecode and also useful for outlining.
@@ -18,8 +18,8 @@ public final class Ret extends AbstractTerminator implements Terminator {
     private final BasicBlock terminatedBlock;
     private List<BasicBlock> successors;
 
-    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, Value> targetArguments) {
-        super(callSite, element, line, bci, targetArguments);
+    Ret(final ProgramLocatable pl, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue, Map<Slot, Value> targetArguments) {
+        super(pl, targetArguments);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;

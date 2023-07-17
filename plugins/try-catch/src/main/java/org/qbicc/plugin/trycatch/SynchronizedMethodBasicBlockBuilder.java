@@ -37,7 +37,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         Node node = super.begin(blockLabel);
         if (! started) {
             started = true;
-            ExecutableElement element = getCurrentElement();
+            ExecutableElement element = element();
             DefinedTypeDefinition enclosing = element.getEnclosingType();
             if (element.isStatic()) {
                 monitor = classOf(enclosing.load().getObjectType());
@@ -52,7 +52,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     @Override
     public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
         if (! started) {
-            ExecutableElement element = getCurrentElement();
+            ExecutableElement element = element();
             DefinedTypeDefinition enclosing = element.getEnclosingType();
             if (element.isStatic()) {
                 monitor = classOf(enclosing.load().getObjectType());
@@ -111,7 +111,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public static BasicBlockBuilder createIfNeeded(FactoryContext fc, BasicBlockBuilder delegate) {
-        if (delegate.getCurrentElement().hasAllModifiersOf(ClassFile.ACC_SYNCHRONIZED)) {
+        if (delegate.element().hasAllModifiersOf(ClassFile.ACC_SYNCHRONIZED)) {
             return new SynchronizedMethodBasicBlockBuilder(delegate);
         } else {
             return delegate;

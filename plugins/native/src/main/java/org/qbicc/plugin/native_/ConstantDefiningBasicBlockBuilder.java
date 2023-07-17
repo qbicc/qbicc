@@ -36,7 +36,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     private ConstantDefiningBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
-        ExecutableElement element = getCurrentElement();
+        ExecutableElement element = element();
         if (element instanceof InitializerElement) {
             NativeInfo.get(getContext()).registerInitializer((InitializerElement) element);
         }
@@ -44,7 +44,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     public static BasicBlockBuilder createIfNeeded(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
-        if (delegate.getCurrentElement() instanceof InitializerElement) {
+        if (delegate.element() instanceof InitializerElement) {
             return new ConstantDefiningBasicBlockBuilder(delegate);
         } else {
             return delegate;
