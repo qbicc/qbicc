@@ -447,11 +447,5 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-gc-nogc</artifactId>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 </project>

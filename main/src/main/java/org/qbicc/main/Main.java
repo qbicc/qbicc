@@ -246,7 +246,6 @@ public class Main implements Callable<DiagnosticContext> {
         bootPaths.addAll(builder.bootPathsPrepend);
         // add core things
         bootPaths.add(getCoreComponent("qbicc-runtime-api"));
-        bootPaths.add(getCoreComponent("qbicc-runtime-gc-heap"));
         bootPaths.add(getCoreComponent("qbicc-runtime-llvm"));
         bootPaths.add(getCoreComponent("qbicc-runtime-main"));
         bootPaths.add(getCoreComponent("qbicc-runtime-unwind"));

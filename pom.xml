@@ -124,18 +124,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-gc-heap</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-runtime-gc-nogc</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-runtime-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
