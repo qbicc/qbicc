@@ -401,16 +401,28 @@ final class CNativeIntrinsics {
         MethodDescriptor ptrPtrLongToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, ptrDesc, BaseTypeDescriptor.J));
 
         StaticIntrinsic copy1 = (builder, targetPtr, arguments) -> {
+            ValueType destValType = arguments.get(0).getPointeeType();
+            ValueType srcValType = arguments.get(1).getPointeeType();
+            if (destValType.getSize() != srcValType.getSize()) {
+                ctxt.error(builder.getLocation(), "Attempt to copy objects of different sizes (destination size is %d bytes, source size is %d bytes)", destValType.getSize(), srcValType.getSize());
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
             // for now, just memcpy; todo: Copy node
             Value memcpy = builder.resolveStaticMethod(stdcStringDesc, "memcpy", memcpyDesc);
-            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getSize())));
+            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), ctxt.getLiteralFactory().literalOf(destValType.getSize())));
             return builder.emptyVoid();
         };
 
         StaticIntrinsic copy2 = (builder, targetPtr, arguments) -> {
+            ValueType destValType = arguments.get(0).getPointeeType();
+            ValueType srcValType = arguments.get(1).getPointeeType();
+            if (destValType.getSize() != srcValType.getSize()) {
+                ctxt.error(builder.getLocation(), "Attempt to copy objects of different sizes (destination size is %d bytes, source size is %d bytes)", destValType.getSize(), srcValType.getSize());
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
             // for now, just memcpy; todo: Copy node
             Value memcpy = builder.resolveStaticMethod(stdcStringDesc, "memcpy", memcpyDesc);
-            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), builder.multiply(arguments.get(2), ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getSize()))));
+            builder.call(memcpy, List.of(arguments.get(0), arguments.get(1), builder.multiply(arguments.get(2), ctxt.getLiteralFactory().literalOf(destValType.getSize()))));
             return builder.emptyVoid();
         };
 
