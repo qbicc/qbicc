@@ -544,30 +544,29 @@ final class CompilationContextImpl implements CompilationContext {
             b.append("__");
             MethodDescriptor elementDescriptor = element.getDescriptor();
             for (TypeDescriptor descriptor : elementDescriptor.getParameterTypes()) {
-                if (descriptor.equals(enclosingType.getDescriptor())) {
-                    // include the hidden class identifier
-                    b.append('L');
-                    mangleTo(b, internalName);
-                    mangleTo(b, ";");
-                } else {
-                    mangleTo(b, descriptor.toString());
-                }
+                mangleDescriptorTo(b, enclosingType, descriptor);
             }
             // unlike JNI, we must also add the return type (but only if one is possible)
             if (element instanceof MethodElement) {
                 b.append("_");
-                TypeDescriptor returnTypeDescriptor = elementDescriptor.getReturnType();
-                if (returnTypeDescriptor.equals(enclosingType.getDescriptor())) {
-                    // include the hidden class identifier
-                    b.append('L');
-                    mangleTo(b, internalName);
-                    mangleTo(b, ";");
-                } else {
-                    mangleTo(b, returnTypeDescriptor.toString());
-                }
+                mangleDescriptorTo(b, enclosingType, elementDescriptor.getReturnType());
             }
         }
         return b.toString();
+    }
+
+    private void mangleDescriptorTo(final StringBuilder b, final DefinedTypeDefinition enclosingType, final TypeDescriptor descriptor) {
+        if (descriptor instanceof ClassTypeDescriptor ctd && ctd.packageAndClassNameEquals("org/qbicc/runtime", "CNative$ptr")) {
+            // special case: pointers
+            b.append('P');
+        } else if (descriptor.equals(enclosingType.getDescriptor())) {
+            // include the hidden class identifier
+            b.append('L');
+            mangleTo(b, enclosingType.getInternalName());
+            mangleTo(b, ";");
+        } else {
+            mangleTo(b, descriptor.toString());
+        }
     }
 
     @Override
