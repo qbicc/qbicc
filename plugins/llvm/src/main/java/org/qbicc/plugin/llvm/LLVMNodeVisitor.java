@@ -26,6 +26,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
+import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CheckCast;
@@ -558,6 +559,13 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
             }
             return llValue;
         }
+    }
+
+    public LLValue visit(List<Value> liveRefs, ByteOffsetPointer node) {
+        // with opaque pointers, just tell it that it is a byte index
+        GetElementPtr gep = builder.getelementptr(i8, map(node.getType()), map(node.getBasePointer()));
+        gep.arg(false, map(node.getOffset().getType()), map(node.getOffset()));
+        return gep.setLValue(map(node));
     }
 
     private static <E> Set<E> newSet(final Object ignored) {
