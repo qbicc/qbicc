@@ -123,7 +123,6 @@ import org.qbicc.machine.llvm.op.IndirectBranch;
 import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
 import org.qbicc.machine.llvm.op.Phi;
-import org.qbicc.machine.llvm.op.YieldingInstruction;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
@@ -139,7 +138,6 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.Type;
-import org.qbicc.type.UnionType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
@@ -176,7 +174,6 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     final Map<LocalVariableElement, DILocalVariable> localVariables = new HashMap<>();
     final List<InvocationNode> invocationNodes = new ArrayList<>();
     final Map<Invoke, Set<Phi>> invokeResultsToMap = new HashMap<>();
-    private final boolean opaquePointers;
 
     private boolean personalityAdded;
     private LLBasicBlock mappingBlock;
@@ -194,7 +191,6 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         entryBlock = methodBody.getEntryBlock();
         builder = LLBuilder.newBuilder(func.getRootBlock());
         personalityAdded = false;
-        opaquePointers = moduleVisitor.opaquePointers;
     }
 
     // begin
@@ -1020,16 +1016,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     }
 
     public LLValue visit(final List<Value> liveRefs, final MemberOfUnion node) {
-        if (opaquePointers) {
-            return null;
-        }
-        UnionType unionType = node.getUnionType();
-        PointerType pointerType = unionType.getPointer();
-        LLValue ptr = map(node.getUnionPointer());
-        UnionType.Member member = node.getMember();
-        YieldingInstruction bc = builder.bitcast(map(pointerType), ptr, map(member.getType().getPointer()));
-        bc.comment("union member " + member.getName());
-        return bc.setLValue(map(node));
+        return null;
     }
 
     public LLValue visit(final List<Value> liveRefs, final Truncate node) {
@@ -1326,10 +1313,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         spCall.arg(i64, intConstant(statepointId));
         spCall.arg(i32, ZERO);
         final HasArguments.Argument argument = spCall.arg(map(functionType.getPointer()), llTarget);
-        if (moduleVisitor.generator.getLlvmMajor() >= 15) {
-            // LLVM 15 requires elementtype even without opaque pointers
-            argument.attribute(ParameterAttributes.elementtype(map(functionType)));
-        }
+        argument.attribute(ParameterAttributes.elementtype(map(functionType)));
         spCall.arg(i32, intConstant(arguments.size()));
         // this is set to 0 instead of 1 because many platforms don't allow GC transitions, but we can still emit the info
         spCall.arg(i32, ZERO);
@@ -1779,23 +1763,13 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         } else if (value instanceof WordCastValue wcv && wcv.getType() instanceof IntegerType out && wcv.getInput().getType() instanceof IntegerType in && out.getMinBits() == in.getMinBits()) {
             // no node generated for signedness casts
             return desugar(wcv.getInput());
-        } else if (opaquePointers) {
-            // opaque pointers mean some nodes do not map
-            if (value instanceof BitCast bc && (bc.getType() instanceof PointerType && bc.getInput().getType() instanceof PointerType ||
-                bc.getType() instanceof ReferenceType && bc.getInput().getType() instanceof ReferenceType)) {
-                // all pointers are the same
-                return desugar(bc.getInput());
-            } else if (value instanceof MemberOfUnion mou) {
-                // all pointers are the same
-                return desugar(mou.getUnionPointer());
-            } else if (moduleVisitor.config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
-                // exclude nodes which convert between pointers and references
-                if (value instanceof DecodeReference dr) {
-                    return desugar(dr.getInput());
-                } else if (value instanceof EncodeReference er) {
-                    return desugar(er.getInput());
-                }
-            }
+        } else if (value instanceof BitCast bc && (bc.getType() instanceof PointerType && bc.getInput().getType() instanceof PointerType ||
+            bc.getType() instanceof ReferenceType && bc.getInput().getType() instanceof ReferenceType)) {
+            // all pointers are the same
+            return desugar(bc.getInput());
+        } else if (value instanceof MemberOfUnion mou) {
+            // all pointers are the same
+            return desugar(mou.getUnionPointer());
         } else if (moduleVisitor.config.getReferenceStrategy() == ReferenceStrategy.POINTER) {
             // exclude nodes which convert between pointers and references
             if (value instanceof DecodeReference dr) {

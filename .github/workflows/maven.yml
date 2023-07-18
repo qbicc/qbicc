@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: ["14", "15", "16"]
+        llvm-version: ["15", "16"]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -53,68 +53,26 @@ jobs:
         with:
           path: qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
-      - name: Install qbicc (Linux, opaque pointers only)
-        if: matrix.os == 'ubuntu-latest' && matrix.llvm-version == '16'
+      - name: Install qbicc (Linux)
+        if: matrix.os == 'ubuntu-latest'
         env:
             LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
             CC: clang
         run: |
           ulimit -c 819200 # 400mb
           ./ci/prepare_for_core_linux.sh
-          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=true
-        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
-
-      - name: Install qbicc (Linux, non-opaque pointers)
-        if: matrix.os == 'ubuntu-latest' && matrix.llvm-version != '16'
-        env:
-            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
-            CC: clang
-        run: |
-          ulimit -c 819200 # 400mb
-          ./ci/prepare_for_core_linux.sh
-          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=false
-        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
-
-      - name: Test with opaque pointers (Linux)
-        if: matrix.os == 'ubuntu-latest' && matrix.llvm-version == '15'
-        env:
-            LIBRARY_PATH: /usr/lib/gcc/x86_64-linux-gnu/11:/usr/lib/x86_64-linux-gnu
-            CC: clang
-        run: |
-          ulimit -c 819200 # 400mb
-          mvn --batch-mode install -rf :qbicc-integration-tests -Dqbicc.llvm.opaque-pointers=true
-        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
-
-      - name: Install qbicc (Mac OS, opaque pointers only)
-        if: matrix.os == 'macos-latest' && matrix.llvm-version == '16'
-        env:
-            LIBRARY_PATH: $(brew --prefix gcc)/lib/gcc/11
-            CC: gcc
-        run: |
-          ulimit -c 819200 # 400mb
-          ./ci/prepare_for_core_macos.sh
-          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=true
+          mvn --batch-mode install
         working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
       - name: Install qbicc (Mac OS)
-        if: matrix.os == 'macos-latest' && matrix.llvm-version != '16'
+        if: matrix.os == 'macos-latest'
         env:
             LIBRARY_PATH: $(brew --prefix gcc)/lib/gcc/11
             CC: gcc
         run: |
           ulimit -c 819200 # 400mb
           ./ci/prepare_for_core_macos.sh
-          mvn --batch-mode install -Dqbicc.llvm.opaque-pointers=false
-        working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
-
-      - name: Test with opaque pointers (Mac OS)
-        if: matrix.os == 'macos-latest' && matrix.llvm-version == '15'
-        env:
-            LIBRARY_PATH: $(brew --prefix gcc)/lib/gcc/11
-            CC: gcc
-        run: |
-          ulimit -c 819200 # 400mb
-          mvn --batch-mode install -rf :qbicc-integration-tests -Dqbicc.llvm.opaque-pointers=true
+          mvn --batch-mode install
         working-directory: ./qbicc-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
 
       - name: Prepare failure archive (if maven failed)

@@ -71,15 +71,12 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 
 final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
-    static final LLValue i8_ptr = ptrTo(i8);
-    static final LLValue i8_ptr_as1 = ptrTo(i8, 1);
     static final LLValue ptr_as1 = ptr(1);
 
     final LLVMModuleGenerator generator;
     final Module module;
     final CompilationContext ctxt;
     final LLVMConfiguration config;
-    final boolean opaquePointers;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<StructType, Map<StructType.Member, LLValue>> structureOffsets = new HashMap<>();
@@ -101,13 +98,12 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         this.module = module;
         this.ctxt = ctxt;
         this.config = config;
-        this.opaquePointers = config.isOpaquePointers();
         // References can be used as different types in the IL without manually casting them, so we need to
         // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
         // use the reference as when needed.
         this.refType = module.identifiedType("ref").type(switch (config.getReferenceStrategy()) {
-            case POINTER -> opaquePointers ? ptr : i8_ptr;
-            case POINTER_AS1 -> opaquePointers ? ptr_as1 : i8_ptr_as1;
+            case POINTER -> ptr;
+            case POINTER_AS1 -> ptr_as1;
         }).asTypeRef();
         relocateDeclType = function(refType, List.of(token, i32, i32), false);
     }
@@ -152,8 +148,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
             // LLVM does not have an equivalent to method types
             res = map(ctxt.getFunctionTypeForInvokableType(it));
         } else if (type instanceof PointerType) {
-            Type pointeeType = ((PointerType) type).getPointeeType();
-            res = opaquePointers ? ptr : pointeeType instanceof VoidType ? i8_ptr : ptrTo(map(pointeeType));
+            res = ptr;
         } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
             res = refType;
         } else if (type instanceof WordType) {
@@ -260,10 +255,8 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         LLValue input = map(node.getValue());
         final ValueType inputType = node.getValue().getType();
         final WordType outputType = node.getType();
-        if (config.isOpaquePointers()) {
-            if (inputType instanceof PointerType && outputType instanceof PointerType || inputType instanceof ReferenceType && outputType instanceof ReferenceType) {
-                return input;
-            }
+        if (inputType instanceof PointerType && outputType instanceof PointerType || inputType instanceof ReferenceType && outputType instanceof ReferenceType) {
+            return input;
         }
         LLValue fromType = map(inputType);
         LLValue toType = map(outputType);
@@ -508,13 +501,13 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         } else if (type instanceof PointerType pt) {
             b.append("p0");
             final ValueType pointeeType = pt.getPointeeType();
-            if (opaquePointers && ! (pointeeType instanceof InvokableType)) {
+            if (!(pointeeType instanceof InvokableType)) {
                 // nothing else to say
                 return;
             }
             mapTypeSuffix(b, pointeeType);
         } else if (type instanceof ReferenceType || type instanceof UnresolvedType) {
-            b.append(opaquePointers ? "p1" : "p1i8");
+            b.append("p1");
         } else if (type instanceof FloatType ft) {
             b.append('f').append(ft.getMinBits());
         } else if (type instanceof VoidType) {

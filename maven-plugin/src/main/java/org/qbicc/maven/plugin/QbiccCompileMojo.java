@@ -77,9 +77,6 @@ public class QbiccCompileMojo extends AbstractMojo {
     @Parameter(defaultValue = "false", property = "skipNative")
     private boolean skip;
 
-    @Parameter(defaultValue = "false", property = "qbicc.llvm.opaque-pointers")
-    private boolean llvmOpaquePointers;
-
     @Parameter
     private List<File> librarySearchPaths;
 
@@ -161,7 +158,6 @@ public class QbiccCompileMojo extends AbstractMojo {
             .setPie(true)
             .setEmitIr(emitLlvmIr)
             .setEmitAssembly(emitAsm)
-            .setOpaquePointers(llvmOpaquePointers)
             .addLlcOptions(llcOptions == null ? List.of() : llcOptions)
         );
         final Map<Diagnostic.Level, List<Diagnostic>> map = new EnumMap<>(Diagnostic.Level.class);
