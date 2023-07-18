@@ -494,6 +494,15 @@ public interface BasicBlockBuilder extends ProgramLocatable {
      */
     Value threadBound(Value threadPtr, Value target);
 
+    /**
+     * A pointer to an instance method-typed invocation target that is called with the given receiver.
+     *
+     * @param boundReceiver the bound receiver (must not be {@code null})
+     * @param methodPointer the invocation target (must not be {@code null})
+     * @return a pointer representing the method with the bound argument
+     */
+    Value receiverBound(Value boundReceiver, Value methodPointer);
+
     // memory
 
     Value auto(Value initializer);

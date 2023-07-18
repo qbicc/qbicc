@@ -263,6 +263,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, ReceiverBound node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Rol node) {
         return visitUnknown(t, node);
     }
@@ -567,6 +571,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, ReadModifyWrite node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, ReceiverBound node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

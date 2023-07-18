@@ -55,6 +55,8 @@ final class Native {
     static final String WORD = className(word.class);
     static final String OBJECT = className(object.class);
     static final String FUNCTION = className(function.class);
+    static final String STATIC_METHOD = className(static_method.class);
+    static final String INSTANCE_METHOD = className(instance_method.class);
     static final String C_NATIVE_INT_NAME = intName(CNative.class);
     static final String PTR_INT_NAME = intName(ptr.class);
 

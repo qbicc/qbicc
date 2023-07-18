@@ -18,6 +18,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Dereference;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.ReceiverBound;
 import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.atomic.GlobalAccessMode;
@@ -26,7 +27,6 @@ import org.qbicc.graph.atomic.WriteAccessMode;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.StructType;
@@ -304,11 +304,17 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return call(rb.methodPointer(), rb.boundReceiver(), arguments);
+        }
         return super.call(rhs(targetPtr), rhs(receiver), rhs(arguments));
     }
 
     @Override
     public Value callNoSideEffects(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return callNoSideEffects(rb.methodPointer(), rb.boundReceiver(), arguments);
+        }
         return super.callNoSideEffects(rhs(targetPtr), rhs(receiver), rhs(arguments));
     }
 
@@ -334,21 +340,33 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     @Override
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return callNoReturn(rb.methodPointer(), rb.boundReceiver(), arguments);
+        }
         return super.callNoReturn(rhs(targetPtr), rhs(receiver), rhs(arguments));
     }
 
     @Override
     public BasicBlock invokeNoReturn(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return invokeNoReturn(rb.methodPointer(), rb.boundReceiver(), arguments, catchLabel, targetArguments);
+        }
         return super.invokeNoReturn(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, rhs(targetArguments));
     }
 
     @Override
     public BasicBlock tailCall(Value targetPtr, Value receiver, List<Value> arguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return tailCall(rb.methodPointer(), rb.boundReceiver(), arguments);
+        }
         return super.tailCall(rhs(targetPtr), rhs(receiver), rhs(arguments));
     }
 
     @Override
     public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        if (targetPtr instanceof ReceiverBound rb) {
+            return invoke(rb.methodPointer(), rb.boundReceiver(), arguments, catchLabel, resumeLabel, targetArguments);
+        }
         return super.invoke(rhs(targetPtr), rhs(receiver), rhs(arguments), catchLabel, resumeLabel, rhs(targetArguments));
     }
 
