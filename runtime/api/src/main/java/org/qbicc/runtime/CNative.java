@@ -388,7 +388,7 @@ public final class CNative {
 
     public static native <T> void copy(ptr<T> dest, ptr<T> src, long cnt);
 
-    public static native <T> void copy_rev(ptr<T> dest, ptr<T> src, long cnt);
+    public static native <T> void copy_overlap(ptr<T> dest, ptr<T> src, long cnt);
 
     public static native <T> void swap(ptr<T> ptr1, ptr<T> ptr2);
 

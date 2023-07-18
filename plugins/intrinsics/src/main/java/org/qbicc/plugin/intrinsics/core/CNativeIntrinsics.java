@@ -14,6 +14,8 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Dereference;
@@ -22,6 +24,7 @@ import org.qbicc.graph.Load;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.MemberOfUnion;
 import org.qbicc.graph.ReadModifyWrite;
+import org.qbicc.graph.Slot;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.WordCastValue;
@@ -42,6 +45,7 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.runtime.CNative;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
@@ -83,6 +87,7 @@ final class CNativeIntrinsics {
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
+        ClassTypeDescriptor intDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$c_int");
         ClassTypeDescriptor functionDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$function");
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
@@ -398,6 +403,12 @@ final class CNativeIntrinsics {
         MethodDescriptor ptrPtrToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, ptrDesc));
         MethodDescriptor ptrPtrLongToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, ptrDesc, BaseTypeDescriptor.J));
 
+        MethodDescriptor memsetDesc = MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDesc, intDesc, sizeTDesc));
+        MethodDescriptor ptrToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc));
+        MethodDescriptor ptrLongToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, BaseTypeDescriptor.J));
+
+        MethodDescriptor ptrObjLongToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(ptrDesc, objDesc, BaseTypeDescriptor.J));
+
         StaticIntrinsic copy1 = (builder, targetPtr, arguments) -> {
             ValueType destValType = arguments.get(0).getPointeeType();
             ValueType srcValType = arguments.get(1).getPointeeType();
@@ -424,8 +435,109 @@ final class CNativeIntrinsics {
             return builder.emptyVoid();
         };
 
+        StaticIntrinsic copy3 = (builder, targetPtr, arguments) -> {
+            ValueType destValType = arguments.get(0).getPointeeType();
+            ValueType srcValType = arguments.get(1).getPointeeType();
+            if (destValType.getSize() != srcValType.getSize()) {
+                ctxt.error(builder.getLocation(), "Attempt to copy objects of different sizes (destination size is %d bytes, source size is %d bytes)", destValType.getSize(), srcValType.getSize());
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+            // for now, just memmove; todo: Copy node
+            Value memmove = builder.resolveStaticMethod(stdcStringDesc, "memmove", memcpyDesc);
+            builder.call(memmove, List.of(arguments.get(0), arguments.get(1), builder.multiply(arguments.get(2), ctxt.getLiteralFactory().literalOf(destValType.getSize()))));
+            return builder.emptyVoid();
+        };
+
         intrinsics.registerIntrinsic(cNativeDesc, "copy", ptrPtrToVoid, copy1);
         intrinsics.registerIntrinsic(cNativeDesc, "copy", ptrPtrLongToVoid, copy2);
+        intrinsics.registerIntrinsic(cNativeDesc, "copy_overlap", ptrPtrLongToVoid, copy3);
+
+        StaticIntrinsic clear1 = (builder, targetPtr, arguments) -> {
+            Value ptr = arguments.get(0);
+            ValueType obj = ptr.getPointeeType();
+            LiteralFactory lf = builder.getLiteralFactory();
+            if (obj instanceof WordType || obj.getSize() <= 8) {
+                // just store a zero
+                builder.store(ptr, lf.zeroInitializerLiteralOfType(obj));
+            } else {
+                // for now, just memset; todo: Clear node
+                Value memset = builder.resolveStaticMethod(stdcStringDesc, "memset", memsetDesc);
+                Value zeroInt = builder.checkcast(lf.literalOf(0), intDesc);
+                Value size = builder.checkcast(lf.literalOf(obj.getSize()), sizeTDesc);
+                builder.call(memset, List.of(ptr, zeroInt, size));
+            }
+            return builder.emptyVoid();
+        };
+
+        StaticIntrinsic clear2 = (builder, targetPtr, arguments) -> {
+            Value ptr = arguments.get(0);
+            Value count = arguments.get(1);
+            ValueType obj = ptr.getPointeeType();
+            LiteralFactory lf = builder.getLiteralFactory();
+            // for now, just memset; todo: Clear node
+            Value memset = builder.resolveStaticMethod(stdcStringDesc, "memset", memsetDesc);
+            Value zeroInt = builder.checkcast(lf.literalOf(0), intDesc);
+            Value size = builder.checkcast(builder.multiply(count, lf.literalOf(obj.getSize())), sizeTDesc);
+            builder.call(memset, List.of(ptr, zeroInt, size));
+            return builder.emptyVoid();
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "clear", ptrToVoid, clear1);
+        intrinsics.registerIntrinsic(cNativeDesc, "clear", ptrLongToVoid, clear2);
+
+        StaticIntrinsic fill = (builder, targetPtr, arguments) -> {
+            LiteralFactory lf = builder.getLiteralFactory();
+            Value ptr = arguments.get(0);
+            Value value = arguments.get(1);
+            Value count = arguments.get(2);
+            if (value instanceof Literal lit && lit.isZero()) {
+                // clear, actually
+                Value clear = builder.resolveStaticMethod(cNativeDesc, "clear", ptrLongToVoid);
+                return builder.call(clear, List.of(ptr, count));
+            } else if (count instanceof Literal lit) {
+                if (lit.isZero()) {
+                    // nothing
+                    return builder.emptyVoid();
+                } else if (lit.isDefEq(lf.literalOf(lit.getType(IntegerType.class), 1))) {
+                    // just a store actually
+                    builder.store(ptr, value);
+                    return builder.emptyVoid();
+                }
+            }
+            // no libc helper; we have to do it ourselves
+            TypeSystem ts = builder.getTypeSystem();
+            BlockLabel loop = new BlockLabel();
+            BlockLabel end = new BlockLabel();
+            builder.if_(builder.isGt(count, lf.literalOf(0)), loop, end, Map.of(Slot.temp(0), lf.literalOf(0)));
+            // loop body
+            builder.begin(loop, nb -> {
+                BlockParameter idx = nb.addParam(nb.getEntryLabel(), Slot.temp(0), ts.getSignedInteger32Type());
+                nb.store(nb.offsetPointer(ptr, idx), value);
+                nb.if_(nb.isLt(idx, count), loop, end, Map.of(Slot.temp(0), nb.add(idx, lf.literalOf(1))));
+            });
+            builder.begin(end);
+            return builder.emptyVoid();
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "fill", ptrObjLongToVoid, fill);
+
+        StaticIntrinsic swap = (builder, targetPtr, arguments) -> {
+            Value leftPtr = arguments.get(0);
+            ValueType leftValType = leftPtr.getPointeeType();
+            Value rightPtr = arguments.get(1);
+            ValueType rightValType = rightPtr.getPointeeType();
+            if (leftValType.getSize() != rightValType.getSize()) {
+                ctxt.error(builder.getLocation(), "Attempt to swap objects of different sizes (left size is %d bytes, right size is %d bytes)", leftValType.getSize(), rightValType.getSize());
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+            Value left = builder.load(leftPtr);
+            Value right = builder.load(rightPtr);
+            builder.store(leftPtr, right);
+            builder.store(rightPtr, left);
+            return builder.emptyVoid();
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "swap", ptrPtrToVoid, swap);
     }
 
     private static void registerNObjectIntrinsics(final CompilationContext ctxt) {
