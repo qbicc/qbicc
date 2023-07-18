@@ -14,6 +14,5 @@ public interface LLVMCompiler {
 
     enum Flag {
         PIE,
-        OPAQUE_POINTERS,
     }
 }

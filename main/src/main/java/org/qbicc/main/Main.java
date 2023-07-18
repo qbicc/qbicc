@@ -853,8 +853,7 @@ public class Main implements Callable<DiagnosticContext> {
                 .setPlatform(platform)
                 .setReferenceStrategy(platform.isWasm() ? ReferenceStrategy.POINTER : ReferenceStrategy.POINTER_AS1)
                 .addLlcOptions(optionsProcessor.llvmArgs.llcOptions)
-                .setStatepointEnabled(! platform.isWasm())
-                .setOpaquePointers(optionsProcessor.llvmArgs.opaquePointers))
+                .setStatepointEnabled(! platform.isWasm()))
             .setPlatform(platform)
             .addLibrarySearchPaths(splitPathString(System.getenv("LIBRARY_PATH")))
             .addLibrarySearchPaths(optionsProcessor.libSearchPaths);
@@ -1045,8 +1044,6 @@ public class Main implements Callable<DiagnosticContext> {
             boolean emitIr;
             @CommandLine.Option(names = "--llvm-llc-option", split = ",", description = "Pass options to the LLVM llc command")
             private List<String> llcOptions = new ArrayList<String>();
-            @CommandLine.Option(names = "--llvm-opaque-pointers", negatable = true, defaultValue = "false", description = "Enable LLVM opaque pointers")
-            boolean opaquePointers;
         }
 
         public CmdResult process(String[] args) {

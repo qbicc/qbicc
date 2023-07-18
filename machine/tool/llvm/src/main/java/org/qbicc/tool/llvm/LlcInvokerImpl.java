@@ -11,7 +11,6 @@ import org.qbicc.machine.arch.Platform;
  *
  */
 final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
-    private boolean opaquePointers = false;
     private LlcOptLevel optLevel = LlcOptLevel.O2;
     private OutputFormat outputFormat = OutputFormat.OBJ;
     private RelocationModel relocationModel = RelocationModel.Static;
@@ -49,30 +48,8 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
         return relocationModel;
     }
 
-    public void setOpaquePointers(final boolean opaquePointers) {
-        this.opaquePointers = opaquePointers;
-    }
-
     void addArguments(final List<String> cmd) {
         LlvmToolChain tool = getTool();
-        String llvmVersion = tool.getVersion();
-        if (opaquePointers) {
-            if (VersionScheme.BASIC.compare(llvmVersion, "15") >= 0) {
-                // enabled by default on 15 or later
-            } else if (VersionScheme.BASIC.compare(llvmVersion, "14") >= 0) {
-                cmd.add("--opaque-pointers");
-            } else {
-                // 13 or later
-                cmd.add("--force-opaque-pointers");
-            }
-        } else {
-            if (VersionScheme.BASIC.compare(llvmVersion, "16") >= 0) {
-                throw new IllegalArgumentException("Opaque pointers cannot be disabled on LLVM 16 or later");
-            } else if (VersionScheme.BASIC.compare(llvmVersion, "15") >= 0) {
-                // explicitly disable
-                cmd.add("--opaque-pointers=0");
-            }
-        }
         Platform platform = tool.getPlatform();
         cmd.add("-mtriple=" + platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
         cmd.add("--relocation-model=" + relocationModel.value);

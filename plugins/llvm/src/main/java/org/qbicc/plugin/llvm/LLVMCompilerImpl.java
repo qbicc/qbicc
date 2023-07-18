@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
@@ -162,7 +160,6 @@ public class LLVMCompilerImpl implements LLVMCompiler {
         llcInvoker.setRelocationModel(config.isPie() ? RelocationModel.Pic : RelocationModel.Static);
         llcInvoker.setOptions(config.getLlcOptions());
         llcInvoker.setOutputFormat(OutputFormat.ASM);
-        llcInvoker.setOpaquePointers(config.isOpaquePointers());
         return llcInvoker;
     }
 }
