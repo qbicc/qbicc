@@ -50,11 +50,13 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeIdType;
 import org.qbicc.type.UnsignedIntegerType;
@@ -89,6 +91,8 @@ final class CNativeIntrinsics {
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
         ClassTypeDescriptor intDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$c_int");
         ClassTypeDescriptor functionDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$function");
+        ClassTypeDescriptor staticMethodDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$static_method");
+        ClassTypeDescriptor instanceMethodDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$instance_method");
         ClassTypeDescriptor wordDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$word");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
@@ -136,6 +140,43 @@ final class CNativeIntrinsics {
                 return d.getPointer();
             } else {
                 builder.getContext().error(builder.getLocation(), "Invalid receiver for `function.asInvokable()`; expected a dereferenced function pointer but got %s", instance);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
+
+        intrinsics.registerIntrinsic(staticMethodDesc, "of", (builder, targetPtr, arguments) -> {
+            Value value = arguments.get(0);
+            if (value instanceof Dereference d && d.getPointer().getPointeeType() instanceof StaticMethodType) {
+                return value;
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid argument to `static_method.of()`; expected a dereferenced static method pointer but got %s", value);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
+        intrinsics.registerIntrinsic(staticMethodDesc, "asInvokable", (builder, instance, targetPtr, arguments) -> {
+            if (instance instanceof Dereference d && d.getPointer().getPointeeType() instanceof StaticMethodType) {
+                return d.getPointer();
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid receiver for `static_method.asInvokable()`; expected a dereferenced static method pointer but got %s", instance);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
+
+        intrinsics.registerIntrinsic(instanceMethodDesc, "of", (builder, targetPtr, arguments) -> {
+            Value value = arguments.get(0);
+            Value receiver = arguments.get(1);
+            if (value instanceof Dereference d && d.getPointer().getPointeeType() instanceof InstanceMethodType) {
+                return builder.receiverBound(d.getPointer(), receiver);
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid argument to `instance_method.of()`; expected a dereferenced instance method pointer but got %s", value);
+                throw new BlockEarlyTermination(builder.unreachable());
+            }
+        });
+        intrinsics.registerIntrinsic(instanceMethodDesc, "asInvokable", (builder, instance, targetPtr, arguments) -> {
+            if (instance instanceof Dereference d && d.getPointer().getPointeeType() instanceof InstanceMethodType) {
+                return d.getPointer();
+            } else {
+                builder.getContext().error(builder.getLocation(), "Invalid receiver for `instance_method.asInvokable()`; expected a dereferenced instance method pointer but got %s", instance);
                 throw new BlockEarlyTermination(builder.unreachable());
             }
         });

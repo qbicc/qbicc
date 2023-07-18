@@ -21,6 +21,8 @@ import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.linker.Linker;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.TypeSystem;
@@ -470,7 +472,7 @@ final class NativeInfo {
         return nativeTypes.containsKey(enclosingType);
     }
 
-    public ValueType getTypeOfFunctionalInterface(final DefinedTypeDefinition definedType, final ClassTypeSignature sig) {
+    public FunctionType getInterfaceAsFunctionType(final DefinedTypeDefinition definedType) {
         InstanceMethodElement method = getFunctionalInterfaceMethod(definedType);
         if (method == null) {
             ctxt.error("No functional interface method on \"%s\"", definedType);
@@ -478,6 +480,26 @@ final class NativeInfo {
         }
         // the method type is the invocation type
         return ctxt.getTypeSystem().getFunctionType(method.getType().getReturnType(), method.getType().getParameterTypes());
+    }
+
+    public StaticMethodType getInterfaceAsStaticMethodType(final DefinedTypeDefinition definedType) {
+        InstanceMethodElement method = getFunctionalInterfaceMethod(definedType);
+        if (method == null) {
+            ctxt.error("No functional interface method on \"%s\"", definedType);
+            return ctxt.getTypeSystem().getStaticMethodType(ctxt.getTypeSystem().getVoidType(), List.of());
+        }
+        // the method type is the invocation type
+        return ctxt.getTypeSystem().getStaticMethodType(method.getType().getReturnType(), method.getType().getParameterTypes());
+    }
+
+    public InstanceMethodType getInterfaceAsInstanceMethodType(final DefinedTypeDefinition definedType, final ValueType receiverType) {
+        InstanceMethodElement method = getFunctionalInterfaceMethod(definedType);
+        if (method == null) {
+            ctxt.error("No functional interface method on \"%s\"", definedType);
+            return ctxt.getTypeSystem().getInstanceMethodType(ctxt.getTypeSystem().getVoidType(), ctxt.getTypeSystem().getVoidType(), List.of());
+        }
+        // the method type is the invocation type
+        return ctxt.getTypeSystem().getInstanceMethodType(receiverType, method.getType().getReturnType(), method.getType().getParameterTypes());
     }
 
     public InstanceMethodElement getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {

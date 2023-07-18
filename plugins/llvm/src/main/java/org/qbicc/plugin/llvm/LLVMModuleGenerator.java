@@ -86,7 +86,7 @@ final class LLVMModuleGenerator {
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
         module.sourceFileName(irFile.toString());
-        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, module, context, config);
+        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, programModule, module, context, config);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
 
         if (picLevel != 0) {

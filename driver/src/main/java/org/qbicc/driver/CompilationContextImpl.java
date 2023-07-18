@@ -409,7 +409,7 @@ final class CompilationContextImpl implements CompilationContext {
             ModuleSection implicit = getImplicitSection(element);
             InvokableType elementType = element.getType();
             FunctionType functionType = getFunctionTypeForElement(element);
-            return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
+            return implicit.addFunction(element, getExactNameForElement(element), functionType);
         });
     }
 
@@ -512,7 +512,8 @@ final class CompilationContextImpl implements CompilationContext {
         return b;
     }
 
-    private String getExactNameForElement(final ExecutableElement element, final InvokableType type) {
+    @Override
+    public String getExactNameForElement(final ExecutableElement element) {
         // todo: encode class loader ID
         // todo: cache :-(
         DefinedTypeDefinition enclosingType = element.getEnclosingType();

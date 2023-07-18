@@ -1157,7 +1157,77 @@ public final class CNative {
          */
         public native F asInvokable();
 
+        /**
+         * Get the given method handle as a function object.
+         *
+         * @param invokable the method handle literal (must not be {@code null})
+         * @return the function object (not {@code null})
+         * @param <F> the function invokable interface type
+         */
         public static native <F> function<F> of(F invokable);
+    }
+
+    /**
+     * A static method object.
+     * Static method objects are always considered incomplete.
+     * If the static method has an invokable interface, that interface can be used to dereference the static method pointer.
+     * The type of the invokable must be statically known in order for the compiler to generate the appropriate prologue.
+     *
+     * @param <M> the static method invokable interface type
+     */
+    @incomplete
+    public static final class static_method<M> extends object {
+        static_method() {
+        }
+
+        /**
+         * Get a reference which can be used to invoke the function being pointed to by this object.
+         *
+         * @return the invokable reference
+         */
+        public native M asInvokable();
+
+        /**
+         * Get the given method handle as a static method object.
+         *
+         * @param invokable the method handle literal (must not be {@code null})
+         * @return the static method object (not {@code null})
+         * @param <M> the static method invokable interface type
+         */
+        public static native <M> static_method<M> of(M invokable);
+    }
+
+    /**
+     * An instance method object.
+     * Instance method objects are always considered incomplete.
+     * If the instance method has an invokable interface, that interface can be used to dereference the instance method pointer.
+     * The type of the invokable must be statically known in order for the compiler to generate the appropriate prologue.
+     *
+     * @param <M> the instance method invokable interface type, which does not include the receiver
+     * @param <R> the instance method receiver type
+     */
+    @incomplete
+    public static final class instance_method<M, R> extends object {
+        instance_method() {
+        }
+
+        /**
+         * Get a reference which can be used to invoke the function being pointed to by this object.
+         *
+         * @param receiver the receiver object for the invocation
+         * @return the invokable reference
+         */
+        public native M asInvokable(R receiver);
+
+        /**
+         * Get the given method handle as an instance method object.
+         *
+         * @param invokable the method handle literal (must not be {@code null})
+         * @return the instance method object (not {@code null})
+         * @param <M> the instance method invokable interface type
+         * @param <R> the instance method receiver type
+         */
+        public static native <M, R> instance_method<M, R> of(M invokable);
     }
 
     // floating point

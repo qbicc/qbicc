@@ -817,6 +817,10 @@ public interface Node extends ProgramLocatable {
                 return copier.getBlockBuilder().readModifyWrite(copier.copyValue(node.getPointer()), node.getOp(), copier.copyValue(node.getUpdateValue()), node.getReadAccessMode(), node.getWriteAccessMode());
             }
 
+            public Value visit(final Copier copier, final ReceiverBound node) {
+                return copier.getBlockBuilder().receiverBound(copier.copyValue(node.boundReceiver()), copier.copyValue(node.methodPointer()));
+            }
+
             public Value visit(final Copier param, final Rol node) {
                 return param.getBlockBuilder().rol(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

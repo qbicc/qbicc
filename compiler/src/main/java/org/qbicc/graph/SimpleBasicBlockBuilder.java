@@ -540,6 +540,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new ThreadBound(this, threadPtr, target));
     }
 
+    @Override
+    public Value receiverBound(Value boundReceiver, Value methodPointer) {
+        return unique(new ReceiverBound(this, boundReceiver, methodPointer));
+    }
+
     public Value resolveStaticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         throw new IllegalStateException("Static field of unresolved type");
     }

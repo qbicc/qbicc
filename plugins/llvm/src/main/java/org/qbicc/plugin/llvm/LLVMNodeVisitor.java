@@ -100,6 +100,7 @@ import org.qbicc.graph.literal.EncodeReferenceLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.machine.llvm.AsmFlag;
+import org.qbicc.machine.llvm.CallingConvention;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.FloatCondition;
 import org.qbicc.machine.llvm.FunctionAttributes;
@@ -131,8 +132,10 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -145,6 +148,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -196,10 +200,23 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     // begin
 
     public void execute() {
-        FunctionType funcType = functionObj.getValueType();
+        InvokableType funcType = functionObj.getValueType();
         int cnt = methodBody.getParameterCount();
         if (cnt != funcType.getParameterCount()) {
             throw new IllegalStateException("Mismatch between method body and function type parameter counts");
+        }
+        if (funcType instanceof MethodType mt) {
+            func.callingConvention(CallingConvention.FAST);
+            // thread
+            Slot slot = Slot.thread();
+            org.qbicc.machine.llvm.Function.Parameter param = func.param(map(entryBlock.getBlockParameter(slot).getType())).name(slot.toString());
+            entryParameters.put(slot, param.asValue());
+            if (mt instanceof InstanceMethodType imt) {
+                // receiver
+                slot = Slot.this_();
+                param = func.param(map(imt.getReceiverType())).name(slot.toString());
+                entryParameters.put(slot, param.asValue());
+            }
         }
         MethodBody methodBody = functionObj.getBody();
         for (int i = 0; i < cnt; i ++) {
@@ -1240,6 +1257,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         HIDDEN_NO_LIVE(false, "Caller is hidden and no live values"),
         VARIADIC(false, "Statepoint forbidden (variadic)"),
         EXTERN(false, "Statepoint forbidden (external function)"),
+        FUNCTION(false, "Statepoint forbidden (contained within a function)"),
         ASM(false, "Statepoint forbidden (inline assembly)"),
         VISIBLE_STACK(true, "Visible to stack walk (no live GC values)"),
         VISIBLE_STACK_LIVE(true, "Visible to stack walk, live GC values"),
@@ -1268,6 +1286,9 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         final boolean callerIsHidden = origElement != null && origElement.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN);
         if (! moduleVisitor.config.isStatepointEnabled()) {
             return StatepointReason.DISABLED;
+        } else if (origElement instanceof FunctionElement) {
+            // it's not a method; no statepoints allowed from functions
+            return StatepointReason.FUNCTION;
         } else if (callerIsHidden && functionObj.isNoSafePoints()) {
             // caller is hidden, caller is noSafePoints, so no stack walker will see this call and no safepoint is possible
             return StatepointReason.HIDDEN_NO_SP_CALLER;
@@ -1295,16 +1316,19 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     private Call makeStatepointCall(InvocationNode node, StatepointReason statepointReason, BiFunction<LLValue, LLValue, Call> spCallMaker) {
         assert statepointReason.isNeeded();
         statepointNodes.add(node);
-        FunctionType functionType = (FunctionType) node.getCalleeType();
+        InvokableType invokableType = node.getCalleeType();
         List<Value> arguments = node.getArguments();
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
         Value target = node.getTarget();
         LLValue llTarget = map(target);
         // wrap call with statepoint
-        LLValue statepointDecl = moduleVisitor.generateStatepointDecl(functionType);
-        LLValue statepointType = moduleVisitor.mapStatepointType(functionType);
+        LLValue statepointDecl = moduleVisitor.generateStatepointDecl(invokableType);
+        LLValue statepointType = moduleVisitor.mapStatepointType(invokableType);
         Call spCall = spCallMaker.apply(statepointType, statepointDecl);
+        if (invokableType instanceof MethodType) {
+            spCall.cconv(CallingConvention.FAST);
+        }
         spCall.comment(statepointReason.getReason());
         // record the statepoint so that we can correlate the stack map info back to nodes
         int statepointId = moduleVisitor.getNextStatePointId(node);
@@ -1312,8 +1336,8 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         invocationNodes.add(node);
         spCall.arg(i64, intConstant(statepointId));
         spCall.arg(i32, ZERO);
-        final HasArguments.Argument argument = spCall.arg(map(functionType.getPointer()), llTarget);
-        argument.attribute(ParameterAttributes.elementtype(map(functionType)));
+        final HasArguments.Argument argument = spCall.arg(map(invokableType.getPointer()), llTarget);
+        argument.attribute(ParameterAttributes.elementtype(map(invokableType)));
         spCall.arg(i32, intConstant(arguments.size()));
         // this is set to 0 instead of 1 because many platforms don't allow GC transitions, but we can still emit the info
         spCall.arg(i32, ZERO);
@@ -1326,12 +1350,15 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     private Call makeNonStatepointCall(InvocationNode node, StatepointReason statepointReason, BiFunction<LLValue, LLValue, Call> callMaker) {
         Value target = node.getTarget();
         LLValue llTarget = map(target);
-        FunctionType functionType = (FunctionType) node.getCalleeType();
+        InvokableType invokableType = node.getCalleeType();
         // no live values, or a no-safepoints method
-        Call call = callMaker.apply(map(functionType), llTarget);
+        Call call = callMaker.apply(map(invokableType), llTarget);
+        if (invokableType instanceof MethodType) {
+            call.cconv(CallingConvention.FAST);
+        }
         call.comment(statepointReason.getReason());
         setCallArguments(call, node.getArguments());
-        setCallReturnValue(call, functionType);
+        setCallReturnValue(call, invokableType.getReturnType());
         return call;
     }
 
@@ -1395,16 +1422,15 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         }
     }
 
-    private void setCallReturnValue(final Call call, final FunctionType functionType) {
-        ValueType retType = functionType.getReturnType();
+    private void setCallReturnValue(final Call call, final ValueType returnType) {
         Call.Returns ret = call.returns();
-        if (retType instanceof IntegerType && ((IntegerType) retType).getMinBits() < 32) {
-            if (retType instanceof SignedIntegerType) {
+        if (returnType instanceof IntegerType it && it.getMinBits() < 32) {
+            if (returnType instanceof SignedIntegerType) {
                 ret.attribute(ParameterAttributes.signext);
             } else {
                 ret.attribute(ParameterAttributes.zeroext);
             }
-        } else if (retType instanceof BooleanType) {
+        } else if (returnType instanceof BooleanType) {
             ret.attribute(ParameterAttributes.zeroext);
         }
     }
