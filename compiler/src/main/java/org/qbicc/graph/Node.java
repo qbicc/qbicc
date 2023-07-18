@@ -158,6 +158,7 @@ public interface Node extends ProgramLocatable {
             if (copiedBlocks.putIfAbsent(original, copy) != null) {
                 throw new IllegalStateException();
             }
+            blockQueue.add(original);
         }
 
         public void copyScheduledNodes(BasicBlock block) {

@@ -553,7 +553,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                             if (optInlining) {
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::createIfNeeded);
                             }
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);

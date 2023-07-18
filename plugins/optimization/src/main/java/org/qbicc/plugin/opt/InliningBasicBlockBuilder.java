@@ -1,64 +1,43 @@
 package org.qbicc.plugin.opt;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.eclipse.collections.api.factory.Maps;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.Add;
-import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
-import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
-import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.Div;
-import org.qbicc.graph.EncodeReference;
-import org.qbicc.graph.Extend;
-import org.qbicc.graph.If;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
-import org.qbicc.graph.IsEq;
-import org.qbicc.graph.IsGe;
-import org.qbicc.graph.IsGt;
-import org.qbicc.graph.IsLe;
-import org.qbicc.graph.IsLt;
-import org.qbicc.graph.IsNe;
-import org.qbicc.graph.Mod;
-import org.qbicc.graph.Multiply;
-import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.Or;
 import org.qbicc.graph.Return;
-import org.qbicc.graph.Rol;
-import org.qbicc.graph.Ror;
-import org.qbicc.graph.Shl;
-import org.qbicc.graph.Shr;
 import org.qbicc.graph.Slot;
-import org.qbicc.graph.Sub;
-import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
+import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
-import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
-import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Declaration;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  * The inliner.  Every method call is speculatively inlined unless it is specifically annotated otherwise.
@@ -66,12 +45,22 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     // todo: this is arbitrary
-    private final float costThreshold = 80.0f;
-    private float cost;
+    private final float costThreshold = 50.0f;
+    private final int depthThreshold = 10;
+    private int depth = 0;
 
-    public InliningBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+    private InliningBasicBlockBuilder(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = getContext();
+    }
+
+    public static BasicBlockBuilder createIfNeeded(final FactoryContext ctxt, final BasicBlockBuilder delegate) {
+        if (delegate.getRootElement() instanceof FunctionElement) {
+            // do not inline into functions
+            return delegate;
+        } else {
+            return new InliningBasicBlockBuilder(ctxt, delegate);
+        }
     }
 
     @Override
@@ -82,7 +71,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, Slot.result(), val), Map.of());
             if (inlined != null) {
                 begin(resumeLabel);
-                return addParam(resumeLabel, Slot.result(), toInline.getType().getReturnType());
+                ValueType returnType = toInline.getType().getReturnType();
+                return returnType instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), returnType);
             }
         }
         return super.call(targetPtr, receiver, arguments);
@@ -96,7 +86,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, Map.of(Slot.result(), val)), Map.of());
             if (inlined != null) {
                 begin(resumeLabel);
-                return addParam(resumeLabel, Slot.result(), toInline.getType().getReturnType());
+                ValueType returnType = toInline.getType().getReturnType();
+                return returnType instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), returnType);
             }
         }
         return super.callNoSideEffects(targetPtr, receiver, arguments);
@@ -150,7 +141,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (toInline != null) {
             BasicBlock inlined = doInline(receiver, toInline, arguments, catchLabel, val -> goto_(resumeLabel, addArg(targetArguments, Slot.result(), val)), targetArguments);
             if (inlined != null) {
-                return addParam(resumeLabel, Slot.result(), toInline.getType().getReturnType());
+                ValueType returnType = toInline.getType().getReturnType();
+                return returnType instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), returnType);
             }
         }
         return super.invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
@@ -159,7 +151,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private ExecutableElement getInlinedElement(final Value target) {
         if (target instanceof ExecutableLiteral el) {
             ExecutableElement element = el.getExecutable();
-            if (element != null && element.hasNoModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
+            if (element instanceof MethodElement && element.hasNoModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
                 return element;
             }
         }
@@ -168,36 +160,80 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private BasicBlock doInline(Value receiver, ExecutableElement element, List<Value> arguments, BlockLabel catchLabel, Function<Value, BasicBlock> onReturn, Map<Slot, Value> targetArguments) {
         MethodBody body = element.getPreviousMethodBody();
-        if (body != null) {
-            float savedCost = this.cost;
+        if (body != null && depth < depthThreshold) {
             // todo: force alwaysInline to true if this is the only possible invocation of the method
-            boolean alwaysInline = element.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
-            BlockLabel inlined = new BlockLabel();
-            try {
-                begin(inlined, bbb -> {
-                    try {
-                        BlockEntry blockEntry = bbb.getBlockEntry();
-                        setCallSite(blockEntry);
-                        BasicBlock origEntryBlock = body.getEntryBlock();
-                        Node.Copier copier = new Node.Copier(origEntryBlock, getFirstBuilder(), ctxt, (ctxt, visitor) ->
-                            new Visitor(visitor, arguments, receiver, onReturn, catchLabel, inlined, alwaysInline, targetArguments));
-                        copier.copyBlockAs(origEntryBlock, inlined);
-                        copier.copyScheduledNodes(origEntryBlock);
-                    } catch (BlockEarlyTermination ignored) {
-                    }
-                    // inline successful, now copy all declarations known at this point
-                    copyDeclarations(element);
-                });
-            } catch (Cancel ignored) {
-                // call site was not inlined; restore original inlining cost
-                this.cost = savedCost;
+            boolean inline = element.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
+            if (! inline) {
+                // estimate inlining cost
+                inline = estimateInlineCost(body) < costThreshold;
+            }
+            if (! inline) {
+                // no inlining today
                 return null;
             }
-            // goto the inlined block
-            return goto_(inlined, Map.of());
+            // at this point, we are committed to inlining this call
+            depth ++;
+            try {
+                BlockLabel inlinedMethodEntry = new BlockLabel();
+                BasicBlock inlinedBlock = goto_(inlinedMethodEntry, buildArguments(receiver, arguments));
+                Node oldCallSite = setCallSite(inlinedBlock.getTerminator());
+                try {
+                    Node.Copier copier = new Node.Copier(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
+                        new Visitor(visitor, onReturn, catchLabel, targetArguments));
+                    copier.copyBlockAs(body.getEntryBlock(), inlinedMethodEntry);
+                    copier.copyProgram();
+                } finally {
+                    setCallSite(oldCallSite);
+                }
+                // inline successful, now copy all declarations known at this point
+                copyDeclarations(element);
+                // goto the inlined block
+                return inlinedBlock;
+            } finally {
+                depth --;
+            }
         } else {
             return null;
         }
+    }
+
+    private Map<Slot, Value> buildArguments(final Value receiver, final List<Value> arguments) {
+        HashMap<Slot, Value> map = new HashMap<>(arguments.size() + 1);
+        if (! (receiver.getType() instanceof VoidType)) {
+            map.put(Slot.this_(), receiver);
+        }
+        for (int i = 0; i < arguments.size(); i ++) {
+            map.put(Slot.funcParam(i), arguments.get(i));
+        }
+        return Map.copyOf(map);
+    }
+
+    private int estimateInlineCost(MethodBody body) {
+        // for now, just inline based on method size to have *something*
+        BasicBlock entryBlock = body.getEntryBlock();
+        HashSet<BasicBlock> visited = new HashSet<>();
+        return estimateInlineCost(entryBlock, visited, 0);
+    }
+
+    private int estimateInlineCost(final BasicBlock block, final HashSet<BasicBlock> visited, int costSoFar) {
+        if (visited.add(block)) {
+            // todo: exclude block params, gotos, bitcasts, etc.
+            costSoFar += block.getInstructions().size();
+            if (costSoFar >= costThreshold) {
+                // cancel
+                return Integer.MAX_VALUE;
+            }
+            Terminator t = block.getTerminator();
+            int cnt = t.getSuccessorCount();
+            for (int i = 0; i < cnt; i ++) {
+                costSoFar = estimateInlineCost(t.getSuccessor(i), visited, costSoFar);
+                if (costSoFar >= costThreshold) {
+                    // cancel
+                    return Integer.MAX_VALUE;
+                }
+            }
+        }
+        return costSoFar;
     }
 
     private void copyDeclarations(final ExecutableElement target) {
@@ -212,35 +248,25 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    /**
-     * This is thrown to escape the inliner if the speculation failed.
-     */
-    @SuppressWarnings("serial")
-    static final class Cancel extends RuntimeException {
-        Cancel() {
-            super(null, null, false, false);
-        }
-    }
-
     final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
         private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
-        private final List<Value> arguments;
-        private final Value this_;
         private final Function<Value, BasicBlock> onReturn;
         private final BlockLabel catchLabel;
-        private final BlockLabel entryBlock;
-        private final boolean alwaysInline;
-        private final Map<Slot, Value> targetArguments;
+        private final Map<Slot, Value> catchArguments;
 
-        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final List<Value> arguments, final Value this_, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, BlockLabel entryBlock, final boolean alwaysInline, Map<Slot, Value> targetArguments) {
+        /**
+         * The visitor which intercepts nested calls and returns.
+         *
+         * @param delegate the next visitor (not {@code null})
+         * @param onReturn the on-return action which receives the return value (not {@code null})
+         * @param catchLabel the label to go to on exception, if any (may be {@code null})
+         * @param catchArguments the arguments from outside to pass to the {@code catchLabel}, if any (may be empty) (not {@code null})
+         */
+        Visitor(final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate, final Function<Value, BasicBlock> onReturn, final BlockLabel catchLabel, Map<Slot, Value> catchArguments) {
             this.delegate = delegate;
-            this.arguments = arguments;
-            this.this_ = this_;
             this.onReturn = onReturn;
             this.catchLabel = catchLabel;
-            this.entryBlock = entryBlock;
-            this.alwaysInline = alwaysInline;
-            this.targetArguments = targetArguments;
+            this.catchArguments = catchArguments;
         }
 
         public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
@@ -258,168 +284,17 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
 
-        @Override
-        public Value visit(final Node.Copier copier, final BlockParameter node) {
-            if (node.getPinnedBlockLabel().equals(entryBlock)) {
-                Slot slot = node.getSlot();
-                if (slot == Slot.this_()) {
-                    return this_;
-                } else if (slot.getName().equals("p")) {
-                    return arguments.get(slot.getIndex());
-                }
-            }
-            return delegate.visit(copier, node);
-        }
-
-        // Operations with a cost
-
-        // Simple ops
-
-        public Value visit(final Node.Copier param, final Add node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final And node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Div node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Mod node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Multiply node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Neg node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Or node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Sub node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Xor node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsEq node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsGe node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsGt node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsLe node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsLt node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final IsNe node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final BitCast node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final DecodeReference node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final EncodeReference node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Extend node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Truncate node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Rol node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Ror node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Shl node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final Shr node) {
-            addCost(param, 1);
-            return delegate.visit(param, node);
-        }
-
-        // terminators
-
-        public BasicBlock visit(final Node.Copier param, final If node) {
-            addCost(param, 4);
-            return delegate.visit(param, node);
-        }
-
-        public BasicBlock visit(final Node.Copier param, final Switch node) {
-            addCost(param, 2 * (node.getNumberOfValues() + 1));
-            return delegate.visit(param, node);
-        }
-
         // invocations
 
         @Override
         public Value visit(Node.Copier param, Call node) {
-            // todo: this is totally arbitrary
-            addCost(param, 10);
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
                 BlockLabel resume = new BlockLabel();
-                Value result = invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, targetArguments);
+                invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return result;
+                return addParam(resume, Slot.result(), node.getReturnType());
             } else {
                 return delegate.visit(param, node);
             }
@@ -427,14 +302,12 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         @Override
         public Value visit(Node.Copier param, CallNoSideEffects node) {
-            // todo: this is totally arbitrary
-            addCost(param, 10);
             if (catchLabel != null) {
                 // transform to invoke
                 BlockLabel resume = new BlockLabel();
-                Value result = invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, targetArguments);
+                invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return result;
+                return addParam(resume, Slot.result(), node.getReturnType());
             } else {
                 return delegate.visit(param, node);
             }
@@ -442,12 +315,10 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         @Override
         public BasicBlock visit(Node.Copier param, CallNoReturn node) {
-            // todo: this is totally arbitrary
-            addCost(param, 10);
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
-                return invokeNoReturn(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, targetArguments);
+                return invokeNoReturn(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, catchArguments);
             } else {
                 return delegate.visit(param, node);
             }
@@ -455,15 +326,13 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         @Override
         public BasicBlock visit(Node.Copier param, TailCall node) {
-            // todo: this is totally arbitrary
-            addCost(param, 10);
             if (catchLabel != null) {
                 // transform to invoke
                 param.copyNode(node.getDependency());
                 BlockLabel resume = new BlockLabel();
-                Value result = invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, targetArguments);
+                invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return return_(result);
+                return return_(addParam(resume, Slot.result(), node.getCalleeType().getReturnType()));
             } else {
                 return delegate.visit(param, node);
             }
@@ -474,7 +343,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             if (catchLabel != null) {
                 // transform to goto
                 copier.copyNode(node.getDependency());
-                return goto_(catchLabel, addArg(targetArguments, Slot.thrown(), copier.copyValue(node.getThrownValue())));
+                return goto_(catchLabel, addArg(catchArguments, Slot.thrown(), copier.copyValue(node.getThrownValue())));
             } else {
                 return delegate.visit(copier, node);
             }
@@ -482,28 +351,12 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         @Override
         public BasicBlock visit(Node.Copier param, Invoke node) {
-            addCost(param, 10);
             return delegate.visit(param, node);
         }
 
         @Override
         public BasicBlock visit(Node.Copier param, InvokeNoReturn node) {
-            addCost(param, 10);
             return delegate.visit(param, node);
-        }
-
-        void addCost(final Node.Copier copier, int amount) {
-            if (! alwaysInline) {
-                float cost = InliningBasicBlockBuilder.this.cost + amount;
-                if (cost >= costThreshold) {
-                    // force termination
-                    try {
-                        copier.getBlockBuilder().unreachable();
-                    } catch (IllegalStateException | BlockEarlyTermination ignored) {}
-                    throw new Cancel();
-                }
-                InliningBasicBlockBuilder.this.cost = cost;
-            }
         }
     }
 
