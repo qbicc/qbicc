@@ -18,7 +18,11 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
+import org.qbicc.graph.literal.ConstructorLiteral;
 import org.qbicc.graph.literal.EncodeReferenceLiteral;
+import org.qbicc.graph.literal.InitializerLiteral;
+import org.qbicc.graph.literal.InstanceMethodLiteral;
+import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StructLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
@@ -42,6 +46,7 @@ import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.IdentifiedType;
 import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Struct;
@@ -253,6 +258,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         }
         decls.computeIfAbsent(element, ee -> {
             Function declaration = module.declare(ctxt.getExactNameForElement(element));
+            declaration.linkage(Linkage.EXTERNAL);
             declaration.returns(map(ee.getType().getReturnType()));
             InvokableType type = element.getType();
             if (type instanceof MethodType mt) {
@@ -367,7 +373,28 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     }
 
     public LLValue visit(Void unused, FunctionLiteral literal) {
+        declare(literal.getExecutable());
         return Values.global(literal.getExecutable().getName());
+    }
+
+    public LLValue visit(Void unused, ConstructorLiteral literal) {
+        declare(literal.getExecutable());
+        return Values.global(ctxt.getExactNameForElement(literal.getExecutable()));
+    }
+
+    public LLValue visit(Void unused, InitializerLiteral literal) {
+        declare(literal.getExecutable());
+        return Values.global(ctxt.getExactNameForElement(literal.getExecutable()));
+    }
+
+    public LLValue visit(Void unused, InstanceMethodLiteral literal) {
+        declare(literal.getExecutable());
+        return Values.global(ctxt.getExactNameForElement(literal.getExecutable()));
+    }
+
+    public LLValue visit(Void unused, StaticMethodLiteral literal) {
+        declare(literal.getExecutable());
+        return Values.global(ctxt.getExactNameForElement(literal.getExecutable()));
     }
 
     public LLValue visit(final Void unused, final GlobalVariableLiteral node) {
