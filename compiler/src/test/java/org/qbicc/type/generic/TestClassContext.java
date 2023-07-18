@@ -171,6 +171,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public String getExactNameForElement(final ExecutableElement element) {
+            return null;
+        }
+
         public FunctionType getFunctionTypeForInvokableType(final InvokableType origType) {
             return null;
         }

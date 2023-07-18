@@ -37,6 +37,7 @@ import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.machine.llvm.Array;
+import org.qbicc.machine.llvm.CallingConvention;
 import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.IdentifiedType;
@@ -47,11 +48,14 @@ import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
+import org.qbicc.object.ProgramModule;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BlockType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.InstanceMethodType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.NullableType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
@@ -69,11 +73,13 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     static final LLValue ptr_as1 = ptr(1);
 
     final LLVMModuleGenerator generator;
+    final ProgramModule programModule;
     final Module module;
     final CompilationContext ctxt;
     final LLVMConfiguration config;
@@ -82,19 +88,21 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
     final Map<StructType, Map<StructType.Member, LLValue>> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
 
-    final Map<FunctionType, LLValue> statepointDecls = new HashMap<>();
+    final Map<InvokableType, LLValue> statepointDecls = new HashMap<>();
     final Map<String, LLValue> statepointDeclsByName = new HashMap<>();
-    final Map<FunctionType, LLValue> statepointTypes = new HashMap<>();
+    final Map<InvokableType, LLValue> statepointTypes = new HashMap<>();
     final Map<ValueType, LLValue> resultDecls = new HashMap<>();
     final Map<String, LLValue> resultDeclsByName = new HashMap<>();
     final Map<ValueType, LLValue> resultDeclTypes = new HashMap<>();
+    final Map<ExecutableElement, Function> decls = new HashMap<>();
     final List<InvocationNode> statePointIds = new ArrayList<>();
     final LLValue refType;
     final LLValue relocateDeclType;
     LLValue relocateDecl;
 
-    LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, final Module module, final CompilationContext ctxt, final LLVMConfiguration config) {
+    LLVMModuleNodeVisitor(final LLVMModuleGenerator generator, ProgramModule programModule, final Module module, final CompilationContext ctxt, final LLVMConfiguration config) {
         this.generator = generator;
+        this.programModule = programModule;
         this.module = module;
         this.ctxt = ctxt;
         this.config = config;
@@ -115,12 +123,11 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         }
         if (type instanceof VoidType) {
             res = void_;
-        } else if (type instanceof FunctionType) {
-            FunctionType fnType = (FunctionType) type;
+        } else if (type instanceof FunctionType fnType) {
             int cnt = fnType.getParameterCount();
             List<LLValue> argTypes = cnt == 0 ? List.of() : new ArrayList<>(cnt);
             boolean variadic = false;
-            for (int i = 0; i < cnt; i ++) {
+            for (int i = 0; i < cnt; i++) {
                 ValueType parameterType = fnType.getParameterType(i);
                 if (parameterType instanceof VariadicType) {
                     if (i < cnt - 1) {
@@ -132,6 +139,19 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
                 }
             }
             res = Types.function(map(fnType.getReturnType()), argTypes, variadic);
+        } else if (type instanceof MethodType mt) {
+            // insert thread argument
+            int cnt = mt.getParameterCount();
+            List<LLValue> argTypes = new ArrayList<>(cnt + 2);
+            argTypes.add(ptr); // thread native pointer
+            for (int i = 0; i < cnt; i++) {
+                argTypes.add(map(mt.getParameterType(i)));
+            }
+            if (mt instanceof InstanceMethodType imt) {
+                // insert receiver; not necessarily a ref
+                argTypes.add(map(imt.getReceiverType()));
+            }
+            res = Types.function(map(mt.getReturnType()), List.copyOf(argTypes), false);
         } else if (type instanceof BooleanType) {
             // todo: sometimes it's one byte instead
             res = i1;
@@ -224,6 +244,33 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         }
         types.put(type, res);
         return res;
+    }
+
+    void declare(final ExecutableElement element) {
+        if (element.getEnclosingType() == programModule.getTypeDefinition()) {
+            // it belongs to us; no declaration is needed
+            return;
+        }
+        decls.computeIfAbsent(element, ee -> {
+            Function declaration = module.declare(ctxt.getExactNameForElement(element));
+            declaration.returns(map(ee.getType().getReturnType()));
+            InvokableType type = element.getType();
+            if (type instanceof MethodType mt) {
+                declaration.callingConvention(CallingConvention.FAST);
+                declaration.param(ptr); // thread native pointer
+                if (mt instanceof InstanceMethodType imt) {
+                    declaration.param(map(imt.getReceiverType())); // this
+                }
+            }
+            for (ValueType parameterType : type.getParameterTypes()) {
+                if (parameterType instanceof VariadicType) {
+                    declaration.variadic();
+                } else {
+                    declaration.param(map(parameterType));
+                }
+            }
+            return declaration;
+        });
     }
 
     LLValue map(final StructType structType, final StructType.Member member) {
@@ -455,21 +502,21 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
         }
     }
 
-    public LLValue mapStatepointType(final FunctionType functionType) {
-        LLValue statepointType = statepointTypes.get(functionType);
+    public LLValue mapStatepointType(final InvokableType invokableType) {
+        LLValue statepointType = statepointTypes.get(invokableType);
         if (statepointType == null) {
-            statepointType = Types.function(token, List.of(i64, i32, map(functionType.getPointer()), i32, i32), true);
-            statepointTypes.put(functionType, statepointType);
+            statepointType = Types.function(token, List.of(i64, i32, map(invokableType.getPointer()), i32, i32), true);
+            statepointTypes.put(invokableType, statepointType);
         }
         return statepointType;
     }
 
-    public LLValue generateStatepointDecl(final FunctionType functionType) {
-        LLValue statepointDecl = statepointDecls.get(functionType);
+    public LLValue generateStatepointDecl(final InvokableType invokableType) {
+        LLValue statepointDecl = statepointDecls.get(invokableType);
         if (statepointDecl == null) {
             StringBuilder b = new StringBuilder(64);
             b.append("llvm.experimental.gc.statepoint.");
-            mapTypeSuffix(b, functionType.getPointer());
+            mapTypeSuffix(b, invokableType.getPointer());
             final String name = b.toString();
             statepointDecl = statepointDeclsByName.get(name);
             if (statepointDecl == null) {
@@ -477,9 +524,9 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
                 decl.param(i64).immarg(); // statepoint ID
                 decl.param(i32).immarg(); // patch byte count
                 // pointer to the function
-                final Function.Parameter param = decl.param(map(functionType.getPointer()));
+                final Function.Parameter param = decl.param(map(invokableType.getPointer()));
                 if (generator.getLlvmMajor() >= 15) {
-                    param.attribute(ParameterAttributes.elementtype(map(functionType)));
+                    param.attribute(ParameterAttributes.elementtype(map(invokableType)));
                 }
                 decl.param(i32).immarg(); // call arg count
                 decl.param(i32).immarg(); // flags
@@ -488,7 +535,7 @@ final class LLVMModuleNodeVisitor implements LiteralVisitor<Void, LLValue> {
                 statepointDecl = decl.asGlobal();
                 statepointDeclsByName.put(name, statepointDecl);
             }
-            statepointDecls.put(functionType, statepointDecl);
+            statepointDecls.put(invokableType, statepointDecl);
         }
         return statepointDecl;
     }

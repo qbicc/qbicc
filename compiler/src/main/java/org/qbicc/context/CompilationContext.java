@@ -140,6 +140,9 @@ public interface CompilationContext extends DiagnosticContext {
 
     FunctionElement establishExactFunction(ExecutableElement element, FunctionElement function);
 
+    // todo: this will move to the backend/Platform policy
+    String getExactNameForElement(ExecutableElement element);
+
     FunctionType getFunctionTypeForInvokableType(InvokableType origType);
 
     FunctionType getFunctionTypeForElement(ExecutableElement element);
