@@ -204,6 +204,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final String gc;
     private final boolean isPie;
     private final GraphGenConfig graphGenConfig;
+    private final boolean outputDot;
     private final boolean compileOutput;
     private final boolean optMemoryTracking;
     private final boolean optPhis;
@@ -232,6 +233,7 @@ public class Main implements Callable<DiagnosticContext> {
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
+        outputDot = builder.outputDot;
         compileOutput = builder.compileOutput;
         optMemoryTracking = builder.optMemoryTracking;
         optInlining = builder.optInlining;
@@ -466,7 +468,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 .andThen(new BuildTimeOnlyElementHandler())
                                 .andThen(new ElementInitializer())));
                             builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
-                            builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
+                            if (outputDot) {
+                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
+                            }
                             builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
@@ -524,10 +528,12 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementBodyCopier()));
                             if (optEscapeAnalysis) {
                                 builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis())));
-                                builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(
-                                    new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new))
-                                ));
-                            } else {
+                                if (outputDot) {
+                                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(
+                                        new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new))
+                                    ));
+                                }
+                            } else if (outputDot) {
                                 builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
                             }
                             if (optGotos) {
@@ -554,7 +560,9 @@ public class Main implements Callable<DiagnosticContext> {
 
                             if (optEscapeAnalysis) {
                                 builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
-                                builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
+                                if (outputDot) {
+                                    builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
+                                }
                             }
 
                             builder.addPreHook(Phase.LOWER, ReachabilityInfo::reportStats);
@@ -567,7 +575,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
                             }
                             builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new FunctionLoweringElementHandler()));
-                            builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
+                            if (outputDot) {
+                                builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
+                            }
                             if (sourceOutputPath != null) {
                                 Map<ClassContext, List<ClassPathElement>> sourcePaths = new HashMap<>();
                                 builder.addPreHook(Phase.LOWER, ctxt -> createSourcePaths(ctxt, bootItems, appItems, sourcePaths));
@@ -624,7 +634,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));
                             }
 
-                            builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
+                            if (outputDot) {
+                                builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
+                            }
                             if (llvm) {
                                 if (llvmConfiguration.isStatepointEnabled()) {
                                     builder.addPostHook(Phase.GENERATE, LLVMStackMapCollector::execute);
@@ -970,6 +982,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugInterpreter;
         @CommandLine.Option(names = "--debug-initialization")
         private boolean debugInit;
+        @CommandLine.Option(names = "--emit-dot", negatable = true, defaultValue = "false", description = "Enable emitting DOT graphs for each method")
+        private boolean emitDot;
         @CommandLine.Option(names = "--emit-asm", negatable = true, defaultValue = "false", description = "Enable emitting assembly for each class")
         private boolean emitAssembly;
         @CommandLine.Option(names = "--gc", defaultValue = "semi", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
@@ -1142,6 +1156,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optGotos = true;
         private boolean optEscapeAnalysis = false;
         private GraphGenConfig graphGenConfig;
+        private boolean outputDot = false;
         private boolean smallTypeIds = false;
         private Backend backend = Backend.llvm;
         private List<Path> librarySearchPaths = List.of();
@@ -1291,6 +1306,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setIsPie(boolean isPie) {
             this.isPie = isPie;
+            return this;
+        }
+
+        public Builder setOutputDot(boolean outputDot) {
+            this.outputDot = outputDot;
             return this;
         }
 
