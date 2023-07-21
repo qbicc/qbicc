@@ -30,6 +30,7 @@ import org.qbicc.graph.BlockParameter;
 import org.qbicc.graph.ByteOffsetPointer;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
+import org.qbicc.graph.CatchNode;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpAndSwap;
@@ -133,7 +134,6 @@ import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
-import org.qbicc.type.FunctionType;
 import org.qbicc.type.InstanceMethodType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InvokableType;
@@ -255,10 +255,10 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
             preMap(basicBlock);
         }
         for (BasicBlock basicBlock : blockList) {
-            postMap(basicBlock, map(basicBlock));
+            postMap(basicBlock);
         }
         for (BasicBlock basicBlock : blockList) {
-            postPostMap(basicBlock, map(basicBlock));
+            postPostMap(basicBlock);
         }
         for (Map.Entry<Invoke, Set<Phi>> entry : invokeResultsToMap.entrySet()) {
             final Invoke invoke = entry.getKey();
@@ -274,8 +274,8 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
             }
         }
         // populate all Invoke resume and catch relocation phis
-        //  - this is tricky because the ind catch block is tied to the catch block
-        //    but the ind resume block is tied to the invoke block
+        //  - the ind catch block is tied to the invoke block
+        //  - the ind resume block is tied to the invoke block
         //  - ind resume blocks do not have phis; all live values are covered by relocations
         //  - ind catch blocks do not have phis; all live values are covered by relocations
         //  - if there is no ind resume block, then no values are live and no additional phi is needed on resume
@@ -283,7 +283,16 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         //  - real catch blocks need phis to bring in relocs from ind catch blocks
         // (part one): catch indirect block -> real block
         for (Map.Entry<BasicBlock, LLBasicBlock> entry : mappedCatchBlocks.entrySet()) {
-            BasicBlock catchBlock = entry.getKey();
+            BasicBlock invokeBlock = entry.getKey();
+            if (invokeBlock.getTerminator() instanceof InvocationNode in && ! statepointNodes.contains(in)) {
+                continue;
+            }
+            BasicBlock catchBlock;
+            if (invokeBlock.getTerminator() instanceof CatchNode cn) {
+                catchBlock = cn.getCatchBlock();
+            } else {
+                throw new IllegalStateException("Unknown invocation kind");
+            }
             LLBasicBlock realCatchBlock = map(catchBlock);
             LLBasicBlock indCatchBlock = entry.getValue();
             for (Value live : findLiveRefs(catchBlock.getBlockEntry().getLiveIns())) {
@@ -1011,7 +1020,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         LLValue llValue = invokeResults.get(node.getInvoke());
         if (llValue == null) {
             // map late
-            postMap(node.getInvoke().getTerminatedBlock(), invokeBlock);
+            postMap(node.getInvoke().getTerminatedBlock());
             llValue = mappedValues.get(node);
         }
         return llValue;
@@ -1171,7 +1180,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         final Call call;
         if (sr.isNeeded()) {
             final LLBasicBlock spResume = mapSpResume(node.getTerminatedBlock());
-            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, spResume, mapCatch(node, node.getCatchBlock(), liveRefs)).noTail());
+            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, spResume, mapCatch(node, liveRefs, true)).noTail());
             String name = node.getTerminatedBlock().toString() + ".token";
             final LLValue resultToken = call.asLocal(name);
             addLiveValuesToStatepoint(node, call, liveRefs);
@@ -1191,20 +1200,20 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
             }
         } else {
             if (node.isVoidCall()) {
-                call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, finalResume, mapCatch(node, node.getCatchBlock(), liveRefs)).noTail());
+                call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, finalResume, mapCatch(node, liveRefs, false)).noTail());
             } else {
                 call = makeNonStatepointCall(node, sr, (llType, llTarget) -> {
-                    final Call invoke = builder.invoke(llType, llTarget, finalResume, mapCatch(node, node.getCatchBlock(), liveRefs)).noTail();
+                    final Call invoke = builder.invoke(llType, llTarget, finalResume, mapCatch(node, liveRefs, false)).noTail();
                     invokeResults.put(node, invoke.setLValue(map(node.getReturnValue())));
                     return invoke;
                 });
             }
         }
         if (postMapResume) {
-            postMap(node.getResumeTarget(), resume);
+            postMap(node.getResumeTarget());
         }
         if (postMapCatch) {
-            postMap(node.getCatchBlock(), catch_);
+            postMap(node.getCatchBlock());
         }
         addPersonalityIfNeeded();
         // all done
@@ -1214,6 +1223,8 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     @Override
     public Instruction visit(List<Value> liveRefs, InvokeNoReturn node) {
         LLBasicBlock unreachableTarget = func.createBlock();
+        String termBlockName = node.getTerminatedBlock().toString();
+        unreachableTarget.name(termBlockName + ".noreturn");
         LLBasicBlock catch_ = checkMap(node.getCatchBlock());
         boolean postMapCatch = catch_ == null;
         if (postMapCatch) {
@@ -1222,8 +1233,8 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         final StatepointReason sr = getStatepointReason(node.getTarget(), liveRefs);
         final Call call;
         if (sr.isNeeded()) {
-            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node, node.getCatchBlock(), liveRefs)).noTail().attribute(FunctionAttributes.noreturn));
-            String name = node.getTerminatedBlock().toString() + ".token";
+            call = makeStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node, liveRefs, true)).noTail().attribute(FunctionAttributes.noreturn));
+            String name = termBlockName + ".token";
             final LLValue token = call.asLocal(name);
             addLiveValuesToStatepoint(node, call, liveRefs);
             final LLBasicBlock old = builder.moveToBlock(unreachableTarget);
@@ -1233,10 +1244,10 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
                 builder.moveToBlock(old);
             }
         } else {
-            call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node, node.getCatchBlock(), liveRefs)).noTail().attribute(FunctionAttributes.noreturn));
+            call = makeNonStatepointCall(node, sr, (llType, llTarget) -> builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node, liveRefs, false)).noTail().attribute(FunctionAttributes.noreturn));
         }
         if (postMapCatch) {
-            postMap(node.getCatchBlock(), catch_);
+            postMap(node.getCatchBlock());
         }
         final LLBasicBlock old = builder.moveToBlock(unreachableTarget);
         try {
@@ -1641,7 +1652,8 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         return mapped;
     }
 
-    private LLBasicBlock postMap(final BasicBlock block, LLBasicBlock mapped) {
+    private LLBasicBlock postMap(final BasicBlock block) {
+        LLBasicBlock mapped = map(block);
         LLBasicBlock old = mappingBlock;
         mappingBlock = mapped;
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
@@ -1723,15 +1735,14 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         return refs;
     }
 
-    private void postPostMap(final BasicBlock block, LLBasicBlock mapped) {
+    private void postPostMap(final BasicBlock block) {
+        LLBasicBlock mapped = map(block);
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
         LLValue oldBuilderDebugLocation = builder.getDebugLocation();
         Terminator t = block.getTerminator();
-        if (t instanceof Invoke || t instanceof InvokeNoReturn) {
-            if (statepointNodes.contains(t)) {
-                // will be mapped on next pass
-                return;
-            }
+        if (t instanceof InvocationNode && statepointNodes.contains(t)) {
+            // will be mapped on next pass
+            return;
         }
         // ensure that each outbound reference-typed value is registered with its subordinate phi
         int cnt = t.getSuccessorCount();
@@ -1748,7 +1759,9 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
                     mappingBlock = mapped;
                     LLValue incomingValue = map(live);
                     // it's still live in this block
-                    phi.item(incomingValue, mapped);
+                    // but first check to see if the incoming block is actually a "catch"
+                    LLBasicBlock realSourceBlock = t instanceof CatchNode cn && successor == cn.getCatchBlock() ? mappedCatchBlocks.get(block) : mapped;
+                    phi.item(incomingValue, realSourceBlock);
                     mappingBlock = old;
                 } else {
                     throw new IllegalStateException("Phi node disappeared");
@@ -1759,29 +1772,32 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         builder.moveToBlock(oldBuilderBlock);
     }
 
-    private LLBasicBlock mapCatch(Node callNode, BasicBlock block, List<Value> liveRefs) {
-        LLBasicBlock mapped = mappedCatchBlocks.get(block);
+    private LLBasicBlock mapCatch(CatchNode callNode, List<Value> liveRefs, boolean relocate) {
+        BasicBlock fromBlock = callNode.getTerminatedBlock();
+        LLBasicBlock mapped = mappedCatchBlocks.get(fromBlock);
         if (mapped != null) {
             return mapped;
         }
 
         mapped = func.createBlock();
+        mapped.name(fromBlock + ".catch");
+        mappedCatchBlocks.put(fromBlock, mapped);
 
         // TODO Is it correct to use the call's debug info here?
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 
-        LLValue lp = builder.landingpad(token).cleanup().asLocal(block.toString() + ".lp.token");
+        LLValue lp = builder.landingpad(token).cleanup().asLocal(fromBlock.toString() + ".lp.token");
 
-        LLBasicBlock oldMb = mappingBlock;
-        mappingBlock = mapped;
-        makeStatepointRelocs(callNode, lp, liveRefs);
-        mappingBlock = oldMb;
-        LLBasicBlock handler = map(block);
-        mapped.name(block + ".catch");
+        if (relocate) {
+            LLBasicBlock oldMb = mappingBlock;
+            mappingBlock = mapped;
+            makeStatepointRelocs(callNode, lp, liveRefs);
+            mappingBlock = oldMb;
+        }
+        LLBasicBlock handler = map(callNode.getCatchBlock());
         builder.br(handler);
 
         builder.moveToBlock(oldBuilderBlock);
-        mappedCatchBlocks.put(block, mapped);
         return mapped;
     }
 
