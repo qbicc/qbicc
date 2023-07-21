@@ -425,7 +425,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(threadHolder.get(), () -> wrapper.accept(ctxt))
                                 );
                             });
-                            builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                             if (llvm) {
                                 builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
@@ -448,6 +447,7 @@ public class Main implements Callable<DiagnosticContext> {
                             // common GC setup
                             builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                             builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
+                            builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, compilationContext -> {
                                 if (!buildTimeInitRootClasses.isEmpty()) {
                                     for (String toInit : buildTimeInitRootClasses) {
