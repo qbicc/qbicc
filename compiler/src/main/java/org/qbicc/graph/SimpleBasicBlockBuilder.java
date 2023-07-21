@@ -62,7 +62,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private final ExecutableElement rootElement;
     private Node callSite;
     private BasicBlock terminatedBlock;
-    private Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
+    private final Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
     private final Map<Value, Value> unique = new HashMap<>();
 
     SimpleBasicBlockBuilder(final ExecutableElement element) {
@@ -743,12 +743,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         final BasicBlock oldTerminatedBlock = terminatedBlock;
         final ExecutableElement oldElement = element;
         final Node oldCallSite = callSite;
-        final Map<BlockLabel, Map<Slot, BlockParameter>> oldParameters = new HashMap<>(parameters);
         try {
             return doBegin(blockLabel, arg, maker);
         } finally {
             // restore all state
-            parameters = oldParameters;
             callSite = oldCallSite;
             element = oldElement;
             terminatedBlock = oldTerminatedBlock;
@@ -767,7 +765,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
                 firstBlock = blockLabel;
             }
             dependency = blockEntry = new BlockEntry(this, blockLabel);
-            parameters = new HashMap<>();
             maker.accept(arg, firstBuilder);
             if (currentBlock != null) {
                 getContext().error(getLocation(), "Block not terminated");
