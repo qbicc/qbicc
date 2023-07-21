@@ -3,12 +3,11 @@ package org.qbicc.graph;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.smallrye.common.constraint.Assert;
@@ -25,9 +24,7 @@ import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
-import org.qbicc.graph.schedule.Util;
 import org.qbicc.type.StructType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -100,9 +97,7 @@ public interface Node extends ProgramLocatable {
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
-        private final Map<Set<Value>, Set<Value>> cache = new HashMap<>();
-        private Set<Value> liveOut;
-        private Set<Value> liveIn;
+        private final BiConsumer<BasicBlock, BasicBlockBuilder> copyingConsumer = (bl, bb) -> copyScheduledNodes(bl);
 
         public Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
             BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
@@ -133,8 +128,7 @@ public interface Node extends ProgramLocatable {
             BasicBlock block;
             while ((block = blockQueue.poll()) != null) {
                 // process and map all queued blocks - might enqueue more blocks
-                blockBuilder.begin(copiedBlocks.get(block));
-                copyScheduledNodes(block);
+                blockBuilder.begin(copiedBlocks.get(block), block, copyingConsumer);
             }
             return BlockLabel.getTargetOf(entryCopy);
         }
