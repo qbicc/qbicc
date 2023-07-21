@@ -78,15 +78,14 @@ public final class LLVMStackMapCollector {
                             private final List<CallSiteTable.CallSiteEntry> callSites = new ArrayList<>();
 
                             // per-function
-                            private Function functionAddress;
-                            private CallSiteTable.SourceCodeEntry sc;
+                            private long fnIndex;
                             private long stackSize;
                             private final List<CallSiteTable.CallSiteEntry> fnCallSites = new ArrayList<>();
 
                             // per-call-site
                             private CallingConvention cconv;
+                            private long patchPointId;
                             private long offset;
-                            private CallSiteTable.SubprogramEntry se;
                             private final HashSet<ValueInfo> valueInfos = new HashSet<>();
 
                             public void start(int version, long fnCount, long recCount) {
@@ -96,17 +95,13 @@ public final class LLVMStackMapCollector {
                             }
 
                             public void startFunction(long fnIndex, long address, long stackSize, long recordCount) {
-                                // todo: Replace the `address` argument with a Literal which represents the relocation with offset;
-                                // the address is actually a relocation... but we can cheat and just grab the function itself by index
-                                functionAddress = ctxt.getOrAddProgramModule(typeDefinition).getFunction((int) fnIndex);
+                                this.fnIndex = fnIndex;
                                 this.stackSize = stackSize;
                             }
 
                             public void startRecord(long recIndex, long patchPointId, long offset, int locCnt, int liveOutCnt) {
                                 this.offset = offset;
-                                final Node node = callSitesById.get(Math.toIntExact(patchPointId));
-                                se = cst.getSubprogramEntry(node.element());
-                                sc = getSourceCodeEntry(node);
+                                this.patchPointId = patchPointId;
                             }
 
                             private CallSiteTable.SourceCodeEntry getSourceCodeEntry(ProgramLocatable node) {
@@ -160,18 +155,34 @@ public final class LLVMStackMapCollector {
                             }
 
                             public void endRecord(long recIndex) {
+                                if (valueInfos.isEmpty()) {
+                                    // don't emit anything
+                                    return;
+                                }
                                 final CallSiteTable.LiveValueInfo lvi = cst.intern(valueInfos);
                                 valueInfos.clear();
-                                fnCallSites.add(new CallSiteTable.CallSiteEntry(functionAddress, offset, sc, lvi));
+                                final Node node = callSitesById.get(Math.toIntExact(patchPointId));
+                                // todo: Replace the `address` argument with a Literal which represents the relocation with offset;
+                                // the address is actually a relocation... but we can cheat and just grab the function itself by index
+                                Function functionAddress = ctxt.getOrAddProgramModule(typeDefinition).getFunction((int) fnIndex);
+                                fnCallSites.add(new CallSiteTable.CallSiteEntry(functionAddress, offset, getSourceCodeEntry(node), lvi));
                             }
 
                             public void endFunction(long fnIndex) {
+                                if (fnCallSites.isEmpty()) {
+                                    // don't emit anything
+                                    return;
+                                }
                                 fnCallSites.sort(Comparator.comparingLong(CallSiteTable.CallSiteEntry::offset));
                                 callSites.addAll(fnCallSites);
                                 fnCallSites.clear();
                             }
 
                             public void end() {
+                                if (callSites.isEmpty()) {
+                                    // don't emit anything
+                                    return;
+                                }
                                 cst.registerEntries(typeDefinition, callSites);
                                 callSites.clear();
                             }
