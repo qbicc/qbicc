@@ -14,6 +14,7 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -60,7 +61,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
     private final ExecutableElement rootElement;
-    private Node callSite;
+    private ProgramLocatable callSite;
     private BasicBlock terminatedBlock;
     private final Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
     private final Map<Value, Value> unique = new HashMap<>();
@@ -119,12 +120,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return old;
     }
 
-    public Node callSite() {
+    public ProgramLocatable callSite() {
         return callSite;
     }
 
-    public Node setCallSite(final Node callSite) {
-        Node old = this.callSite;
+    public ProgramLocatable setCallSite(final ProgramLocatable callSite) {
+        ProgramLocatable old = this.callSite;
         this.callSite = callSite;
         return old;
     }
@@ -742,7 +743,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         final BlockLabel oldCurrentBlock = currentBlock;
         final BasicBlock oldTerminatedBlock = terminatedBlock;
         final ExecutableElement oldElement = element;
-        final Node oldCallSite = callSite;
+        final ProgramLocatable oldCallSite = callSite;
         try {
             return doBegin(blockLabel, arg, maker);
         } finally {

@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.InvocationNode;
 import org.qbicc.graph.Node;
@@ -108,8 +109,8 @@ public final class LLVMStackMapCollector {
                                 sc = getSourceCodeEntry(node);
                             }
 
-                            private CallSiteTable.SourceCodeEntry getSourceCodeEntry(Node node) {
-                                final Node inlinedAt = node.callSite();
+                            private CallSiteTable.SourceCodeEntry getSourceCodeEntry(ProgramLocatable node) {
+                                final ProgramLocatable inlinedAt = node.callSite();
                                 return cst.intern(new CallSiteTable.SourceCodeEntry(cst.getSubprogramEntry(node.element()), node.lineNumber(), node.bytecodeIndex(), inlinedAt == null ? null : getSourceCodeEntry(inlinedAt)));
                             }
 

@@ -14,6 +14,7 @@ import java.util.concurrent.locks.Lock;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.ActionVisitor;
 import org.qbicc.graph.Add;
@@ -273,11 +274,11 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     // Stack
     ////////
 
-    public Node[] getBackTrace() {
+    public ProgramLocatable[] getBackTrace() {
         int depth = 0;
         Frame frame = this;
         while (frame != null) {
-            Node ip = frame.ip;
+            ProgramLocatable ip = frame.ip;
             while (ip != null) {
                 if (ip.element().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     depth++;
@@ -287,10 +288,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             frame = frame.enclosing;
         }
         frame = this;
-        Node[] backTrace = new Node[depth];
+        ProgramLocatable[] backTrace = new Node[depth];
         depth = 0;
         while (frame != null) {
-            Node ip = frame.ip;
+            ProgramLocatable ip = frame.ip;
             while (ip != null) {
                 if (ip.element().hasNoModifiersOf(ClassFile.I_ACC_HIDDEN)) {
                     backTrace[depth++] = ip;

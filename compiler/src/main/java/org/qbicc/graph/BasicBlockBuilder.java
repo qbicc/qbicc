@@ -167,19 +167,19 @@ public interface BasicBlockBuilder extends ProgramLocatable {
     ExecutableElement setCurrentElement(ExecutableElement element);
 
     /**
-     * Get the currently set call site node.  Used for inlining.
+     * Get the currently set call site.  Used for inlining.
      *
      * @return the currently set call site node
      */
-    Node callSite();
+    ProgramLocatable callSite();
 
     /**
-     * Set the call site node.  Used for inlining.
+     * Set the call site.  Used for inlining.
      *
-     * @param callSite the call site node
+     * @param callSite the call site
      * @return the previously set call site node
      */
-    Node setCallSite(Node callSite);
+    ProgramLocatable setCallSite(ProgramLocatable callSite);
 
     /**
      * Get a location for the element currently being built, suitable for passing to diagnostics.

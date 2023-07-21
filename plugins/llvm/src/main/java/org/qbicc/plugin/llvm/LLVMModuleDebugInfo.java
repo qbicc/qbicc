@@ -4,6 +4,7 @@ import static org.qbicc.machine.llvm.Values.metadataString;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ModuleFlagBehavior;
@@ -146,13 +147,18 @@ final class LLVMModuleDebugInfo {
         return file;
     }
 
-    private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
+    private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element, final ProgramLocatable inlinedAt) {
         Function exactFunction = ctxt.getExactFunctionIfExists(element);
-        LLValue type = getType(exactFunction.getValueType());
+        LLValue type = getType(ctxt.getFunctionTypeForInvokableType(element.getType()));
         int line = element.getMinimumLineNumber();
 
         DISubprogram diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
             .location(createSourceFile(element), line, line);
+
+        if (inlinedAt != null) {
+            MethodDebugInfo enclosingFunction = getDebugInfoForFunction(inlinedAt.element(), inlinedAt.callSite());
+            diSubprogram.scope(enclosingFunction.getSubprogram());
+        }
 
         if (exactFunction != null) {
             diSubprogram.linkageName(exactFunction.getName());
@@ -173,11 +179,11 @@ final class LLVMModuleDebugInfo {
                 .linkageName(function.getName());
     }
 
-    public MethodDebugInfo getDebugInfoForFunction(final ExecutableElement element) {
+    public MethodDebugInfo getDebugInfoForFunction(final ExecutableElement element, final ProgramLocatable inlinedAt) {
         MethodDebugInfo debugInfo = methods.get(element);
 
         if (debugInfo == null) {
-            debugInfo = createDebugInfoForFunction(element);
+            debugInfo = createDebugInfoForFunction(element, inlinedAt);
         }
 
         return debugInfo;

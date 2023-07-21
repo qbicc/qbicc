@@ -41,7 +41,7 @@ public interface Node extends ProgramLocatable {
      *
      * @return the call site node, or {@code null} if this node was not inlined from another function
      */
-    Node callSite();
+    ProgramLocatable callSite();
 
     /**
      * Get the source element.  Literals will have no source element.
@@ -93,6 +93,8 @@ public interface Node extends ProgramLocatable {
         private final BasicBlockBuilder blockBuilder;
         private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
+        // original call site -> call site of target block -> copied call site
+        private final Map<ProgramLocatable.Frozen, Map<ProgramLocatable.Frozen, ProgramLocatable.Frozen>> copiedCallSites = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
         private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
@@ -199,8 +201,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -212,6 +213,23 @@ public interface Node extends ProgramLocatable {
                 }
             }
             return copy;
+        }
+
+        public ProgramLocatable copyCallSite(ProgramLocatable original) {
+            ProgramLocatable currentCallSite = blockBuilder.callSite();
+            if (original == null) {
+                return currentCallSite;
+            } else if (currentCallSite == null) {
+                return original;
+            } else {
+                Frozen frozen = original.freeze();
+                Frozen currentFrozen = currentCallSite.freeze();
+                return copiedCallSites.computeIfAbsent(frozen, Copier::newMap).computeIfAbsent(currentFrozen, current -> frozen.withUnderlyingCallSite(currentFrozen).freeze());
+            }
+        }
+
+        private static <K, V> Map<K, V> newMap(Object ignored) {
+            return new HashMap<>();
         }
 
         public List<Value> copyValues(List<Value> list) {
@@ -266,8 +284,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -291,8 +308,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 BasicBlock block;
                 try {
                     block = original.accept(nodeVisitor, this);

@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.And;
@@ -175,7 +176,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
     final Set<InvocationNode> statepointNodes = new HashSet<>();
     final MethodBody methodBody;
     final LLBuilder builder;
-    final Map<Node, LLValue> inlineLocations = new HashMap<>();
+    final Map<ProgramLocatable.Frozen, LLValue> inlineLocations = new HashMap<>();
     final Map<LocalVariableElement, DILocalVariable> localVariables = new HashMap<>();
     final List<InvocationNode> invocationNodes = new ArrayList<>();
     final Map<Invoke, Set<Phi>> invokeResultsToMap = new HashMap<>();
@@ -1556,16 +1557,16 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
 
     // mapping
 
-    private LLValue createDbgLocation(final Node node, final boolean distinct) {
+    private LLValue createDbgLocation(final ProgramLocatable node, final boolean distinct) {
         LLValue inlinedAt = dbgInlinedCallSite(node.callSite());
 
         if (inlinedAt == null && node.element() != functionObj.getOriginalElement()) {
-            ctxt.error(Location.builder().setNode(node).build(), "LLVM: Node is not part of the root function, but has no call site");
+            ctxt.error(node.getLocation(), "LLVM: Node is not part of the root function, but has no call site");
         }
 
         LLValue scope = (topSubprogram != null && inlinedAt == null)
                 ? topSubprogram
-                : debugInfo.getDebugInfoForFunction(node.element()).getScope(node.bytecodeIndex());
+                : debugInfo.getDebugInfoForFunction(node.element(), node.callSite()).getScope(node.bytecodeIndex());
 
         if (distinct) {
             return module.diLocation(node.lineNumber(), 0, scope, inlinedAt).distinct(true).asRef();
@@ -1574,16 +1575,17 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         }
     }
 
-    private LLValue dbgInlinedCallSite(final Node node) {
+    private LLValue dbgInlinedCallSite(final ProgramLocatable node) {
         if (node == null) {
             return null;
         }
 
-        LLValue diLocation = inlineLocations.get(node);
+        ProgramLocatable.Frozen frozen = node.freeze();
+        LLValue diLocation = inlineLocations.get(frozen);
 
         if (diLocation == null) {
-            diLocation = createDbgLocation(node, true);
-            inlineLocations.put(node, diLocation);
+            diLocation = createDbgLocation(frozen, true);
+            inlineLocations.put(frozen, diLocation);
         }
 
         return diLocation;

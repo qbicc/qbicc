@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -81,11 +82,11 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setCurrentElement(element);
     }
 
-    public Node callSite() {
+    public ProgramLocatable callSite() {
         return getDelegate().callSite();
     }
 
-    public Node setCallSite(final Node callSite) {
+    public ProgramLocatable setCallSite(final ProgramLocatable callSite) {
         return getDelegate().setCallSite(callSite);
     }
 

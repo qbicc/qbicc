@@ -6,7 +6,7 @@ import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractNode implements Node {
-    private final Node callSite;
+    private final ProgramLocatable callSite;
     private final ExecutableElement element;
     private final int line;
     private final int bci;
@@ -23,7 +23,7 @@ abstract class AbstractNode implements Node {
         this.bci = pl.bytecodeIndex();
     }
 
-    public Node callSite() {
+    public ProgramLocatable callSite() {
         return callSite;
     }
 

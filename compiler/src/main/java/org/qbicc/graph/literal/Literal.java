@@ -6,7 +6,7 @@ import java.lang.invoke.VarHandle;
 
 import org.eclipse.collections.api.map.ImmutableMap;
 import org.eclipse.collections.impl.factory.Maps;
-import org.qbicc.graph.Node;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
@@ -24,7 +24,7 @@ public abstract class Literal implements Unschedulable, Value {
 
     Literal() {}
 
-    public Node callSite() {
+    public ProgramLocatable callSite() {
         // no call site for literals
         return null;
     }

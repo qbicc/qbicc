@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import org.eclipse.collections.api.factory.Maps;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -176,7 +177,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             try {
                 BlockLabel inlinedMethodEntry = new BlockLabel();
                 BasicBlock inlinedBlock = goto_(inlinedMethodEntry, buildArguments(receiver, arguments));
-                Node oldCallSite = setCallSite(inlinedBlock.getTerminator());
+                ProgramLocatable oldCallSite = setCallSite(inlinedBlock.getTerminator());
                 try {
                     Node.Copier copier = new Node.Copier(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
                         new Visitor(visitor, onReturn, catchLabel, targetArguments));
