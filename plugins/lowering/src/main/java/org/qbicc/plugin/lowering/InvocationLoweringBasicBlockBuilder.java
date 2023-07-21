@@ -160,6 +160,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return memberOf(load(lf.literalOf(decl)), currentThreadMember);
         } else {
+
+            if (thrParam == null) {
+                throw new IllegalStateException("No thread parameter; first block not processed yet?");
+            }
             return memberOf(thrParam, currentThreadMember);
         }
     }

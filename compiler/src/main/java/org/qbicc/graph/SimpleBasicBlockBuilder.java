@@ -86,6 +86,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         if (nullable && ! (type instanceof NullableType)) {
             throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
         }
+        if (type instanceof VoidType) {
+            throw new IllegalArgumentException("Void-typed block parameter");
+        }
         parameter = new BlockParameter(this, type, nullable, owner, slot);
         subMap.put(slot, parameter);
         return parameter;
@@ -428,7 +431,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         for (int i=0; i<expectedDimensions; i++) {
             ifTrueExpectedType = ifTrueExpectedType.getReferenceArrayObject();
         }
-        return asDependency(new InstanceOf(this, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
+        ReferenceType narrowed = input.getType(ReferenceType.class).narrow(ifTrueExpectedType);
+        if (narrowed == null) {
+            throw new IllegalStateException(String.format("Invalid instanceof check from %s to %s", input.getType(), expectedType));
+        }
+        return asDependency(new InstanceOf(this, requireDependency(), input, fb.notNull(fb.bitCast(input, narrowed)), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

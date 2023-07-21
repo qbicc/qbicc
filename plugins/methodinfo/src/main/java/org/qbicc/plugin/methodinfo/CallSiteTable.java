@@ -752,6 +752,11 @@ public final class CallSiteTable {
      * @param element the element
      */
     public record SubprogramEntry(VmString fileName, VmString name, VmObject methodTypeObj, ExecutableElement element) {
+        public SubprogramEntry {
+            // validate that there is a type ID early
+            element.getEnclosingType().load().getTypeId();
+        }
+
         /**
          * Get the enclosing type definition.
          *
