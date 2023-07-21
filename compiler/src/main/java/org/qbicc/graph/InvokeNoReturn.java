@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 
@@ -14,7 +15,7 @@ import org.qbicc.type.InvokableType;
  *
  * @see BasicBlockBuilder#invokeNoReturn(org.qbicc.graph.Value, org.qbicc.graph.Value, java.util.List, org.qbicc.graph.BlockLabel, java.util.Map)
  */
-public final class InvokeNoReturn extends AbstractTerminator implements InvocationNode {
+public final class InvokeNoReturn extends AbstractTerminator implements InvocationNode, CatchNode {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
     private final Value target;
@@ -25,6 +26,9 @@ public final class InvokeNoReturn extends AbstractTerminator implements Invocati
 
     InvokeNoReturn(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, Map<Slot, Value> targetArguments) {
         super(pl, targetArguments);
+        for (int i = 0; i < arguments.size(); i++) {
+            Assert.checkNotNullArrayParam("arguments", i, arguments.get(i));
+        }
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;

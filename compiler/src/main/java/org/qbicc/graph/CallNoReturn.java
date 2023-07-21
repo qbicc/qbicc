@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 
@@ -23,6 +24,9 @@ public final class CallNoReturn extends AbstractTerminator implements Invocation
 
     CallNoReturn(ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments) {
         super(pl);
+        for (int i = 0; i < arguments.size(); i++) {
+            Assert.checkNotNullArrayParam("arguments", i, arguments.get(i));
+        }
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;

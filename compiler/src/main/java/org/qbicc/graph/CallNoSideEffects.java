@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
@@ -22,6 +23,9 @@ public final class CallNoSideEffects extends AbstractValue implements Invocation
 
     CallNoSideEffects(final ProgramLocatable pl, Value target, Value receiver, List<Value> arguments) {
         super(pl);
+        for (int i = 0; i < arguments.size(); i++) {
+            Assert.checkNotNullArrayParam("arguments", i, arguments.get(i));
+        }
         this.target = target;
         this.receiver = receiver;
         this.arguments = arguments;

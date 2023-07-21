@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
@@ -18,7 +19,7 @@ import org.qbicc.type.ValueType;
  *
  * @see BasicBlockBuilder#invoke(org.qbicc.graph.Value, org.qbicc.graph.Value, java.util.List, org.qbicc.graph.BlockLabel, org.qbicc.graph.BlockLabel, java.util.Map)
  */
-public final class Invoke extends AbstractTerminator implements Resume, InvocationNode {
+public final class Invoke extends AbstractTerminator implements Resume, InvocationNode, CatchNode {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
     private final Value target;
@@ -31,6 +32,9 @@ public final class Invoke extends AbstractTerminator implements Resume, Invocati
 
     Invoke(final ProgramLocatable pl, final BlockEntry blockEntry, Node dependency, Value target, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         super(pl, targetArguments);
+        for (int i = 0; i < arguments.size(); i++) {
+            Assert.checkNotNullArrayParam("arguments", i, arguments.get(i));
+        }
         this.dependency = dependency;
         this.terminatedBlock = new BasicBlock(blockEntry, this);
         this.target = target;
@@ -105,10 +109,6 @@ public final class Invoke extends AbstractTerminator implements Resume, Invocati
 
     public BlockLabel getCatchLabel() {
         return catchLabel;
-    }
-
-    public BasicBlock getCatchBlock() {
-        return BlockLabel.getTargetOf(catchLabel);
     }
 
     @Override
