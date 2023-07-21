@@ -49,4 +49,17 @@ public interface ProgramLocatable extends Locatable {
         // (call site is not used by Location)
         return lb.build();
     }
+
+    static boolean hasSameLocation(ProgramLocatable left, ProgramLocatable right) {
+        if (left == null) {
+            return right == null;
+        } else if (right == null) {
+            return false;
+        } else {
+            return left.lineNumber() == right.lineNumber()
+                && left.bytecodeIndex() == right.bytecodeIndex()
+                && left.element() == right.element()
+                && hasSameLocation(left.callSite(), right.callSite());
+        }
+    }
 }
