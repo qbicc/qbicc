@@ -163,63 +163,12 @@ public interface Node extends ProgramLocatable {
 
         public void copyScheduledNodes(BasicBlock block) {
             try {
-                final List<Node> instructions = block.getInstructions();
-                mapInstructions(block, instructions.listIterator(instructions.size()), new HashSet<>(block.getLiveOuts()), block.getLiveOuts());
+                for (Node node : block.getInstructions()) {
+                    copyNode(node);
+                }
             } catch (BlockEarlyTermination term) {
                 copiedTerminators.put(block.getTerminator(), term.getTerminatedBlock());
             }
-        }
-
-        private void mapInstructions(BasicBlock block, ListIterator<Node> iter, Set<Value> live, Set<Value> liveOuts) {
-            if (! iter.hasPrevious()) {
-                // all done
-                return;
-            }
-            // process current instruction
-            final Node node = iter.previous();
-            if (node instanceof BlockParameter bp && bp.getPinnedBlock() == block) {
-                // keep it alive to the start of the block.
-            } if (node instanceof Value v) {
-                // this is where it was defined, thus we can remove it from the live set.
-                live.remove(v);
-            } else if (node instanceof Invoke inv) {
-                // special case!
-                live.remove(inv.getReturnValue());
-            }
-            // add any values consumed by this node to the live set
-            final int cnt = node.getValueDependencyCount();
-            for (int i = 0; i < cnt; i ++) {
-                final Value val = node.getValueDependency(i);
-                if (val.getType() instanceof ReferenceType && ! (val instanceof Literal)) {
-                    live.add(val);
-                }
-            }
-            Set<Value> liveIn = Util.getCachedSet(cache, live);
-            // process and emit previous instruction (if any)
-            mapInstructions(block, iter, live, liveIn);
-            // now emit current instruction
-            this.liveIn = liveIn;
-            this.liveOut = liveOuts;
-            copyNode(node);
-        }
-
-        /**
-         * Get the set of values which were live in the program before this node was reached.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveIn() {
-            return liveIn;
-        }
-
-        /**
-         * Get the set of values which will be live in the program after this node is processed.
-         * This set might or might not include the node currently being processed.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveOut() {
-            return liveOut;
         }
 
         public Node copyNode(Node original) {
