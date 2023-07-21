@@ -28,10 +28,10 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.ExecutableLiteral;
+import org.qbicc.graph.literal.ProgramObjectLiteral;
 import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Declaration;
 import org.qbicc.object.FunctionDeclaration;
-import org.qbicc.object.ProgramModule;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.MethodBody;
@@ -186,8 +186,6 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 } finally {
                     setCallSite(oldCallSite);
                 }
-                // inline successful, now copy all declarations known at this point
-                copyDeclarations(element);
                 // goto the inlined block
                 return inlinedBlock;
             } finally {
@@ -235,18 +233,6 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return costSoFar;
-    }
-
-    private void copyDeclarations(final ExecutableElement target) {
-        ProgramModule ourModule = ctxt.getOrAddProgramModule(getRootElement().getEnclosingType());
-        ProgramModule module = ctxt.getOrAddProgramModule(target.getEnclosingType());
-        for (Declaration decl : module.declarations()) {
-            if (decl instanceof FunctionDeclaration declaration) {
-                ourModule.declareFunction(declaration);
-            } else if (decl instanceof DataDeclaration declaration) {
-                ourModule.declareData(declaration);
-            }
-        }
     }
 
     final class Visitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
@@ -361,6 +347,18 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         @Override
         public BasicBlock visit(Node.Copier param, InvokeNoReturn node) {
             return delegate.visit(param, node);
+        }
+
+        @Override
+        public Value visit(Node.Copier copier, ProgramObjectLiteral literal) {
+            Declaration declaration = literal.getProgramObject().getDeclaration();
+            if (declaration instanceof DataDeclaration dd) {
+                return getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement()).declareData(dd));
+            } else if (declaration instanceof FunctionDeclaration fd) {
+                return getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement()).declareFunction(fd));
+            } else {
+                return literal;
+            }
         }
     }
 
