@@ -13,6 +13,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -71,7 +72,7 @@ public final class BciRangeExceptionHandlerBasicBlockBuilder extends DelegatingB
             BlockLabel handlerLabel = new BlockLabel();
             Value rv = invoke(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, this, (bbb, fb) -> bbb.beginHandler(handlerLabel, capture))), resumeLabel, capture);
             begin(resumeLabel);
-            return addParam(resumeLabel, Slot.result(), rv.getType(), rv.isNullable());
+            return rv.getType() instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), rv.getType(), rv.isNullable());
         }
         return super.call(targetPtr, receiver, arguments);
     }

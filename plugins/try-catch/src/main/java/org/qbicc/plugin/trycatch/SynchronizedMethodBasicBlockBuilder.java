@@ -13,6 +13,7 @@ import org.qbicc.graph.Slot;
 import org.qbicc.graph.Value;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -90,7 +91,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         BlockLabel handlerLabel = new BlockLabel();
         Value rv = invoke(targetPtr, receiver, arguments, BlockLabel.of(begin(handlerLabel, ignored -> throw_(addParam(handlerLabel, THROWN, throwable, false)))), resumeLabel, Map.of());
         begin(resumeLabel);
-        return addParam(resumeLabel, Slot.result(), rv.getType());
+        return rv.getType() instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), rv.getType());
     }
 
     @Override

@@ -68,7 +68,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ExecutableElement toInline = getInlinedElement(targetPtr);
         if (toInline != null) {
             BlockLabel resumeLabel = new BlockLabel();
-            BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, Slot.result(), val), Map.of());
+            BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, val.getType() instanceof VoidType ? Map.of() : Map.of(Slot.result(), val)), Map.of());
             if (inlined != null) {
                 begin(resumeLabel);
                 ValueType returnType = toInline.getType().getReturnType();
@@ -83,7 +83,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ExecutableElement toInline = getInlinedElement(targetPtr);
         if (toInline != null) {
             BlockLabel resumeLabel = new BlockLabel();
-            BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, Map.of(Slot.result(), val)), Map.of());
+            BasicBlock inlined = doInline(receiver, toInline, arguments, null, val -> goto_(resumeLabel, val.getType() instanceof VoidType ? Map.of() : Map.of(Slot.result(), val)), Map.of());
             if (inlined != null) {
                 begin(resumeLabel);
                 ValueType returnType = toInline.getType().getReturnType();
@@ -139,7 +139,7 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value invoke(Value targetPtr, Value receiver, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
         ExecutableElement toInline = getInlinedElement(targetPtr);
         if (toInline != null) {
-            BasicBlock inlined = doInline(receiver, toInline, arguments, catchLabel, val -> goto_(resumeLabel, addArg(targetArguments, Slot.result(), val)), targetArguments);
+            BasicBlock inlined = doInline(receiver, toInline, arguments, catchLabel, val -> goto_(resumeLabel, val.getType() instanceof VoidType ? targetArguments : addArg(targetArguments, Slot.result(), val)), targetArguments);
             if (inlined != null) {
                 ValueType returnType = toInline.getType().getReturnType();
                 return returnType instanceof VoidType ? emptyVoid() : addParam(resumeLabel, Slot.result(), returnType);
@@ -294,7 +294,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 BlockLabel resume = new BlockLabel();
                 invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return addParam(resume, Slot.result(), node.getReturnType());
+                ValueType rt = node.getTarget().getReturnType();
+                return rt instanceof VoidType ? emptyVoid() : addParam(resume, Slot.result(), rt);
             } else {
                 return delegate.visit(param, node);
             }
@@ -307,7 +308,8 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 BlockLabel resume = new BlockLabel();
                 invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return addParam(resume, Slot.result(), node.getReturnType());
+                ValueType rt = node.getTarget().getReturnType();
+                return rt instanceof VoidType ? emptyVoid() : addParam(resume, Slot.result(), rt);
             } else {
                 return delegate.visit(param, node);
             }
@@ -332,9 +334,10 @@ public class InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 BlockLabel resume = new BlockLabel();
                 invoke(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments()), catchLabel, resume, catchArguments);
                 begin(resume);
-                return return_(addParam(resume, Slot.result(), node.getCalleeType().getReturnType()));
+                ValueType rt = node.getTarget().getReturnType();
+                return onReturn.apply(rt instanceof VoidType ? emptyVoid() : addParam(resume, Slot.result(), rt));
             } else {
-                return delegate.visit(param, node);
+                return onReturn.apply(call(param.copyValue(node.getTarget()), param.copyValue(node.getReceiver()), param.copyValues(node.getArguments())));
             }
         }
 
