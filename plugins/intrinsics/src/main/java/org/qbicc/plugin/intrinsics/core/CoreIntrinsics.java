@@ -454,7 +454,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "lengthOf", objIntDesc, lengthOf);
 
         StaticIntrinsic maxSubClassId = (builder, target, arguments) -> {
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.element());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getRootElement());
             Value typeIdStruct = builder.elementOf(builder.getLiteralFactory().literalOf(typeIdGlobal), arguments.get(0));
             return builder.load(builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")));
         };
@@ -524,7 +524,7 @@ public final class CoreIntrinsics {
             IntegerType typeIdLiteralType = ctxt.getTypeSystem().getTypeIdLiteralType();
             Value objTypeId = arguments.get(0);
             Value interfaceTypeId = arguments.get(1);
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.element());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getRootElement());
             Value typeIdStruct = builder.elementOf(builder.getLiteralFactory().literalOf(typeIdGlobal), objTypeId);
             Value bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
             Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(typeIdLiteralType, tables.getFirstInterfaceTypeId()));
@@ -561,7 +561,7 @@ public final class CoreIntrinsics {
             BlockLabel fallThrough = new BlockLabel();
 
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.element());
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getRootElement());
             Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
             Value elem = builder.elementOf(base, arguments.get(0));
             Value componentClass = builder.encodeReference(elem, jlcRef);
@@ -579,7 +579,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic getClassFromTypeIdSimple = (builder, target, arguments) -> {
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.element());
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getRootElement());
             Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
             Value elem = builder.elementOf(base, arguments.get(0));
             return builder.encodeReference(elem, jlcRef);
@@ -638,7 +638,7 @@ public final class CoreIntrinsics {
         // public static native CNative.type_id getSuperClassTypeId(CNative.type_id typeId);
         StaticIntrinsic getSuperClassTypeId = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.element());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getRootElement());
             Value typeIdStruct = builder.elementOf(builder.getLiteralFactory().literalOf(typeIdGlobal), typeId);
             Value superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
             return builder.load(superTypeId);
@@ -657,7 +657,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic getByteOfInterfaceBits = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
             Value index = arguments.get(1);
-            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.element());
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getRootElement());
             Value typeIdStruct = builder.elementOf(builder.getLiteralFactory().literalOf(typeIdGlobal), typeId);
             Value bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
             return builder.load(builder.elementOf(bits, index));

@@ -229,24 +229,24 @@ public abstract class AbstractGc {
 
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getClassRegionStart", emptyToPtr, (builder, targetPtr, arguments) -> {
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.element());
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getRootElement());
             return builder.getLiteralFactory().literalOf(rootArray);
         });
 
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getClassRegionSize", emptyToLong, (builder, targetPtr, arguments) -> {
             BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
-            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.element());
+            ProgramObject rootArray = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getRootElement());
             return builder.getLiteralFactory().literalOf(rootArray.getValueType(ArrayType.class).getSize());
         });
 
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getInitialHeapRegionStart", emptyToPtr, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getHeapStart());
             return ctxt.getLiteralFactory().literalOf(start);
         });
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getInitialHeapRegionSize", emptyToLong, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getHeapStart());
             DataDeclaration end = pm.declareData(bh.getHeapEnd());
@@ -256,13 +256,13 @@ public abstract class AbstractGc {
         });
 
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getInitialHeapStringsRegionStart", emptyToPtr, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getStringsStart());
             return ctxt.getLiteralFactory().literalOf(start);
         });
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getInitialHeapStringsRegionSize", emptyToLong, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getStringsStart());
             DataDeclaration end = pm.declareData(bh.getStringsEnd());
@@ -272,13 +272,13 @@ public abstract class AbstractGc {
         });
 
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getReferenceTypedVariablesStart", emptyToPtr, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getRefsStart());
             return ctxt.getLiteralFactory().literalOf(start);
         });
         intrinsics.registerIntrinsic(Phase.LOWER, gcDesc, "getReferenceTypedVariablesCount", emptyToInt, (builder, targetPtr, arguments) -> {
-            ProgramModule pm = ctxt.getOrAddProgramModule(builder.element());
+            ProgramModule pm = ctxt.getOrAddProgramModule(builder.getRootElement());
             BuildtimeHeap bh = BuildtimeHeap.get(ctxt);
             DataDeclaration start = pm.declareData(bh.getRefsStart());
             DataDeclaration end = pm.declareData(bh.getRefsEnd());
