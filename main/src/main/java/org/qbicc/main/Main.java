@@ -95,6 +95,7 @@ import org.qbicc.plugin.initializationcontrol.QbiccFeature;
 import org.qbicc.plugin.initializationcontrol.QbiccFeatureProcessor;
 import org.qbicc.plugin.initializationcontrol.RuntimeResourceManager;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
+import org.qbicc.plugin.instanceofcheckcast.InvalidCastsCleanupBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
@@ -425,7 +426,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     vm.doAttached(threadHolder.get(), () -> wrapper.accept(ctxt))
                                 );
                             });
-                            builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
                             if (llvm) {
                                 builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
@@ -448,6 +448,7 @@ public class Main implements Callable<DiagnosticContext> {
                             // common GC setup
                             builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
                             builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
+                            builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
                             builder.addPreHook(Phase.ADD, compilationContext -> {
                                 if (!buildTimeInitRootClasses.isEmpty()) {
                                     for (String toInit : buildTimeInitRootClasses) {
@@ -487,6 +488,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IndyResolvingBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
@@ -550,10 +552,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                             }
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
+                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
                             if (optInlining) {
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::createIfNeeded);
                             }
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);

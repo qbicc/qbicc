@@ -1,6 +1,6 @@
 package org.qbicc.context;
 
-import org.qbicc.graph.Node;
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -11,7 +11,7 @@ public interface ProgramLocatable extends Locatable {
     int lineNumber();
     int bytecodeIndex();
     ExecutableElement element();
-    Node callSite();
+    ProgramLocatable callSite();
 
     default String sourceFileName() {
         ExecutableElement element = element();
@@ -48,5 +48,53 @@ public interface ProgramLocatable extends Locatable {
         }
         // (call site is not used by Location)
         return lb.build();
+    }
+
+    default Frozen freeze() {
+        return new Frozen(lineNumber(), bytecodeIndex(), element(), callSite());
+    }
+
+    default ProgramLocatable withUnderlyingCallSite(ProgramLocatable callSite) {
+        if (callSite == null) {
+            return this;
+        }
+        ProgramLocatable ourCallSite = callSite();
+        if (ourCallSite == null) {
+            return new Frozen(lineNumber(), bytecodeIndex(), element(), callSite);
+        } else {
+            return new Frozen(lineNumber(), bytecodeIndex(), element(), ourCallSite.withUnderlyingCallSite(callSite));
+        }
+    }
+
+    static boolean hasSameLocation(ProgramLocatable left, ProgramLocatable right) {
+        if (left == null) {
+            return right == null;
+        } else if (right == null) {
+            return false;
+        } else {
+            return left.lineNumber() == right.lineNumber()
+                && left.bytecodeIndex() == right.bytecodeIndex()
+                && left.element() == right.element()
+                && hasSameLocation(left.callSite(), right.callSite());
+        }
+    }
+
+    /**
+     * A {@code ProgramLocatable} which is immutable and is suitable for usage as a map key.
+     *
+     * @param lineNumber the line number
+     * @param bytecodeIndex the bci
+     * @param element the element (must not be {@code null})
+     * @param callSite the call site, or {@code null} if none
+     */
+    record Frozen(int lineNumber, int bytecodeIndex, ExecutableElement element, ProgramLocatable callSite) implements ProgramLocatable {
+        public Frozen {
+            Assert.checkNotNullParam("element", element);
+        }
+
+        @Override
+        public Frozen freeze() {
+            return this;
+        }
     }
 }

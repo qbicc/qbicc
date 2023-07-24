@@ -616,12 +616,12 @@ public class LocalOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (value.getType() instanceof IntegerType it) {
             LiteralFactory lf = ctxt.getLiteralFactory();
             boolean defaultMatches = true;
-            for (int checkValue : checkValues) {
-                IntegerLiteral checkValueLit = lf.literalOf(it, checkValue);
+            for (int i = 0; i < checkValues.length; i++) {
+                IntegerLiteral checkValueLit = lf.literalOf(it, checkValues[i]);
                 if (value.isDefEq(checkValueLit)) {
-                    return goto_(targets[checkValue], targetArguments);
+                    return goto_(targets[i], targetArguments);
                 }
-                if (defaultMatches && ! value.isDefNe(checkValueLit)) {
+                if (defaultMatches && !value.isDefNe(checkValueLit)) {
                     defaultMatches = false;
                 }
             }

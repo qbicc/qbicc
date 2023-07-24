@@ -3,6 +3,7 @@ package org.qbicc.plugin.lowering;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
@@ -80,6 +81,42 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     @Override
+    public <T> BasicBlock begin(BlockLabel blockLabel, T arg, BiConsumer<T, BasicBlockBuilder> maker) {
+        return super.begin(blockLabel, arg, (t, bb) -> {
+            if (! started) {
+                started = true;
+                final LocalVariableElement.Builder lveBuilder = LocalVariableElement.builder(".thr", BaseTypeDescriptor.V, 0);
+                lveBuilder.setSignature(BaseTypeSignature.V);
+                lveBuilder.setEnclosingType(originalElement.getEnclosingType());
+                lveBuilder.setType(threadNativeType.getPointer());
+                lveBuilder.setLine(bb.lineNumber());
+                lveBuilder.setBci(bb.bytecodeIndex());
+                lveBuilder.setTypeParameterContext(element().getTypeParameterContext());
+                lveBuilder.setSourceFileName(originalElement.getSourceFileName());
+                final LocalVariableElement lve = lveBuilder.build();
+                if (originalElement instanceof FunctionElement fe) {
+                    ProgramModule programModule = ctxt.getOrAddProgramModule(fe.getEnclosingType());
+                    DataDeclaration decl = programModule.declareData(null, "_qbicc_bound_java_thread", threadNativeType.getPointer());
+                    decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                    final LiteralFactory lf = ctxt.getLiteralFactory();
+                    declareDebugAddress(lve, lf.literalOf(decl));
+                } else {
+                    ParameterElement.Builder peBuilder = ParameterElement.builder(".thr", BaseTypeDescriptor.V, 0);
+                    peBuilder.setSignature(BaseTypeSignature.V);
+                    peBuilder.setEnclosingType(originalElement.getEnclosingType());
+                    peBuilder.setType(threadNativeType.getPointer());
+                    peBuilder.setTypeParameterContext(element().getTypeParameterContext());
+                    peBuilder.setSourceFileName(originalElement.getSourceFileName());
+                    lveBuilder.setReflectsParameter(peBuilder.build());
+                    thrParam = addParam(blockLabel, Slot.thread(), threadNativeType.getPointer(), false);
+                    bb.setDebugValue(lve, thrParam);
+                }
+            }
+            maker.accept(t, bb);
+        });
+    }
+
+    @Override
     public Node begin(BlockLabel blockLabel) {
         Node node = super.begin(blockLabel);
         if (! started) {
@@ -123,6 +160,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             final LiteralFactory lf = ctxt.getLiteralFactory();
             return memberOf(load(lf.literalOf(decl)), currentThreadMember);
         } else {
+
+            if (thrParam == null) {
+                throw new IllegalStateException("No thread parameter; first block not processed yet?");
+            }
             return memberOf(thrParam, currentThreadMember);
         }
     }

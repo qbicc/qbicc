@@ -3,12 +3,11 @@ package org.qbicc.graph;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.smallrye.common.constraint.Assert;
@@ -25,9 +24,7 @@ import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.MemberOfLiteral;
 import org.qbicc.graph.literal.OffsetFromLiteral;
-import org.qbicc.graph.schedule.Util;
 import org.qbicc.type.StructType;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -41,7 +38,7 @@ public interface Node extends ProgramLocatable {
      *
      * @return the call site node, or {@code null} if this node was not inlined from another function
      */
-    Node callSite();
+    ProgramLocatable callSite();
 
     /**
      * Get the source element.  Literals will have no source element.
@@ -93,14 +90,14 @@ public interface Node extends ProgramLocatable {
         private final BasicBlockBuilder blockBuilder;
         private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
+        // original call site -> call site of target block -> copied call site
+        private final Map<ProgramLocatable.Frozen, Map<ProgramLocatable.Frozen, ProgramLocatable.Frozen>> copiedCallSites = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
         private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
-        private final Map<Set<Value>, Set<Value>> cache = new HashMap<>();
-        private Set<Value> liveOut;
-        private Set<Value> liveIn;
+        private final BiConsumer<BasicBlock, BasicBlockBuilder> copyingConsumer = (bl, bb) -> copyScheduledNodes(bl);
 
         public Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
             BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
@@ -131,8 +128,7 @@ public interface Node extends ProgramLocatable {
             BasicBlock block;
             while ((block = blockQueue.poll()) != null) {
                 // process and map all queued blocks - might enqueue more blocks
-                blockBuilder.begin(copiedBlocks.get(block));
-                copyScheduledNodes(block);
+                blockBuilder.begin(copiedBlocks.get(block), block, copyingConsumer);
             }
             return BlockLabel.getTargetOf(entryCopy);
         }
@@ -158,67 +154,17 @@ public interface Node extends ProgramLocatable {
             if (copiedBlocks.putIfAbsent(original, copy) != null) {
                 throw new IllegalStateException();
             }
+            blockQueue.add(original);
         }
 
         public void copyScheduledNodes(BasicBlock block) {
             try {
-                final List<Node> instructions = block.getInstructions();
-                mapInstructions(block, instructions.listIterator(instructions.size()), new HashSet<>(block.getLiveOuts()), block.getLiveOuts());
+                for (Node node : block.getInstructions()) {
+                    copyNode(node);
+                }
             } catch (BlockEarlyTermination term) {
                 copiedTerminators.put(block.getTerminator(), term.getTerminatedBlock());
             }
-        }
-
-        private void mapInstructions(BasicBlock block, ListIterator<Node> iter, Set<Value> live, Set<Value> liveOuts) {
-            if (! iter.hasPrevious()) {
-                // all done
-                return;
-            }
-            // process current instruction
-            final Node node = iter.previous();
-            if (node instanceof BlockParameter bp && bp.getPinnedBlock() == block) {
-                // keep it alive to the start of the block.
-            } if (node instanceof Value v) {
-                // this is where it was defined, thus we can remove it from the live set.
-                live.remove(v);
-            } else if (node instanceof Invoke inv) {
-                // special case!
-                live.remove(inv.getReturnValue());
-            }
-            // add any values consumed by this node to the live set
-            final int cnt = node.getValueDependencyCount();
-            for (int i = 0; i < cnt; i ++) {
-                final Value val = node.getValueDependency(i);
-                if (val.getType() instanceof ReferenceType && ! (val instanceof Literal)) {
-                    live.add(val);
-                }
-            }
-            Set<Value> liveIn = Util.getCachedSet(cache, live);
-            // process and emit previous instruction (if any)
-            mapInstructions(block, iter, live, liveIn);
-            // now emit current instruction
-            this.liveIn = liveIn;
-            this.liveOut = liveOuts;
-            copyNode(node);
-        }
-
-        /**
-         * Get the set of values which were live in the program before this node was reached.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveIn() {
-            return liveIn;
-        }
-
-        /**
-         * Get the set of values which will be live in the program after this node is processed.
-         * This set might or might not include the node currently being processed.
-         *
-         * @return the set of live values
-         */
-        public Set<Value> getLiveOut() {
-            return liveOut;
         }
 
         public Node copyNode(Node original) {
@@ -249,8 +195,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -262,6 +207,23 @@ public interface Node extends ProgramLocatable {
                 }
             }
             return copy;
+        }
+
+        public ProgramLocatable copyCallSite(ProgramLocatable original) {
+            ProgramLocatable currentCallSite = blockBuilder.callSite();
+            if (original == null) {
+                return currentCallSite;
+            } else if (currentCallSite == null) {
+                return original;
+            } else {
+                Frozen frozen = original.freeze();
+                Frozen currentFrozen = currentCallSite.freeze();
+                return copiedCallSites.computeIfAbsent(frozen, Copier::newMap).computeIfAbsent(currentFrozen, current -> frozen.withUnderlyingCallSite(currentFrozen).freeze());
+            }
+        }
+
+        private static <K, V> Map<K, V> newMap(Object ignored) {
+            return new HashMap<>();
         }
 
         public List<Value> copyValues(List<Value> list) {
@@ -316,8 +278,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -341,8 +302,7 @@ public interface Node extends ProgramLocatable {
                 int oldLine = blockBuilder.setLineNumber(original.lineNumber());
                 int oldBci = blockBuilder.setBytecodeIndex(original.bytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.element());
-                Node origCallSite = original.callSite();
-                Node oldCallSite = origCallSite == null ? blockBuilder.callSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                ProgramLocatable oldCallSite = blockBuilder.setCallSite(copyCallSite(original.callSite()));
                 BasicBlock block;
                 try {
                     block = original.accept(nodeVisitor, this);

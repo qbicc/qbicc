@@ -119,6 +119,9 @@ public final class Scheduler {
             int cnt = node.getValueDependencyCount();
             for (int i = 0; i < cnt; i ++) {
                 Value valueDependency = node.getValueDependency(i);
+                if (valueDependency == null) {
+                    throw new IllegalStateException("Missing dependency on node");
+                }
                 BlockInfo candidate = scheduleEarly(node, valueDependency);
                 if (candidate.domDepth > selected.domDepth) {
                     selected = candidate;

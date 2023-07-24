@@ -1,10 +1,10 @@
 package org.qbicc.plugin.opt;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
@@ -32,7 +32,7 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public BasicBlock visit(final Node.Copier param, final Goto node) {
         BasicBlock target = node.getResumeTarget();
-        if (target.getIncoming().size() == 1 && Objects.equals(node.callSite(), target.getTerminator().callSite())) {
+        if (target.getIncoming().size() == 1 && ProgramLocatable.hasSameLocation(node.callSite(), target.getTerminator().callSite())) {
             // delete the goto target and fold it into the current block
             deleted.add(target);
             param.copyNode(node.getDependency());
@@ -73,8 +73,8 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
             && node.getTrueBranch().getIncoming().size() == 1
             && node.getFalseBranch().getIncoming().size() == 1
             && g1.getResumeTarget().getIncoming().size() == 2
-            && Objects.equals(node.callSite(), g1.getResumeTarget().getTerminator().callSite())
-            && Objects.equals(node.callSite(), g2.getResumeTarget().getTerminator().callSite())
+            && ProgramLocatable.hasSameLocation(node.callSite(), g1.getResumeTarget().getTerminator().callSite())
+            && ProgramLocatable.hasSameLocation(node.callSite(), g2.getResumeTarget().getTerminator().callSite())
         ) {
             // either branch works, because we want the successor's successor
             final BasicBlock tb = node.getTrueBranch();

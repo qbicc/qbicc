@@ -1,6 +1,6 @@
 package org.qbicc.interpreter.impl;
 
-import org.qbicc.graph.Node;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Vm;
@@ -20,7 +20,7 @@ import org.qbicc.type.definition.element.MethodElement;
 import static org.qbicc.graph.atomic.AccessModes.SinglePlain;
 
 final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
-    private volatile Node[] backTrace = Value.NO_VALUES;
+    private volatile ProgramLocatable[] backTrace = Value.NO_VALUES;
 
     VmThrowableImpl(VmThrowableClassImpl clazz) {
         super(clazz);
@@ -61,10 +61,10 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
         int declaringClassIdx = layout.getMember(steClassDef.findField("declaringClass")).getOffset();
         int fileNameIdx = layout.getMember(steClassDef.findField("fileName")).getOffset();
         int methodNameIdx = layout.getMember(steClassDef.findField("methodName")).getOffset();
-        Node[] backTrace = this.backTrace;
+        ProgramLocatable[] backTrace = this.backTrace;
         VmObject[] steArray = ((VmRefArrayImpl) array).getArray();
         for (int i = 0; i < backTrace.length; i++) {
-            Node ip = backTrace[i];
+            ProgramLocatable ip = backTrace[i];
             ExecutableElement frameElement = ip.element();
             VmObjectImpl ste = vm.stackTraceElementClass.newInstance();
             vm.manuallyInitialize(ste);
@@ -135,10 +135,10 @@ final class VmThrowableImpl extends VmObjectImpl implements VmThrowable {
 
     @Override
     public StackTraceElement[] getStackTrace() {
-        Node[] backTrace = this.backTrace;
+        ProgramLocatable[] backTrace = this.backTrace;
         StackTraceElement[] stackTrace = new StackTraceElement[backTrace.length];
         for (int i = 0; i < backTrace.length; i++) {
-            Node ip = backTrace[i];
+            ProgramLocatable ip = backTrace[i];
             ExecutableElement frameElement = ip.element();
             VmClass elementClass = frameElement.getEnclosingType().load().getVmClass();
             String classLoaderName = null; // todo fill in from frame element

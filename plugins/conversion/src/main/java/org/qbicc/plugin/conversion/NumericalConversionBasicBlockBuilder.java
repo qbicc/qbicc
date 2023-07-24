@@ -1,5 +1,6 @@
 package org.qbicc.plugin.conversion;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
@@ -153,6 +154,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value bitCast(final Value from, final WordType toType) {
+        Assert.checkNotNullParam("toType", toType);
         ValueType fromTypeRaw = from.getType();
         if (fromTypeRaw.equals(toType)) {
             // no bitcast needed

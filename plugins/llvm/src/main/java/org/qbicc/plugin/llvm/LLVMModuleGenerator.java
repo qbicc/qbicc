@@ -163,7 +163,7 @@ final class LLVMModuleGenerator {
                     }
 
                     if (isExact) {
-                        topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
+                        topSubprogram = debugInfo.getDebugInfoForFunction(element, null).getSubprogram();
                         functionDefinition.meta("dbg", topSubprogram);
                     } else {
                         topSubprogram = debugInfo.createThunkSubprogram(fn).asRef();

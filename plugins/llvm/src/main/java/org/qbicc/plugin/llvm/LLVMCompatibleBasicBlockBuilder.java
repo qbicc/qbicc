@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -521,7 +522,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     private boolean isTailCallSafe() {
         if (element().hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {
-            Node callSite = callSite();
+            ProgramLocatable callSite = callSite();
             while (callSite != null) {
                 ExecutableElement element = callSite.element();
                 if (!element.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN)) {

@@ -14,6 +14,7 @@ import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.context.ProgramLocatable;
 import org.qbicc.graph.atomic.GlobalAccessMode;
 import org.qbicc.graph.atomic.ReadAccessMode;
 import org.qbicc.graph.atomic.WriteAccessMode;
@@ -60,9 +61,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
     private final ExecutableElement rootElement;
-    private Node callSite;
+    private ProgramLocatable callSite;
     private BasicBlock terminatedBlock;
-    private Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
+    private final Map<BlockLabel, Map<Slot, BlockParameter>> parameters;
     private final Map<Value, Value> unique = new HashMap<>();
 
     SimpleBasicBlockBuilder(final ExecutableElement element) {
@@ -84,6 +85,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         }
         if (nullable && ! (type instanceof NullableType)) {
             throw new IllegalArgumentException("Parameter can only be nullable if its type is nullable");
+        }
+        if (type instanceof VoidType) {
+            throw new IllegalArgumentException("Void-typed block parameter");
         }
         parameter = new BlockParameter(this, type, nullable, owner, slot);
         subMap.put(slot, parameter);
@@ -119,12 +123,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return old;
     }
 
-    public Node callSite() {
+    public ProgramLocatable callSite() {
         return callSite;
     }
 
-    public Node setCallSite(final Node callSite) {
-        Node old = this.callSite;
+    public ProgramLocatable setCallSite(final ProgramLocatable callSite) {
+        ProgramLocatable old = this.callSite;
         this.callSite = callSite;
         return old;
     }
@@ -427,7 +431,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         for (int i=0; i<expectedDimensions; i++) {
             ifTrueExpectedType = ifTrueExpectedType.getReferenceArrayObject();
         }
-        return asDependency(new InstanceOf(this, requireDependency(), input, fb.notNull(fb.bitCast(input, ((ReferenceType)input.getType()).narrow(ifTrueExpectedType))), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
+        ReferenceType narrowed = input.getType(ReferenceType.class).narrow(ifTrueExpectedType);
+        if (narrowed == null) {
+            throw new IllegalStateException(String.format("Invalid instanceof check from %s to %s", input.getType(), expectedType));
+        }
+        return asDependency(new InstanceOf(this, requireDependency(), input, fb.notNull(fb.bitCast(input, narrowed)), expectedType, expectedDimensions, getTypeSystem().getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
@@ -742,13 +750,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         final BlockLabel oldCurrentBlock = currentBlock;
         final BasicBlock oldTerminatedBlock = terminatedBlock;
         final ExecutableElement oldElement = element;
-        final Node oldCallSite = callSite;
-        final Map<BlockLabel, Map<Slot, BlockParameter>> oldParameters = new HashMap<>(parameters);
+        final ProgramLocatable oldCallSite = callSite;
         try {
             return doBegin(blockLabel, arg, maker);
         } finally {
             // restore all state
-            parameters = oldParameters;
             callSite = oldCallSite;
             element = oldElement;
             terminatedBlock = oldTerminatedBlock;
@@ -767,7 +773,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
                 firstBlock = blockLabel;
             }
             dependency = blockEntry = new BlockEntry(this, blockLabel);
-            parameters = new HashMap<>();
             maker.accept(arg, firstBuilder);
             if (currentBlock != null) {
                 getContext().error(getLocation(), "Block not terminated");
