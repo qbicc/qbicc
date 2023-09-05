@@ -25,6 +25,20 @@
             <artifactId>qbicc-machine-file-object</artifactId>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-testing-wasm-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-function</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.kaitai</groupId>
             <artifactId>kaitai-struct-runtime</artifactId>
             <version>${version.io.kaitai}</version>
