@@ -104,6 +104,7 @@
         <module>machine</module>
         <module>runtime</module>
         <module>plugins</module>
+        <module>testing</module>
         <module>test-utils</module>
         <module>integration-tests</module>
         <module>maven-plugin</module>
