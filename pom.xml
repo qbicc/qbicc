@@ -104,6 +104,7 @@
         <module>machine</module>
         <module>runtime</module>
         <module>plugins</module>
+        <module>testing</module>
         <module>test-utils</module>
         <module>integration-tests</module>
         <module>maven-plugin</module>
@@ -255,6 +256,12 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-test-utils</artifactId>
+                <version>${project.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-testing-wasm-suite</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
