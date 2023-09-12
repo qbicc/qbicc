@@ -365,8 +365,9 @@ public final class SimpleInsn implements Insn<Op.Simple> {
     public static final SimpleInsn v128_not = new SimpleInsn(Op.Simple.v128_not);
     public static final SimpleInsn v128_or = new SimpleInsn(Op.Simple.v128_or);
     public static final SimpleInsn v128_xor = new SimpleInsn(Op.Simple.v128_xor);
+    // atomics spec
+    public static final SimpleInsn atomic_fence = new SimpleInsn(Op.Simple.atomic_fence);
 
-    
     public static SimpleInsn forOp(Op.Simple insn) {
         return switch (insn) {
             case drop -> drop;
@@ -710,6 +711,7 @@ public final class SimpleInsn implements Insn<Op.Simple> {
             case v128_not -> v128_not;
             case v128_or -> v128_or;
             case v128_xor -> v128_xor;
+            case atomic_fence -> atomic_fence;
         };
     }
 }

@@ -8,6 +8,13 @@ import org.qbicc.machine.file.wasm.ValType;
  *
  */
 public class InsnSeqVisitor<E extends Exception> extends Visitor<E> {
+    public void visit(Op.AtomicMemoryAccess insn, int memory, int offset) throws E {
+    }
+
+    public final void visit(Op.AtomicMemoryAccess insn, int offset) throws E {
+        visit(insn, 0, offset);
+    }
+
     public void visit(Op.Block insn) throws E {
     }
 

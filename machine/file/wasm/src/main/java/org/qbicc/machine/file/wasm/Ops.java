@@ -36,6 +36,8 @@ public final class Ops {
     public static final class atomic {
         private atomic() {
         }
+
+        public static final Op.Simple fence = Op.Simple.atomic_fence;
     }
 
     public static final class data {
@@ -99,6 +101,10 @@ public final class Ops {
         public static final class atomic {
             private atomic() {
             }
+
+            public static final Op.AtomicMemoryAccess notify = Op.AtomicMemoryAccess.memory_atomic_notify;
+            public static final Op.AtomicMemoryAccess wait32 = Op.AtomicMemoryAccess.memory_atomic_wait32;
+            public static final Op.AtomicMemoryAccess wait64 = Op.AtomicMemoryAccess.memory_atomic_wait64;
         }
     }
 
@@ -237,19 +243,50 @@ public final class Ops {
             private atomic() {
             }
 
+            public static final Op.AtomicMemoryAccess load = Op.AtomicMemoryAccess.i32_atomic_load;
+            public static final Op.AtomicMemoryAccess load16_u = Op.AtomicMemoryAccess.i32_atomic_load16_u;
+            public static final Op.AtomicMemoryAccess load8_u = Op.AtomicMemoryAccess.i32_atomic_load8_u;
+            public static final Op.AtomicMemoryAccess store = Op.AtomicMemoryAccess.i32_atomic_store;
+            public static final Op.AtomicMemoryAccess store16 = Op.AtomicMemoryAccess.i32_atomic_store16;
+            public static final Op.AtomicMemoryAccess store8 = Op.AtomicMemoryAccess.i32_atomic_store8;
+
             public static final class rmw {
                 private rmw() {
                 }
+
+                public static final Op.AtomicMemoryAccess add = Op.AtomicMemoryAccess.i32_atomic_rmw_add;
+                public static final Op.AtomicMemoryAccess and = Op.AtomicMemoryAccess.i32_atomic_rmw_and;
+                public static final Op.AtomicMemoryAccess cmpxchg = Op.AtomicMemoryAccess.i32_atomic_rmw_cmpxchg;
+                public static final Op.AtomicMemoryAccess or = Op.AtomicMemoryAccess.i32_atomic_rmw_or;
+                public static final Op.AtomicMemoryAccess sub = Op.AtomicMemoryAccess.i32_atomic_rmw_sub;
+                public static final Op.AtomicMemoryAccess xchg = Op.AtomicMemoryAccess.i32_atomic_rmw_xchg;
+                public static final Op.AtomicMemoryAccess xor = Op.AtomicMemoryAccess.i32_atomic_rmw_xor;
             }
 
             public static final class rmw8 {
                 private rmw8() {
                 }
+
+                public static final Op.AtomicMemoryAccess add_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_add_u;
+                public static final Op.AtomicMemoryAccess and_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_and_u;
+                public static final Op.AtomicMemoryAccess cmpxchg_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_cmpxchg_u;
+                public static final Op.AtomicMemoryAccess or_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_or_u;
+                public static final Op.AtomicMemoryAccess sub_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_sub_u;
+                public static final Op.AtomicMemoryAccess xchg_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_xchg_u;
+                public static final Op.AtomicMemoryAccess xor_u = Op.AtomicMemoryAccess.i32_atomic_rmw8_xor_u;
             }
 
             public static final class rmw16 {
                 private rmw16() {
                 }
+
+                public static final Op.AtomicMemoryAccess add_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_add_u;
+                public static final Op.AtomicMemoryAccess and_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_and_u;
+                public static final Op.AtomicMemoryAccess cmpxchg_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_cmpxchg_u;
+                public static final Op.AtomicMemoryAccess or_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_or_u;
+                public static final Op.AtomicMemoryAccess sub_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_sub_u;
+                public static final Op.AtomicMemoryAccess xchg_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_xchg_u;
+                public static final Op.AtomicMemoryAccess xor_u = Op.AtomicMemoryAccess.i32_atomic_rmw16_xor_u;
             }
         }
     }

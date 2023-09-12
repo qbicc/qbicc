@@ -14,5 +14,7 @@ public sealed interface Table extends Exportable permits ImportedTable, DefinedT
 
     long maxSize();
 
+    boolean shared();
+
     List<ActiveElement> initializers();
 }

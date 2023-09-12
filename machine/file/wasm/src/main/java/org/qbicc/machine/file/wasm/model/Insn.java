@@ -7,7 +7,8 @@ import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
 /**
  * An instruction instance.
  */
-public sealed interface Insn<I extends Op> permits BlockInsn,
+public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
+                                                   BlockInsn,
                                                    ConstF32Insn,
                                                    ConstF64Insn,
                                                    ConstI32Insn,
