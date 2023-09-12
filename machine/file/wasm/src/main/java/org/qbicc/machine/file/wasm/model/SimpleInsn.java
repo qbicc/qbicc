@@ -24,6 +24,7 @@ public final class SimpleInsn implements Insn<Op.Simple> {
         ev.visit(op());
     }
 
+    public static final SimpleInsn catch_all = new SimpleInsn(Op.Simple.catch_all);
     public static final SimpleInsn drop = new SimpleInsn(Op.Simple.drop);
     public static final SimpleInsn else_ = new SimpleInsn(Op.Simple.else_);
     public static final SimpleInsn end = new SimpleInsn(Op.Simple.end);
@@ -370,6 +371,7 @@ public final class SimpleInsn implements Insn<Op.Simple> {
 
     public static SimpleInsn forOp(Op.Simple insn) {
         return switch (insn) {
+            case catch_all -> catch_all;
             case drop -> drop;
             case else_ -> else_;
             case end -> end;

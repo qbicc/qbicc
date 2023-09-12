@@ -261,7 +261,16 @@ final class WasmInputStream implements Closeable {
         if (rawByte() != 0x60) {
             throw new IOException("Expected 0x60 (function type)");
         }
-        return new FuncType(typeVec(), typeVec());
+        List<ValType> parameterTypes = typeVec();
+        List<ValType> resultTypes = typeVec();
+        if (parameterTypes.isEmpty()) {
+            if (resultTypes.isEmpty()) {
+                return FuncType.EMPTY;
+            } else if (resultTypes.size() == 1) {
+                return resultTypes.get(0).asFuncTypeReturning();
+            }
+        }
+        return new FuncType(parameterTypes, resultTypes);
     }
 
     public List<ValType> typeVec() throws IOException {

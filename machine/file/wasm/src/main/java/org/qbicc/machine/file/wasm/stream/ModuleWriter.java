@@ -12,6 +12,7 @@ import org.qbicc.machine.file.wasm.Data;
 import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.RefType;
+import org.qbicc.machine.file.wasm.TagAttribute;
 import org.qbicc.machine.file.wasm.Wasm;
 import org.qbicc.machine.file.wasm.Mutability;
 import org.qbicc.machine.file.wasm.ValType;
@@ -159,6 +160,19 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
                 wos.rawByte(0x03);
                 wos.type(type);
                 wos.mut(mut);
+            }
+
+            @Override
+            public void visitTagImport(String moduleName, String name, TagAttribute attribute, int typeIdx) throws IOException {
+                Assert.checkNotNullParam("moduleName", moduleName);
+                Assert.checkNotNullParam("name", name);
+                Assert.checkNotNullParam("attribute", attribute);
+                count ++;
+                wos.utf8(moduleName);
+                wos.utf8(name);
+                wos.rawByte(0x04);
+                wos.u32(attribute.ordinal());
+                wos.u32(typeIdx);
             }
 
             @Override
@@ -664,6 +678,29 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
     }
 
     @Override
+    public TagSectionVisitor<IOException> visitTagSection() throws IOException {
+        return new TagSectionVisitor<>() {
+            private final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+            private final WasmOutputStream wos = new WasmOutputStream(baos);
+            private int count = 0;
+
+            @Override
+            public void visitTag(TagAttribute attribute, int typeIdx) throws IOException {
+                Assert.checkNotNullParam("attribute", attribute);
+                count++;
+                wos.u32(attribute.ordinal());
+                wos.u32(typeIdx);
+            }
+
+            @Override
+            public void visitEnd() throws IOException {
+                wos.close();
+                endSection(count, Wasm.SECTION_TAG, baos);
+            }
+        };
+    }
+
+    @Override
     public DataSectionVisitor<IOException> visitDataSection() throws IOException {
         return new DataSectionVisitor<>() {
             private final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
@@ -842,6 +879,12 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
         }
 
         @Override
+        public void visit(Op.Exception insn, int blockIdx) throws IOException {
+            writeOpcode(insn);
+            wos.u32(blockIdx);
+        }
+
+        @Override
         public void visit(Op.Func insn, int funcIdx) throws IOException {
             writeOpcode(insn);
             wos.u32(funcIdx);
@@ -912,6 +955,12 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
             writeOpcode(insn);
             wos.u32(typeIdx);
             wos.u32(tableIdx);
+        }
+
+        @Override
+        public void visit(Op.Tag insn, int index) throws IOException {
+            writeOpcode(insn);
+            wos.u32(index);
         }
 
         @Override

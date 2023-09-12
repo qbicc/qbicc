@@ -30,6 +30,7 @@ public final class InsnSeq implements Iterable<Insn<?>> {
     private HashMap<Insn<?>, Insn<?>> cache;
     private final ArrayList<Insn<?>> instructions;
     private boolean foundElse = false;
+    private boolean foundCatchAll = false;
     private boolean ended = false;
 
     InsnSeq(HashMap<Insn<?>, Insn<?>> cache, int estimatedSize, Flag.Set flags) {
@@ -115,22 +116,40 @@ public final class InsnSeq implements Iterable<Insn<?>> {
     public <O extends Op, I extends Insn<O>> I add(I insn) {
         Assert.checkNotNullParam("insn", insn);
         if (ended) {
-            throw new IllegalArgumentException("Instruction added after `end`");
-        }
-        if (insn == SimpleInsn.end) {
+            throw notAllowed(insn.op());
+        } else if (insn.op() == Ops.end) {
             end();
-        } else if (insn == SimpleInsn.else_) {
-            if (flags.contains(Flag.ALLOW_ELSE) && ! foundElse) {
+        } else if (insn.op() == Ops.else_) {
+            if (flags.contains(Flag.ALLOW_ELSE) && !foundElse) {
                 instructions.add(insn);
                 // there can be only one
                 foundElse = true;
             } else {
-                throw new IllegalArgumentException("Instruction `else` not allowed here");
+                throw notAllowed(insn.op());
+            }
+        } else if (insn.op() == Ops.catch_) {
+            if (flags.contains(Flag.ALLOW_CATCH) && !foundCatchAll) {
+                instructions.add(insn);
+                // multiple allowed
+            } else {
+                throw notAllowed(insn.op());
+            }
+        } else if (insn.op() == Ops.catch_all) {
+            if (flags.contains(Flag.ALLOW_CATCH) && !foundCatchAll) {
+                instructions.add(insn);
+                // no more allowed
+                foundCatchAll = true;
+            } else {
+                throw notAllowed(insn.op());
             }
         } else {
             instructions.add(insn);
         }
         return insn;
+    }
+
+    private static IllegalArgumentException notAllowed(final Op insn) {
+        return new IllegalArgumentException("Instruction `" + insn + "` not allowed here");
     }
 
     public void end() {
@@ -152,7 +171,7 @@ public final class InsnSeq implements Iterable<Insn<?>> {
      * @return the instruction (not {@code null})
      */
     public BlockInsn add(Op.Block op, Consumer<BlockInsn> insnConsumer) {
-        BlockInsn insn = new BlockInsn(op, new InsnSeq(cache, DEFAULT_ESTIMATED_SIZE, Flag.Set.of(op == Op.Block.if_, Flag.ALLOW_ELSE)));
+        BlockInsn insn = new BlockInsn(op, new InsnSeq(cache, DEFAULT_ESTIMATED_SIZE, Flag.Set.of(op == Op.Block.if_, Flag.ALLOW_ELSE, op == Op.Block.try_, Flag.ALLOW_CATCH)));
         insnConsumer.accept(insn);
         insn.body().end();
         return add(insn);
@@ -218,6 +237,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return add(getCached(new ElementAndTableInsn(op, elementHandle, table)));
     }
 
+    public ExceptionInsn add(Op.Exception op, BranchTarget target) {
+        return add(getCached(new ExceptionInsn(op, target)));
+    }
+
     public FuncInsn add(Op.Func op, Func func) {
         return add(getCached(new FuncInsn(op, func)));
     }
@@ -280,6 +303,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
 
     public TableAndTableInsn add(Op.TableAndTable op, Table table1, Table table2) {
         return add(getCached(new TableAndTableInsn(op, table1, table2)));
+    }
+
+    public TagInsn add(Op.Tag op, Tag tag) {
+        return add(getCached(new TagInsn(op, tag)));
     }
 
     public TypesInsn add(Op.Types op, ValType type) {
@@ -433,14 +460,20 @@ public final class InsnSeq implements Iterable<Insn<?>> {
 
         @Override
         public void visit(Op.Block insn, int typeIdx) {
-            // todo...
-            visit(insn);
+            InsnSeq child = current().newWithSharedCache(Flag.Set.of(insn == Op.Block.if_, Flag.ALLOW_ELSE));
+            BlockInsn bi = new BlockInsn(insn, child, resolver.resolveFuncType(typeIdx));
+            current().add(bi);
+            branchTargets.add(bi);
+            stack.add(child);
         }
 
         @Override
         public void visit(Op.Block insn, ValType valType) {
-            // todo...
-            visit(insn);
+            InsnSeq child = current().newWithSharedCache(Flag.Set.of(insn == Op.Block.if_, Flag.ALLOW_ELSE));
+            BlockInsn bi = new BlockInsn(insn, child, valType.asFuncTypeReturning());
+            current().add(bi);
+            branchTargets.add(bi);
+            stack.add(child);
         }
 
         @Override
@@ -481,6 +514,11 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         @Override
         public void visit(Op.ElementAndTable insn, int elemIdx, int tableIdx) throws E {
             current().add(insn, resolver.resolveElement(elemIdx), resolver.resolveTable(tableIdx));
+        }
+
+        @Override
+        public void visit(Op.Exception insn, int blockIdx) throws E {
+            current().add(insn, branchTargets.get(blockIdx));
         }
 
         @Override
@@ -576,6 +614,11 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         }
 
         @Override
+        public void visit(Op.Tag insn, int index) throws E {
+            current().add(insn, resolver.resolveTag(index));
+        }
+
+        @Override
         public void visit(Op.RefTyped insn, RefType type) {
             current().add(insn, type);
         }
@@ -597,6 +640,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
          * Allow an {@link Ops#else_} instruction to occur in this block.
          */
         ALLOW_ELSE,
+        /**
+         * Allow {@link Ops#catch_} instructions and/or a {@link Ops#catch_all} instruction to occur in this block.
+         */
+        ALLOW_CATCH,
         ;
 
         static final Flag[] values = values();

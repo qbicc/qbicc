@@ -51,4 +51,8 @@ public class ModuleVisitor<E extends Exception> extends Visitor<E> {
     public DataSectionVisitor<E> visitDataSection() throws E {
         return null;
     }
+
+    public TagSectionVisitor<E> visitTagSection() throws E {
+        return null;
+    }
 }

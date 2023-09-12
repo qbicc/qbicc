@@ -3,22 +3,40 @@ package org.qbicc.machine.file.wasm.model;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Op;
+import org.qbicc.machine.file.wasm.ValType;
 import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
 
 /**
  * A block instruction which contains a sequence of nested instructions.
  */
-public record BlockInsn(Op.Block op, InsnSeq body) implements Insn<Op.Block>, BranchTarget {
-    // todo: type..?
+public record BlockInsn(Op.Block op, InsnSeq body, FuncType type) implements Insn<Op.Block>, BranchTarget {
     public BlockInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("body", body);
+        Assert.checkNotNullParam("type", type);
+    }
+
+    public BlockInsn(Op.Block op, InsnSeq body) {
+        this(op, body, FuncType.EMPTY);
+    }
+
+    public BlockInsn(Op.Block op, InsnSeq body, ValType type) {
+        this(op, body, FuncType.returning(Assert.checkNotNullParam("type", type)));
     }
 
     @Override
     public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        // todo: types or whatever
-        ev.visit(op());
+        if (type.parameterTypes().isEmpty()) {
+            if (type.resultTypes().isEmpty()) {
+                ev.visit(op());
+            } else if (type.resultTypes().size() == 1) {
+                ev.visit(op(), type.resultTypes().get(0));
+            } else {
+                ev.visit(op(), encoder.encode(type));
+            }
+        } else {
+            ev.visit(op(), encoder.encode(type));
+        }
         body.accept(ev, new Encoder() {
             @Override
             public int encode(BranchTarget branchTarget) {
@@ -57,7 +75,12 @@ public record BlockInsn(Op.Block op, InsnSeq body) implements Insn<Op.Block>, Br
 
             @Override
             public int encode(Segment seg) {
-                return 0;
+                return encoder.encode(seg);
+            }
+
+            @Override
+            public int encode(Tag tag) {
+                return encoder.encode(tag);
             }
         });
     }

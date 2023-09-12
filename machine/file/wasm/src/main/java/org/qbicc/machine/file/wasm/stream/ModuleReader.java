@@ -18,6 +18,7 @@ import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.Mutability;
 import org.qbicc.machine.file.wasm.Ops;
 import org.qbicc.machine.file.wasm.RefType;
+import org.qbicc.machine.file.wasm.TagAttribute;
 import org.qbicc.machine.file.wasm.ValType;
 
 /**
@@ -80,6 +81,7 @@ public final class ModuleReader implements Closeable {
                 case SECTION_CODE -> parse(visitor.visitCodeSection(), size);
                 case SECTION_DATA -> parse(visitor.visitDataSection(), size);
                 case SECTION_DATA_COUNT -> parse(visitor.visitDataCountSection(), size);
+                case SECTION_TAG -> parse(visitor.visitTagSection(), size);
                 case SECTION_CUSTOM -> skipSection(size);
                 default -> throw new IOException("Unknown section ID 0x" + Integer.toHexString(section));
             };
@@ -141,6 +143,7 @@ public final class ModuleReader implements Closeable {
                     case 0x01 -> Mutability.var_;
                     default -> throw new IOException("Expected valid mutability type for global import");
                 });
+                case 0x04 -> sv.visitTagImport(moduleName, name, TagAttribute.values()[is.u32()], is.u32());
                 default -> throw new IOException("Expected valid type for import");
             }
         }
@@ -362,6 +365,18 @@ public final class ModuleReader implements Closeable {
         return sv;
     }
 
+    private <E extends Exception> Visitor<E> parse(final TagSectionVisitor<E> sv, final int size) throws IOException, E {
+        if (sv == null) {
+            is.skip(size);
+            return null;
+        }
+        int cnt = is.u32();
+        for (int i = 0; i < cnt; i ++) {
+            sv.visitTag(TagAttribute.values()[is.u32()], is.u32());
+        }
+        return sv;
+    }
+
     private <E extends Exception> void parse(InsnSeqVisitor<E> ev) throws IOException, E {
         if (ev == null) {
             // just consume it
@@ -414,6 +429,7 @@ public final class ModuleReader implements Closeable {
                 case DATA -> ev.visit((Op.Data) insn, is.u32());
                 case ELEMENT -> ev.visit((Op.Element) insn, is.u32());
                 case ELEMENT_AND_TABLE -> ev.visit((Op.ElementAndTable) insn, is.u32(), is.u32());
+                case EXCEPTION ->  ev.visit((Op.Exception) insn, is.u32());
                 case FUNC -> ev.visit((Op.Func) insn, is.u32());
                 case GLOBAL -> ev.visit((Op.Global) insn, is.u32());
                 case BRANCH ->  ev.visit((Op.Branch) insn, is.u32());
@@ -464,6 +480,7 @@ public final class ModuleReader implements Closeable {
                     ev.visit((Op.TableAndFuncType) insn, tableIdx, typeIdx);
                 }
                 case TABLE_AND_TABLE -> ev.visit((Op.TableAndTable) insn, is.u32(), is.u32());
+                case TAG -> ev.visit((Op.Tag) insn, is.u32());
                 case TYPES -> ev.visit((Op.Types) insn, is.typeVec().toArray(ValType[]::new));
             }
         }
