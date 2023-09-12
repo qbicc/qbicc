@@ -103,7 +103,7 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
             }
 
             @Override
-            public void visitTableImport(String moduleName, String name, RefType type, int min, int max) throws IOException {
+            public void visitTableImport(String moduleName, String name, RefType type, int min, int max, boolean shared) throws IOException {
                 Assert.checkNotNullParam("moduleName", moduleName);
                 Assert.checkNotNullParam("name", name);
                 Assert.checkNotNullParam("type", type);
@@ -114,7 +114,7 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
                 wos.utf8(name);
                 wos.rawByte(0x01);
                 wos.type(type);
-                wos.rawByte(0x01);
+                wos.rawByte(shared ? 0x03 : 0x01);
                 wos.u32(min);
                 wos.u32(max);
             }
@@ -133,7 +133,7 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
             }
 
             @Override
-            public void visitMemoryImport(String moduleName, String name, int min, int max) throws IOException {
+            public void visitMemoryImport(String moduleName, String name, int min, int max, boolean shared) throws IOException {
                 Assert.checkNotNullParam("moduleName", moduleName);
                 Assert.checkNotNullParam("name", name);
                 Assert.checkMinimumParameter("min", 0, min);
@@ -142,7 +142,7 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
                 wos.utf8(moduleName);
                 wos.utf8(name);
                 wos.rawByte(0x02);
-                wos.rawByte(0x01);
+                wos.rawByte(shared ? 0x03 : 0x01);
                 wos.u32(min);
                 wos.u32(max);
             }
@@ -799,6 +799,15 @@ public final class ModuleWriter extends ModuleVisitor<IOException> {
             writeOpcode(insn);
             wos.u32(memIdx1);
             wos.u32(memIdx2);
+        }
+
+        @Override
+        public void visit(Op.AtomicMemoryAccess insn, int memory, int offset) throws IOException {
+            writeOpcode(insn);
+            if (memory != 0) {
+                // xxx
+            }
+            wos.u32(offset);
         }
 
         @Override

@@ -8,7 +8,8 @@ import java.util.Set;
  * A raw operation of some kind.
  */
 @SuppressWarnings("SpellCheckingInspection")
-public sealed interface Op permits Op.Block,
+public sealed interface Op permits Op.AtomicMemoryAccess,
+                                   Op.Block,
                                    Op.ConstF32,
                                    Op.ConstF64,
                                    Op.ConstI32,
@@ -48,6 +49,7 @@ public sealed interface Op permits Op.Block,
     Optional<? extends Op> optional();
 
     enum Kind {
+        ATOMIC_MEMORY_ACCESS(Op.AtomicMemoryAccess.class),
         BLOCK(Op.Block.class),
         BRANCH(Op.Branch.class),
         CONST_F32(Op.ConstF32.class),
@@ -818,6 +820,123 @@ public sealed interface Op permits Op.Block,
         }
     }
 
+    enum AtomicMemoryAccess implements Op {
+        i32_atomic_load("i32.atomic.load", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_LOAD, 4),
+        i32_atomic_load16_u("i32.atomic.load16_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_LOAD16_U, 2),
+        i32_atomic_load8_u("i32.atomic.load8_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_LOAD8_U, 1),
+        i32_atomic_rmw16_add_u("i32.atomic.rmw16.add_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_ADD_U, 2),
+        i32_atomic_rmw16_and_u("i32.atomic.rmw16.and_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_AND_U, 2),
+        i32_atomic_rmw16_cmpxchg_u("i32.atomic.rmw16.cmpxchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_CMPXCHG_U, 2),
+        i32_atomic_rmw16_or_u("i32.atomic.rmw16.or_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_OR_U, 2),
+        i32_atomic_rmw16_sub_u("i32.atomic.rmw16.sub_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_SUB_U, 2),
+        i32_atomic_rmw16_xchg_u("i32.atomic.rmw16.xchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_XCHG_U, 2),
+        i32_atomic_rmw16_xor_u("i32.atomic.rmw16.xor_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW16_XOR_U, 2),
+        i32_atomic_rmw8_add_u("i32.atomic.rmw8.add_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_ADD_U, 1),
+        i32_atomic_rmw8_and_u("i32.atomic.rmw8.and_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_AND_U, 1),
+        i32_atomic_rmw8_cmpxchg_u("i32.atomic.rmw8.cmpxchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_CMPXCHG_U, 1),
+        i32_atomic_rmw8_or_u("i32.atomic.rmw8.or_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_OR_U, 1),
+        i32_atomic_rmw8_sub_u("i32.atomic.rmw8.sub_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_SUB_U, 1),
+        i32_atomic_rmw8_xchg_u("i32.atomic.rmw8.xchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_XCHG_U, 1),
+        i32_atomic_rmw8_xor_u("i32.atomic.rmw8.xor_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW8_XOR_U, 1),
+        i32_atomic_rmw_add("i32.atomic.rmw.add", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_ADD, 4),
+        i32_atomic_rmw_and("i32.atomic.rmw.and", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_AND, 4),
+        i32_atomic_rmw_cmpxchg("i32.atomic.rmw.cmpxchg", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_CMPXCHG, 4),
+        i32_atomic_rmw_or("i32.atomic.rmw.or", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_OR, 4),
+        i32_atomic_rmw_sub("i32.atomic.rmw.sub", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_SUB, 4),
+        i32_atomic_rmw_xchg("i32.atomic.rmw.xchg", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_XCHG, 4),
+        i32_atomic_rmw_xor("i32.atomic.rmw.xor", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_RMW_XOR, 4),
+        i32_atomic_store("i32.atomic.store", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_STORE, 4),
+        i32_atomic_store16("i32.atomic.store16", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_STORE16, 2),
+        i32_atomic_store8("i32.atomic.store8", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I32_ATOMIC_STORE8, 1),
+        i64_atomic_load("i64.atomic.load", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_LOAD, 8),
+        i64_atomic_load16_u("i64.atomic.load16_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_LOAD16_U, 2),
+        i64_atomic_load32_u("i64.atomic.load32_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_LOAD32_U, 4),
+        i64_atomic_load8_u("i64.atomic.load8_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_LOAD8_U, 1),
+        i64_atomic_rmw16_add_u("i64.atomic.rmw16.add_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_ADD_U, 2),
+        i64_atomic_rmw16_and_u("i64.atomic.rmw16.and_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_AND_U, 2),
+        i64_atomic_rmw16_cmpxchg_u("i64.atomic.rmw16.cmpxchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_CMPXCHG_U, 2),
+        i64_atomic_rmw16_or_u("i64.atomic.rmw16.or_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_OR_U, 2),
+        i64_atomic_rmw16_sub_u("i64.atomic.rmw16.sub_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_SUB_U, 2),
+        i64_atomic_rmw16_xchg_u("i64.atomic.rmw16.xchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_XCHG_U, 2),
+        i64_atomic_rmw16_xor_u("i64.atomic.rmw16.xor_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW16_XOR_U, 2),
+        i64_atomic_rmw32_add_u("i64.atomic.rmw32.add_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_ADD_U, 4),
+        i64_atomic_rmw32_and_u("i64.atomic.rmw32.and_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_AND_U, 4),
+        i64_atomic_rmw32_cmpxchg_u("i64.atomic.rmw32.cmpxchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_CMPXCHG_U, 4),
+        i64_atomic_rmw32_or_u("i64.atomic.rmw32.or_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_OR_U, 4),
+        i64_atomic_rmw32_sub_u("i64.atomic.rmw32.sub_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_SUB_U, 4),
+        i64_atomic_rmw32_xchg_u("i64.atomic.rmw32.xchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_XCHG_U, 4),
+        i64_atomic_rmw32_xor_u("i64.atomic.rmw32.xor_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW32_XOR_U, 4),
+        i64_atomic_rmw8_add_u("i64.atomic.rmw8.add_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_ADD_U, 1),
+        i64_atomic_rmw8_and_u("i64.atomic.rmw8.and_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_AND_U, 1),
+        i64_atomic_rmw8_cmpxchg_u("i64.atomic.rmw8.cmpxchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_CMPXCHG_U, 1),
+        i64_atomic_rmw8_or_u("i64.atomic.rmw8.or_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_OR_U, 1),
+        i64_atomic_rmw8_sub_u("i64.atomic.rmw8.sub_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_SUB_U, 1),
+        i64_atomic_rmw8_xchg_u("i64.atomic.rmw8.xchg_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_XCHG_U, 1),
+        i64_atomic_rmw8_xor_u("i64.atomic.rmw8.xor_u", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW8_XOR_U, 1),
+        i64_atomic_rmw_add("i64.atomic.rmw.add", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_ADD, 8),
+        i64_atomic_rmw_and("i64.atomic.rmw.and", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_AND, 8),
+        i64_atomic_rmw_cmpxchg("i64.atomic.rmw.cmpxchg", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_CMPXCHG, 8),
+        i64_atomic_rmw_or("i64.atomic.rmw.or", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_OR, 8),
+        i64_atomic_rmw_sub("i64.atomic.rmw.sub", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_SUB, 8),
+        i64_atomic_rmw_xchg("i64.atomic.rmw.xchg", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_XCHG, 8),
+        i64_atomic_rmw_xor("i64.atomic.rmw.xor", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_RMW_XOR, 8),
+        i64_atomic_store("i64.atomic.store", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_STORE, 8),
+        i64_atomic_store16("i64.atomic.store16", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_STORE16, 2),
+        i64_atomic_store32("i64.atomic.store32", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_STORE32, 4),
+        i64_atomic_store8("i64.atomic.store8", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_I64_ATOMIC_STORE8, 1),
+        memory_atomic_notify("memory.atomic.notify", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_MEMORY_ATOMIC_NOTIFY, 4),
+        memory_atomic_wait32("memory.atomic.wait32", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_MEMORY_ATOMIC_WAIT32, 4),
+        memory_atomic_wait64("memory.atomic.wait64", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_MEMORY_ATOMIC_WAIT64, 8),
+        ;
+
+        private final String name;
+        private final int prefix;
+        private final int opcode;
+        private final int alignment;
+        private final Optional<AtomicMemoryAccess> optional;
+
+        AtomicMemoryAccess(String name, int prefix, int opcode, int alignment) {
+            this.name = name;
+            this.prefix = prefix;
+            this.opcode = opcode;
+            this.alignment = alignment;
+            this.optional = Optional.of(this);
+        }
+
+        AtomicMemoryAccess(String name, int opcode, int alignment) {
+            this(name, -1, opcode, alignment);
+        }
+
+        @Override
+        public int opcode() {
+            return opcode;
+        }
+
+        @Override
+        public int prefix() {
+            return prefix;
+        }
+
+        public int alignment() {
+            return alignment;
+        }
+
+        @Override
+        public Kind kind() {
+            return Kind.ATOMIC_MEMORY_ACCESS;
+        }
+
+        @Override
+        public Optional<AtomicMemoryAccess> optional() {
+            return optional;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     enum MemoryAccess implements Op {
         f32_load("f32.load", Opcodes.OP_F32_LOAD),
         f32_store("f32.store", Opcodes.OP_F32_STORE),
@@ -856,7 +975,6 @@ public sealed interface Op permits Op.Block,
         v128_load8x8_s("v128.load8x8_s", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_LOAD8X8_S),
         v128_load8x8_u("v128.load8x8_u", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_LOAD8X8_U),
         v128_store("v128.store", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_STORE),
-
         ;
 
         private final String name;
@@ -1481,6 +1599,8 @@ public sealed interface Op permits Op.Block,
         v128_not("v128.not", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_NOT),
         v128_or("v128.or", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_OR),
         v128_xor("v128.xor", Opcodes.OP_PREFIX_FD, Opcodes.OP_FD_V128_XOR),
+        // atomic
+        atomic_fence("atomic.fence", Opcodes.OP_PREFIX_FE, Opcodes.OP_FE_ATOMIC_FENCE);
         ;
 
         private final String name;

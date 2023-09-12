@@ -11,4 +11,6 @@ public sealed interface Memory extends Exportable permits ImportedMemory, Define
     long minSize();
 
     long maxSize();
+
+    boolean shared();
 }

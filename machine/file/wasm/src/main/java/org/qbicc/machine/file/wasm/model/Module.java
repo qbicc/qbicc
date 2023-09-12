@@ -303,8 +303,8 @@ public final class Module {
                     }
 
                     @Override
-                    public void visitTableImport(String moduleName, String name, RefType type, int min, int max) throws RuntimeException {
-                        ImportedTable table = new ImportedTable(moduleName, name, type, Integer.toUnsignedLong(min), Integer.toUnsignedLong(max), new ArrayList<>(0));
+                    public void visitTableImport(String moduleName, String name, RefType type, int min, int max, boolean shared) throws RuntimeException {
+                        ImportedTable table = new ImportedTable(moduleName, name, type, Integer.toUnsignedLong(min), Integer.toUnsignedLong(max), shared, new ArrayList<>(0));
                         import_(table);
                         tablesByIndex.add(table);
                     }
@@ -317,8 +317,8 @@ public final class Module {
                     }
 
                     @Override
-                    public void visitMemoryImport(String moduleName, String name, int min, int max) throws RuntimeException {
-                        ImportedMemory memory = new ImportedMemory(moduleName, name, Integer.toUnsignedLong(min), Integer.toUnsignedLong(max), new ArrayList<>(0));
+                    public void visitMemoryImport(String moduleName, String name, int min, int max, boolean shared) throws RuntimeException {
+                        ImportedMemory memory = new ImportedMemory(moduleName, name, Integer.toUnsignedLong(min), Integer.toUnsignedLong(max), shared, new ArrayList<>(0));
                         import_(memory);
                         memoriesByIndex.add(memory);
                     }
@@ -849,13 +849,13 @@ public final class Module {
                         if (im.maxSize() == Wasm.LIMITS_MAXIMUM) {
                             iv.visitMemoryImport(im.moduleName(), im.name(), (int) im.minSize());
                         } else {
-                            iv.visitMemoryImport(im.moduleName(), im.name(), (int) im.minSize(), (int) im.maxSize());
+                            iv.visitMemoryImport(im.moduleName(), im.name(), (int) im.minSize());
                         }
                     } else if (item instanceof ImportedTable it) {
                         if (it.maxSize() == Wasm.LIMITS_MAXIMUM) {
                             iv.visitTableImport(it.moduleName(), it.name(), it.type(), (int) it.minSize());
                         } else {
-                            iv.visitTableImport(it.moduleName(), it.name(), it.type(), (int) it.minSize(), (int) it.maxSize());
+                            iv.visitTableImport(it.moduleName(), it.name(), it.type(), (int) it.minSize(), (int) it.maxSize(), it.shared());
                         }
                     } else {
                         throw new IllegalStateException();

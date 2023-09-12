@@ -8,7 +8,7 @@ import org.qbicc.machine.file.wasm.Wasm;
 /**
  *
  */
-public record ImportedMemory(String moduleName, String name, long minSize, long maxSize, List<ActiveSegment> initializers) implements Imported, Memory {
+public record ImportedMemory(String moduleName, String name, long minSize, long maxSize, boolean shared, List<ActiveSegment> initializers) implements Imported, Memory {
     public ImportedMemory {
         Assert.checkNotNullParam("moduleName", moduleName);
         Assert.checkNotNullParam("name", name);
@@ -17,6 +17,10 @@ public record ImportedMemory(String moduleName, String name, long minSize, long 
         Assert.checkMinimumParameter("maxSize", minSize, maxSize);
         Assert.checkMaximumParameter("maxSize", Wasm.LIMITS_MAXIMUM, maxSize);
         Assert.checkNotNullParam("initializers", initializers);
+    }
+
+    public ImportedMemory(String moduleName, String name, long minSize, long maxSize, List<ActiveSegment> initializers) {
+        this(moduleName, name, minSize, maxSize, false, initializers);
     }
 
     public ImportedMemory(String moduleName, String name, long minSize, List<ActiveSegment> initializers) {

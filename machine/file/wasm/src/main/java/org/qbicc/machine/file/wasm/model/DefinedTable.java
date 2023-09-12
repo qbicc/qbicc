@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.Wasm;
 /**
  *
  */
-public record DefinedTable(RefType type, long minSize, long maxSize, List<ActiveElement> initializers) implements Defined, Table {
+public record DefinedTable(RefType type, long minSize, long maxSize, boolean shared, List<ActiveElement> initializers) implements Defined, Table {
 
     public DefinedTable {
         Assert.checkNotNullParam("type", type);
@@ -20,8 +20,12 @@ public record DefinedTable(RefType type, long minSize, long maxSize, List<Active
         Assert.checkNotNullParam("initializers", initializers);
     }
 
-    public DefinedTable(RefType type, long min, List<ActiveElement> activeInitializers) {
-        this(type, min, Wasm.LIMITS_MAXIMUM, activeInitializers);
+    public DefinedTable(RefType type, long minSize, long maxSize, List<ActiveElement> initializers) {
+        this(type, minSize, maxSize, false, initializers);
+    }
+
+    public DefinedTable(RefType type, long minSize, List<ActiveElement> activeInitializers) {
+        this(type, minSize, Wasm.LIMITS_MAXIMUM, activeInitializers);
     }
 
     @Override

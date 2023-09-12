@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.Wasm;
 /**
  *
  */
-public record ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, List<ActiveElement> initializers) implements Imported, Table {
+public record ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, boolean shared, List<ActiveElement> initializers) implements Imported, Table {
 
     public ImportedTable {
         Assert.checkNotNullParam("moduleName", moduleName);
@@ -20,6 +20,10 @@ public record ImportedTable(String moduleName, String name, RefType type, long m
         Assert.checkMinimumParameter("maxSize", minSize, maxSize);
         Assert.checkMaximumParameter("maxSize", Wasm.LIMITS_MAXIMUM, maxSize);
         Assert.checkNotNullParam("initializers", initializers);
+    }
+
+    public ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, List<ActiveElement> initializers) {
+        this(moduleName, name, type, minSize, maxSize, false, initializers);
     }
 
     public ImportedTable(String moduleName, String name, RefType type, long minSize, List<ActiveElement> initializers) {

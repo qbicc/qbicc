@@ -484,9 +484,12 @@ public final class Opcodes {
     public static final int OP_FE_MEMORY_ATOMIC_NOTIFY = 0x00;
     public static final int OP_FE_MEMORY_ATOMIC_WAIT32 = 0x01;
     public static final int OP_FE_MEMORY_ATOMIC_WAIT64 = 0x02;
-    public static final int OP_FE_MEMORY_ATOMIC_FENCE = 0x03;
+    public static final int OP_FE_ATOMIC_FENCE = 0x03;
     public static final int OP_FE_MEMORY_ATOMIC_I32_ATOMIC_LOAD = 0x04;
     public static final int OP_FE_MEMORY_ATOMIC_I64_ATOMIC_LOAD = 0x05;
+
+    public static final int OP_FE_I32_ATOMIC_LOAD = 0x10;
+    public static final int OP_FE_I64_ATOMIC_LOAD = 0x11;
 
     public static final int OP_FE_I32_ATOMIC_LOAD8_U = 0x12;
     public static final int OP_FE_I32_ATOMIC_LOAD16_U = 0x13;

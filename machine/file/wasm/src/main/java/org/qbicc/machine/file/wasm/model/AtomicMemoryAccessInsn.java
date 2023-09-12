@@ -7,18 +7,18 @@ import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
 /**
  * An instruction that models a memory access.
  */
-public record MemoryAccessInsn(Op.MemoryAccess op, Memory memory, int offset, int alignment) implements Insn<Op.MemoryAccess> {
-    public MemoryAccessInsn {
+public record AtomicMemoryAccessInsn(Op.AtomicMemoryAccess op, Memory memory, int offset) implements Insn<Op.AtomicMemoryAccess> {
+    public AtomicMemoryAccessInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("memory", memory);
-        if (Integer.bitCount(alignment) != 1) {
-            throw new IllegalArgumentException("Invalid alignment");
-        }
-        Assert.checkMaximumParameter("alignment", 1 << 6, alignment);
+    }
+
+    public int alignment() {
+        return op.alignment();
     }
 
     @Override
     public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, encoder.encode(memory), alignment, offset);
+        ev.visit(op, encoder.encode(memory), offset);
     }
 }

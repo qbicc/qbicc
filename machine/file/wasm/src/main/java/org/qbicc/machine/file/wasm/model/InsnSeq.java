@@ -138,6 +138,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         instructions.trimToSize();
     }
 
+    public AtomicMemoryAccessInsn add(Op.AtomicMemoryAccess op, Memory memory, int offset) {
+        return add(getCached(new AtomicMemoryAccessInsn(op, memory, offset)));
+    }
+
     /**
      * Add a block instruction.
      * The given consumer should populate the sub-block; once it returns, the block will be ended.
@@ -411,6 +415,11 @@ public final class InsnSeq implements Iterable<Insn<?>> {
 
         private InsnSeq current() {
             return stack.get(stack.size() - 1);
+        }
+
+        @Override
+        public void visit(Op.AtomicMemoryAccess insn, int memory, int offset) {
+            current().add(insn, resolver.resolveMemory(memory), offset);
         }
 
         @Override

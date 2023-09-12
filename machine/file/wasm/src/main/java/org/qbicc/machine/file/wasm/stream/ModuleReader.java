@@ -123,14 +123,16 @@ public final class ModuleReader implements Closeable {
                     RefType rt = is.refType();
                     switch (is.rawByte()) {
                         case 0x00 -> sv.visitTableImport(moduleName, name, rt, is.u32());
-                        case 0x01 -> sv.visitTableImport(moduleName, name, rt, is.u32(), is.u32());
+                        case 0x01 -> sv.visitTableImport(moduleName, name, rt, is.u32(), is.u32(), false);
+                        case 0x03 -> sv.visitTableImport(moduleName, name, rt, is.u32(), is.u32(), true);
                         default -> throw new IOException("Expected valid limits type for table import");
                     }
                 }
                 case 0x02 -> {
                     switch (is.rawByte()) {
                         case 0x00 -> sv.visitMemoryImport(moduleName, name, is.u32());
-                        case 0x01 -> sv.visitMemoryImport(moduleName, name, is.u32(), is.u32());
+                        case 0x01 -> sv.visitMemoryImport(moduleName, name, is.u32(), is.u32(), false);
+                        case 0x03 -> sv.visitMemoryImport(moduleName, name, is.u32(), is.u32(), true);
                         default -> throw new IOException("Expected valid limits type for memory import");
                     }
                 }
@@ -288,7 +290,7 @@ public final class ModuleReader implements Closeable {
                 for (int j = 0; j < initCnt; j ++) {
                     InsnSeqVisitor<E> isv = Objects.requireNonNullElseGet(iv.visitInit(), InsnSeqVisitor::new);
                     parse(isv);
-                    isv.visitEnd();;
+                    isv.visitEnd();
                 }
                 iv.visitEnd();
             } else {
