@@ -48,6 +48,9 @@ public class InsnSeqVisitor<E extends Exception> extends Visitor<E> {
     public void visit(Op.ElementAndTable insn, int elemIdx, int tableIdx) throws E {
     }
 
+    public void visit(Op.Exception insn, int blockIdx) throws E {
+    }
+
     public void visit(Op.Func insn, int funcIdx) throws E {
     }
 
@@ -98,6 +101,9 @@ public class InsnSeqVisitor<E extends Exception> extends Visitor<E> {
     }
 
     public void visit(Op.TableAndFuncType insn, int tableIdx, int typeIdx) throws E {
+    }
+
+    public void visit(Op.Tag insn, int index) throws E {
     }
 
     public void visit(Op.RefTyped insn, RefType type) throws E {

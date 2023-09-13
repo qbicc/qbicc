@@ -18,6 +18,7 @@ public final class Wasm {
         FUNCTION(SECTION_FUNCTION),
         TABLE(SECTION_TABLE),
         MEMORY(SECTION_MEMORY),
+        TAG(SECTION_TAG),
         GLOBAL(SECTION_GLOBAL),
         EXPORT(SECTION_EXPORT),
         START(SECTION_START),
@@ -63,6 +64,7 @@ public final class Wasm {
                 case SECTION_CODE -> CODE;
                 case SECTION_DATA -> DATA;
                 case SECTION_DATA_COUNT -> DATA_COUNT;
+                case SECTION_TAG -> TAG;
                 default -> throw Assert.impossibleSwitchCase(id);
             };
         }
@@ -81,6 +83,7 @@ public final class Wasm {
     public static final int SECTION_CODE = 10;
     public static final int SECTION_DATA = 11;
     public static final int SECTION_DATA_COUNT = 12;
+    public static final int SECTION_TAG = 13;
 
     /**
      * Compute the exact size of a uleb128 value.

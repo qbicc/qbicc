@@ -42,4 +42,10 @@ public record FuncType(
         // the shorter one goes first
         return Integer.compare(size1, size2);
     }
+
+    public static final FuncType EMPTY = new FuncType(List.of(), List.of());
+
+    public static FuncType returning(ValType type) {
+        return type.asFuncTypeReturning();
+    }
 }

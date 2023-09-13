@@ -25,6 +25,7 @@ import org.qbicc.machine.file.wasm.Data;
 import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Mutability;
 import org.qbicc.machine.file.wasm.RefType;
+import org.qbicc.machine.file.wasm.TagAttribute;
 import org.qbicc.machine.file.wasm.ValType;
 import org.qbicc.machine.file.wasm.Wasm;
 import org.qbicc.machine.file.wasm.stream.ActiveDataVisitor;
@@ -48,6 +49,7 @@ import org.qbicc.machine.file.wasm.stream.ModuleVisitor;
 import org.qbicc.machine.file.wasm.stream.ModuleWriter;
 import org.qbicc.machine.file.wasm.stream.StartSectionVisitor;
 import org.qbicc.machine.file.wasm.stream.TableSectionVisitor;
+import org.qbicc.machine.file.wasm.stream.TagSectionVisitor;
 import org.qbicc.machine.file.wasm.stream.TypeSectionVisitor;
 
 /**
@@ -227,6 +229,7 @@ public final class Module {
             private final List<Table> tablesByIndex = new ArrayList<>();
             private final List<Memory> memoriesByIndex = new ArrayList<>();
             private final List<Global> globalsByIndex = new ArrayList<>();
+            private final List<Tag> tagsByIndex = new ArrayList<>();
             private final List<SegmentHandle> segmentsByIndex = new ArrayList<>();
             private int importedFuncCount;
 
@@ -270,6 +273,11 @@ public final class Module {
                         segmentsByIndex.add(SegmentHandle.unresolved());
                     }
                     return segmentsByIndex.get(index);
+                }
+
+                @Override
+                public Tag resolveTag(int index) {
+                    return tagsByIndex.get(index);
                 }
             };
 
@@ -328,6 +336,13 @@ public final class Module {
                         ImportedGlobal global = new ImportedGlobal(moduleName, name, type, mut);
                         import_(global);
                         globalsByIndex.add(global);
+                    }
+
+                    @Override
+                    public void visitTagImport(String moduleName, String name, TagAttribute attribute, int typeIdx) throws RuntimeException {
+                        ImportedTag tag = new ImportedTag(moduleName, name, attribute, resolver.resolveFuncType(typeIdx));
+                        import_(tag);
+                        tagsByIndex.add(tag);
                     }
                 };
             }
@@ -593,6 +608,18 @@ public final class Module {
             }
 
             @Override
+            public TagSectionVisitor<RuntimeException> visitTagSection() throws RuntimeException {
+                return new TagSectionVisitor<>() {
+                    @Override
+                    public void visitTag(TagAttribute attribute, int typeIdx) throws RuntimeException {
+                        DefinedTag tag = new DefinedTag(attribute, resolver.resolveFuncType(typeIdx));
+                        define(tag);
+                        tagsByIndex.add(tag);
+                    }
+                };
+            }
+
+            @Override
             public DataSectionVisitor<RuntimeException> visitDataSection() throws RuntimeException {
                 return new DataSectionVisitor<>() {
                     private int index = 0;
@@ -689,6 +716,10 @@ public final class Module {
         MutableObjectIntMap<Global> globalIdxs = ObjectIntMaps.mutable.empty();
         int globalCnt = 0;
         List<DefinedGlobal> definedGlobals = new ArrayList<>();
+        // tags
+        MutableObjectIntMap<Tag> tagIdxs = ObjectIntMaps.mutable.empty();
+        int tagCnt = 0;
+        List<DefinedTag> definedTags = new ArrayList<>();
         // elements
         MutableObjectIntMap<Element> elementIdxs = ObjectIntMaps.mutable.empty();
         List<Element> elements = new ArrayList<>();
@@ -743,6 +774,11 @@ public final class Module {
             public int encode(Segment seg) {
                 return segmentIdxs.getOrThrow(seg);
             }
+
+            @Override
+            public int encode(Tag tag) {
+                return tagIdxs.getOrThrow(tag);
+            }
         };
 
         // populate tables; imported items first
@@ -780,7 +816,9 @@ public final class Module {
                 getOrRegister(df.type(), typeIdxs, types);
                 // scan for segments and elements
                 df.body().forEachRecursive(insn -> {
-                    if (insn instanceof DataInsn di) {
+                    if (insn instanceof BlockInsn bi) {
+                        getOrRegister(bi.type(), typeIdxs, types);
+                    } else if (insn instanceof DataInsn di) {
                         int size = segmentIdxs.size();
                         if (size == segmentIdxs.getIfAbsentPut(di.segment(), size)) {
                             segments.add(di.segment());
@@ -821,6 +859,10 @@ public final class Module {
                     elementIdxs.getIfAbsentPut(initializer, elementIdxs.size());
                     activeElements.put(initializer, dt);
                 }
+            } else if (item instanceof DefinedTag dt) {
+                tagIdxs.put(dt, tagCnt++);
+                definedTags.add(dt);
+                getOrRegister(dt.type(), typeIdxs, types);
             } else {
                 throw new IllegalStateException();
             }
@@ -857,6 +899,8 @@ public final class Module {
                         } else {
                             iv.visitTableImport(it.moduleName(), it.name(), it.type(), (int) it.minSize(), (int) it.maxSize(), it.shared());
                         }
+                    } else if (item instanceof ImportedTag it) {
+                        iv.visitTagImport(it.moduleName(), it.name(), it.attribute(), typeIdxs.getOrThrow(it.type()));
                     } else {
                         throw new IllegalStateException();
                     }
@@ -897,6 +941,14 @@ public final class Module {
                     }
                 }
                 mv.visitEnd();
+            }
+        }
+        if (! definedTags.isEmpty()) {
+            TagSectionVisitor<E> tv = visitor.visitTagSection();
+            if (tv != null) {
+                for (DefinedTag definedTag : definedTags) {
+                    tv.visitTag(definedTag.attribute(), encoder.encode(definedTag.type()));
+                }
             }
         }
         if (! definedGlobals.isEmpty()) {

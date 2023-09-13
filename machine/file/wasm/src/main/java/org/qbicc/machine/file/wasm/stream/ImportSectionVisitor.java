@@ -2,6 +2,7 @@ package org.qbicc.machine.file.wasm.stream;
 
 import org.qbicc.machine.file.wasm.Mutability;
 import org.qbicc.machine.file.wasm.RefType;
+import org.qbicc.machine.file.wasm.TagAttribute;
 import org.qbicc.machine.file.wasm.ValType;
 
 /**
@@ -24,5 +25,8 @@ public class ImportSectionVisitor<E extends Exception> extends Visitor<E> {
     }
 
     public void visitGlobalImport(final String moduleName, final String name, final ValType type, final Mutability mut) throws E {
+    }
+
+    public void visitTagImport(final String moduleName, final String name, final TagAttribute attribute, final int typeIdx) throws E {
     }
 }

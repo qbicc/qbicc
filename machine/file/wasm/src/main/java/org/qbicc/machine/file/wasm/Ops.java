@@ -14,6 +14,7 @@ public final class Ops {
 
     // unqualified instructions
 
+    public static final Op.Simple catch_all = Op.Simple.catch_all;
     public static final Op.Simple drop = Op.Simple.drop;
     public static final Op.Simple else_ = Op.Simple.else_;
     public static final Op.Simple end = Op.Simple.end;
@@ -23,6 +24,7 @@ public final class Ops {
     public static final Op.Block block = Op.Block.block;
     public static final Op.Block loop = Op.Block.loop;
     public static final Op.Block if_ = Op.Block.if_;
+    public static final Op.Block try_ = Op.Block.try_;
     public static final Op.Types select_typed = Op.Types.select;
     public static final Op.Simple select = Op.Simple.select;
     public static final Op.Branch br = Op.Branch.br;
@@ -30,6 +32,10 @@ public final class Ops {
     public static final Op.Func call = Op.Func.call;
     public static final Op.MultiBranch br_table = Op.MultiBranch.br_table;
     public static final Op.TableAndFuncType call_indirect = Op.TableAndFuncType.call_indirect;
+    public static final Op.Tag catch_ = Op.Tag.catch_;
+    public static final Op.Tag throw_ = Op.Tag.throw_;
+    public static final Op.Exception delegate = Op.Exception.delegate;
+    public static final Op.Exception rethrow = Op.Exception.rethrow;
 
     // qualified instructions
 
@@ -688,7 +694,7 @@ public final class Ops {
         Op[] fcMap = new Op[256];
         Op[] fdMap = new Op[256];
         Op[] feMap = new Op[256];
-        for (Op.Kind kind : Op.Kind.values()) {
+        for (Op.Kind kind : Op.Kind.all()) {
             for (Op instruction : kind.ops()) {
                 Op[] map = switch (instruction.prefix()) {
                     case Opcodes.OP_PREFIX_FC -> fcMap;

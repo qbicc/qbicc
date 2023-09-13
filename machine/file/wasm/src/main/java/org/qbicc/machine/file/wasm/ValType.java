@@ -2,12 +2,17 @@ package org.qbicc.machine.file.wasm;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * All simple value types.
  */
 public sealed interface ValType extends Type permits NumType, VecType, RefType {
     int byteValue();
+
+    List<ValType> asList();
+
+    FuncType asFuncTypeReturning();
 
     static ValType forByteValue(int val) {
         return switch (val) {

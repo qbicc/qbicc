@@ -17,6 +17,7 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
                                                    DataInsn,
                                                    ElementInsn,
                                                    ElementAndTableInsn,
+                                                   ExceptionInsn,
                                                    FuncInsn,
                                                    GlobalInsn,
                                                    BranchInsn,
@@ -33,6 +34,7 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
                                                    TableInsn,
                                                    TableAndFuncTypeInsn,
                                                    TableAndTableInsn,
+                                                   TagInsn,
                                                    TypesInsn
 {
     I op();
@@ -55,6 +57,8 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
         int encode(Table table);
 
         int encode(Segment seg);
+
+        int encode(Tag tag);
     }
 
     interface Resolver {
@@ -71,5 +75,7 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
         Table resolveTable(int index);
 
         SegmentHandle resolveSegment(int index);
+
+        Tag resolveTag(int index);
     }
 }

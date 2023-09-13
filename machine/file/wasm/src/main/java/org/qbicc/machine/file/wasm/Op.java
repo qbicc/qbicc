@@ -19,6 +19,7 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
                                    Op.MemoryAndData,
                                    Op.Element,
                                    Op.ElementAndTable,
+                                   Op.Exception,
                                    Op.Func,
                                    Op.Global,
                                    Op.Local,
@@ -34,6 +35,7 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
                                    Op.Table,
                                    Op.TableAndTable,
                                    Op.TableAndFuncType,
+                                   Op.Tag,
                                    Op.Types
 {
     int opcode();
@@ -60,6 +62,7 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
         DATA(Op.Data.class),
         ELEMENT_AND_TABLE(Op.ElementAndTable.class),
         ELEMENT(Op.Element.class),
+        EXCEPTION(Op.Exception.class),
         FUNC(Op.Func.class),
         GLOBAL(Op.Global.class),
         LANE(Op.Lane.class),
@@ -75,9 +78,11 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
         TABLE(Op.Table.class),
         TABLE_AND_FUNC_TYPE(Op.TableAndFuncType.class),
         TABLE_AND_TABLE(Op.TableAndTable.class),
+        TAG(Op.Tag.class),
         TYPES(Op.Types.class),
         ;
 
+        private static final List<Kind> kinds = List.of(values());
         private final Class<? extends Op> opClass;
         private final List<Op> ops;
 
@@ -93,6 +98,10 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
         public List<Op> ops() {
             return ops;
         }
+
+        public static List<Kind> all() {
+            return kinds;
+        }
     }
 
     enum Flag {
@@ -102,6 +111,7 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
         block("block", Opcodes.OP_BLOCK),
         loop("loop", Opcodes.OP_LOOP),
         if_("if", Opcodes.OP_IF),
+        try_("try", Opcodes.OP_TRY),
         ;
 
         private final String name;
@@ -556,6 +566,54 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
 
         @Override
         public Optional<ElementAndTable> optional() {
+            return optional;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    enum Exception implements Op {
+        // label index
+        delegate("delegate", Opcodes.OP_DELEGATE),
+        rethrow("rethrow", Opcodes.OP_RETHROW),
+        ;
+
+        private final String name;
+        private final int prefix;
+        private final int opcode;
+        private final Optional<Exception> optional;
+
+        Exception(String name, int prefix, int opcode) {
+            this.name = name;
+            this.prefix = prefix;
+            this.opcode = opcode;
+            this.optional = Optional.of(this);
+        }
+
+        Exception(String name, int opcode) {
+            this(name, -1, opcode);
+        }
+
+        @Override
+        public int opcode() {
+            return opcode;
+        }
+
+        @Override
+        public int prefix() {
+            return prefix;
+        }
+
+        @Override
+        public Kind kind() {
+            return Kind.EXCEPTION;
+        }
+
+        @Override
+        public Optional<Exception> optional() {
             return optional;
         }
 
@@ -1258,6 +1316,7 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
      * For code generation, use the constants in {@link Ops} instead.
      */
     enum Simple implements Op {
+        catch_all("catch_all", Opcodes.OP_CATCH),
         drop("drop", Opcodes.OP_DROP),
         else_("else", Opcodes.OP_ELSE),
         end("end", Opcodes.OP_END),
@@ -1789,6 +1848,54 @@ public sealed interface Op permits Op.AtomicMemoryAccess,
             return name;
         }
 
+    }
+
+    enum Tag implements Op {
+        // tagidx
+        catch_("catch", Opcodes.OP_CATCH),
+        throw_("throw", Opcodes.OP_THROW),
+        ;
+
+        private final String name;
+        private final int prefix;
+        private final int opcode;
+        private final Optional<Tag> optional;
+
+        Tag(String name, int prefix, int opcode) {
+            this.name = name;
+            this.prefix = prefix;
+            this.opcode = opcode;
+            this.optional = Optional.of(this);
+        }
+
+        Tag(String name, int opcode) {
+            this(name, -1, opcode);
+        }
+
+        @Override
+        public int opcode() {
+            return opcode;
+        }
+
+        @Override
+        public int prefix() {
+            return prefix;
+        }
+
+        @Override
+        public Kind kind() {
+            return Kind.TAG;
+        }
+
+        @Override
+        public Optional<Tag> optional() {
+            return optional;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     /**
