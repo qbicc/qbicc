@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,11 +37,27 @@ public abstract class BinaryInput implements Closeable {
         return open(FileChannel.open(path, StandardOpenOption.READ), byteOrder);
     }
 
-    static MappedBufferBinaryInput open(final FileChannel ch, final ByteOrder byteOrder) throws IOException {
+    static BufferBinaryInput open(final FileChannel ch, final ByteOrder byteOrder) throws IOException {
+        long size = ch.size();
         try {
-            MappedByteBuffer mapped = ch.map(FileChannel.MapMode.READ_ONLY, 0, ch.size());
-            mapped.order(byteOrder);
-            return new MappedBufferBinaryInput(ch, mapped, new AtomicInteger(1));
+            try {
+                MappedByteBuffer mapped = ch.map(FileChannel.MapMode.READ_ONLY, 0, size);
+                mapped.order(byteOrder);
+                return new MappedBufferBinaryInput(ch, mapped, new AtomicInteger(1));
+            } catch (UnsupportedOperationException ignored) {
+                // can't map, have to read it :(
+                if (size > Integer.MAX_VALUE) {
+                    throw new IOException("File is too large");
+                }
+                ByteBuffer buffer = ByteBuffer.allocateDirect((int) size);
+                int res;
+                do {
+                    res = ch.read(buffer);
+                } while (buffer.position() < size && res != -1);
+                ch.close();
+                buffer.flip();
+                return new BufferBinaryInput(buffer);
+            }
         } catch (Throwable t) {
             try {
                 ch.close();
@@ -463,19 +480,19 @@ public abstract class BinaryInput implements Closeable {
     }
 
     private static int shl(int num, int cnt) {
-        return cnt < 0 ? lshr(num, -cnt) : cnt > 32 ? 0 : num << cnt;
+        return cnt < 0 ? lshr(num, -cnt) : cnt >= 32 ? 0 : num << cnt;
     }
 
     private static int lshr(int num, int cnt) {
-        return cnt < 0 ? shl(num, -cnt) : cnt > 32 ? 0 : num >>> cnt;
+        return cnt < 0 ? shl(num, -cnt) : cnt >= 32 ? 0 : num >>> cnt;
     }
 
     private static long shl(long num, int cnt) {
-        return cnt < 0 ? lshr(num, -cnt) : cnt > 64 ? 0 : num << cnt;
+        return cnt < 0 ? lshr(num, -cnt) : cnt >= 64 ? 0 : num << cnt;
     }
 
     private static long lshr(long num, int cnt) {
-        return cnt < 0 ? shl(num, -cnt) : cnt > 64 ? 0 : num >>> cnt;
+        return cnt < 0 ? shl(num, -cnt) : cnt >= 64 ? 0 : num >>> cnt;
     }
 
     public abstract void transferTo(BinaryOutput bo) throws IOException;
@@ -493,6 +510,12 @@ public abstract class BinaryInput implements Closeable {
             wos.write(i);
         }
         wos.flush();
+    }
+
+    public void transferTo(Path path) throws IOException {
+        try (OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            transferTo(os);
+        }
     }
 
     public abstract void close() throws IOException;

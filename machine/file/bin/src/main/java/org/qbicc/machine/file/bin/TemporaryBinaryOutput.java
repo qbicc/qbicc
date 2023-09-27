@@ -50,9 +50,10 @@ class TemporaryBinaryOutput extends ChannelBinaryOutput {
             onClose.accept(BinaryInput.create(buffer));
         } else {
             try (FileChannel fc = this.fc) {
+                flush();
                 super.close();
                 fc.position(0);
-                try (MappedBufferBinaryInput bi = BinaryInput.open(fc, order())) {
+                try (BufferBinaryInput bi = BinaryInput.open(fc, order())) {
                     onClose.accept(bi);
                 }
             } catch (Throwable t) {

@@ -1,19 +1,24 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import io.smallrye.common.constraint.Assert;
+import io.smallrye.common.function.ExceptionConsumer;
+import org.qbicc.machine.file.bin.I128;
 import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.Ops;
 import org.qbicc.machine.file.wasm.RefType;
 import org.qbicc.machine.file.wasm.ValType;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmInputStream;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * A sequence of instructions.
@@ -23,7 +28,7 @@ import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
  * Instruction sequences are each distinct even if they contain identical instructions.
  */
 // Cannot be record because it is mutable
-public final class InsnSeq implements Iterable<Insn<?>> {
+public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
     private static final int DEFAULT_ESTIMATED_SIZE = 10;
 
     private final Flag.Set flags;
@@ -89,58 +94,96 @@ public final class InsnSeq implements Iterable<Insn<?>> {
     /**
      * Create a new empty instance, using the same instruction cache as this instance.
      *
+     * @param flag the flag to set (must not be {@code null})
+     * @return the new, empty instruction sequence (not {@code null})
+     */
+    public InsnSeq newWithSharedCache(Flag flag) {
+        return new InsnSeq(getCache(), DEFAULT_ESTIMATED_SIZE, Flag.Set.of(flag));
+    }
+
+    /**
+     * Create a new empty instance, using the same instruction cache as this instance.
+     *
+     * @param flags the flag set to use (must not be {@code null})
      * @return the new, empty instruction sequence (not {@code null})
      */
     public InsnSeq newWithSharedCache(Flag.Set flags) {
         return new InsnSeq(getCache(), DEFAULT_ESTIMATED_SIZE, flags);
     }
 
-    /**
-     * Pass all of the instructions of this sequence to the given visitor in order,
-     * automatically adding {@code end} if it wasn't added to this sequence.
-     *
-     * @param <E> the exception type
-     * @param ev the visitor (must not be {@code null})
-     * @param encoder the encoder to use (must not be {@code null})
-     * @throws E the exception thrown from the visitor
-     */
-    public <E extends Exception> void accept(final InsnSeqVisitor<E> ev, Insn.Encoder encoder) throws E {
-        Assert.checkNotNullParam("ev", ev);
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        Assert.checkNotNullParam("wos", wos);
+        Assert.checkNotNullParam("encoder", encoder);
         for (Insn<?> instruction : instructions) {
-            instruction.accept(ev, encoder);
+            instruction.writeTo(wos, encoder);
         }
         // end is always implicit
-        SimpleInsn.end.accept(ev, encoder);
+        wos.op(Ops.end);
     }
+
+    public void readFrom(final WasmInputStream wis, final Resolver resolver) throws IOException {
+        Assert.checkNotNullParam("wis", wis);
+        Assert.checkNotNullParam("resolver", resolver);
+        Op op;
+        do {
+            op = wis.op();
+            op.readFrom(wis, this, resolver);
+        } while (op != Ops.end);
+    }
+
+    public static void skip(final WasmInputStream wis) throws IOException {
+        Assert.checkNotNullParam("wis", wis);
+        Op op;
+        do {
+            op = wis.op();
+            op.skip(wis);
+        } while (op != Ops.end);
+    }
+
+    // todo: make this a flag on Op
+    private static final Set<Op> CONSTANT_OPS = Set.of(
+        Ops.i32.const_,
+        Ops.i64.const_,
+        Ops.f32.const_,
+        Ops.f64.const_,
+        Ops.v128.const_,
+        Ops.ref.null_,
+        Ops.ref.func,
+        Ops.global.get,
+        Ops.end
+    );
 
     public <O extends Op, I extends Insn<O>> I add(I insn) {
         Assert.checkNotNullParam("insn", insn);
+        O op = insn.op();
         if (ended) {
-            throw notAllowed(insn.op());
-        } else if (insn.op() == Ops.end) {
+            throw notAllowed(op);
+        } else if (op == Ops.end) {
             end();
-        } else if (insn.op() == Ops.else_) {
+        } else if (flags.contains(Flag.CONSTANT) && ! CONSTANT_OPS.contains(op)) {
+            throw notAllowed(op);
+        } else if (op == Ops.else_) {
             if (flags.contains(Flag.ALLOW_ELSE) && !foundElse) {
                 instructions.add(insn);
                 // there can be only one
                 foundElse = true;
             } else {
-                throw notAllowed(insn.op());
+                throw notAllowed(op);
             }
-        } else if (insn.op() == Ops.catch_) {
+        } else if (op == Ops.catch_) {
             if (flags.contains(Flag.ALLOW_CATCH) && !foundCatchAll) {
                 instructions.add(insn);
                 // multiple allowed
             } else {
-                throw notAllowed(insn.op());
+                throw notAllowed(op);
             }
-        } else if (insn.op() == Ops.catch_all) {
+        } else if (op == Ops.catch_all) {
             if (flags.contains(Flag.ALLOW_CATCH) && !foundCatchAll) {
                 instructions.add(insn);
                 // no more allowed
                 foundCatchAll = true;
             } else {
-                throw notAllowed(insn.op());
+                throw notAllowed(op);
             }
         } else {
             instructions.add(insn);
@@ -152,9 +195,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return new IllegalArgumentException("Instruction `" + insn + "` not allowed here");
     }
 
-    public void end() {
+    public InsnSeq end() {
         ended = true;
         instructions.trimToSize();
+        return this;
     }
 
     public AtomicMemoryAccessInsn add(Op.AtomicMemoryAccess op, Memory memory, int offset) {
@@ -167,14 +211,19 @@ public final class InsnSeq implements Iterable<Insn<?>> {
      * To add a block which is not immediately terminated, use {@link #add(Insn)}.
      *
      * @param op the operation (must not be {@code null})
+     * @param type the block type (must not be {@code null})
      * @param insnConsumer the instruction builder (must not be {@code null})
      * @return the instruction (not {@code null})
      */
-    public BlockInsn add(Op.Block op, Consumer<BlockInsn> insnConsumer) {
-        BlockInsn insn = new BlockInsn(op, new InsnSeq(cache, DEFAULT_ESTIMATED_SIZE, Flag.Set.of(op == Op.Block.if_, Flag.ALLOW_ELSE, op == Op.Block.try_, Flag.ALLOW_CATCH)));
+    public <E extends Exception> BlockInsn add(Op.Block op, FuncType type, ExceptionConsumer<BlockInsn, E> insnConsumer) throws E {
+        BlockInsn insn = new BlockInsn(op, newWithSharedCache(Flag.Set.of(op == Op.Block.if_, Flag.ALLOW_ELSE, op == Op.Block.try_, Flag.ALLOW_CATCH)), type);
         insnConsumer.accept(insn);
         insn.body().end();
         return add(insn);
+    }
+
+    public <E extends Exception> BlockInsn add(Op.Block op, ExceptionConsumer<BlockInsn, E> insnConsumer) throws E {
+        return add(op, FuncType.EMPTY, insnConsumer);
     }
 
     /**
@@ -205,36 +254,28 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return add(getCached(new ConstI64Insn(op, val)));
     }
 
-    public ConstI128Insn add(Op.ConstI128 op, long low) {
-        return add(getCached(new ConstI128Insn(op, low)));
+    public ConstV128Insn add(Op.ConstV128 op, I128 val) {
+        return add(getCached(new ConstV128Insn(op, val.low(), val.high())));
     }
 
-    public ConstI128Insn add(Op.ConstI128 op, long low, long high) {
-        return add(getCached(new ConstI128Insn(op, low, high)));
+    public ConstV128Insn add(Op.ConstV128 op, long low) {
+        return add(getCached(new ConstV128Insn(op, low)));
+    }
+
+    public ConstV128Insn add(Op.ConstV128 op, long low, long high) {
+        return add(getCached(new ConstV128Insn(op, low, high)));
     }
 
     public DataInsn add(Op.Data op, Segment segment) {
         return add(getCached(new DataInsn(op, segment)));
     }
 
-    public DataInsn add(Op.Data op, SegmentHandle segmentHandle) {
-        return add(getCached(new DataInsn(op, segmentHandle)));
-    }
-
     public ElementInsn add(Op.Element op, Element element) {
         return add(getCached(new ElementInsn(op, element)));
     }
 
-    public ElementInsn add(Op.Element op, ElementHandle elementHandle) {
-        return add(getCached(new ElementInsn(op, elementHandle)));
-    }
-
     public ElementAndTableInsn add(Op.ElementAndTable op, Element element, Table table) {
         return add(getCached(new ElementAndTableInsn(op, element, table)));
-    }
-
-    public ElementAndTableInsn add(Op.ElementAndTable op, ElementHandle elementHandle, Table table) {
-        return add(getCached(new ElementAndTableInsn(op, elementHandle, table)));
     }
 
     public ExceptionInsn add(Op.Exception op, BranchTarget target) {
@@ -253,8 +294,8 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return add(getCached(new LaneInsn(op, laneIdx)));
     }
 
-    public LocalInsn add(Op.Local op, int localIdx) {
-        return add(getCached(new LocalInsn(op, localIdx)));
+    public LocalInsn add(Op.Local op, Local local) {
+        return add(getCached(new LocalInsn(op, local)));
     }
 
     public MemoryInsn add(Op.Memory op, Memory memory) {
@@ -273,12 +314,8 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return add(getCached(new MemoryAndDataInsn(op, memory, data)));
     }
 
-    public MemoryAndDataInsn add(Op.MemoryAndData op, Memory memory, SegmentHandle segmentHandle) {
-        return add(getCached(new MemoryAndDataInsn(op, memory, segmentHandle)));
-    }
-
-    public MemoryAndMemoryInsn add(Op.MemoryAndMemory op, Memory dest, Memory src) {
-        return add(getCached(new MemoryAndMemoryInsn(op, dest, src)));
+    public MemoryToMemoryInsn add(Op.MemoryToMemory op, Memory dest, Memory src) {
+        return add(getCached(new MemoryToMemoryInsn(op, dest, src)));
     }
 
     public MultiBranchInsn add(Op.MultiBranch op, List<BranchTarget> targets, BranchTarget defaultTarget) {
@@ -301,8 +338,8 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         return add(getCached(new TableAndFuncTypeInsn(op, table, funcType)));
     }
 
-    public TableAndTableInsn add(Op.TableAndTable op, Table table1, Table table2) {
-        return add(getCached(new TableAndTableInsn(op, table1, table2)));
+    public TableToTableInsn add(Op.TableToTable op, Table table1, Table table2) {
+        return add(getCached(new TableToTableInsn(op, table1, table2)));
     }
 
     public TagInsn add(Op.Tag op, Tag tag) {
@@ -396,242 +433,6 @@ public final class InsnSeq implements Iterable<Insn<?>> {
         }
     }
 
-    public <E extends Exception> InsnSeqVisitor<E> visitor(Insn.Resolver resolver) {
-        return new PopulatingVisitor<E>(this, resolver);
-    }
-
-    /**
-     * Get a visitor which can be used to populate an instruction sequence from a stream.
-     * Nested blocks will be added as needed.
-     * This class can be subclassed to add special behavior as needed.
-     *
-     * @param <E> the desired visitor exception type
-     */
-    public static class PopulatingVisitor<E extends Exception> extends InsnSeqVisitor<E> {
-        private final ArrayList<BranchTarget> branchTargets;
-        private final ArrayList<InsnSeq> stack;
-        private final Insn.Resolver resolver;
-
-        /**
-         * Construct a new instance.
-         *
-         * @param seq the sequence to populate (must not be {@code null} and must not be ended)
-         * @param resolver the resolver to use (must not be {@code null})
-         */
-        public PopulatingVisitor(final InsnSeq seq, final Insn.Resolver resolver) {
-            Assert.checkNotNullParam("seq", seq);
-            Assert.checkNotNullParam("resolver", resolver);
-            this.resolver = resolver;
-            branchTargets = new ArrayList<>();
-            stack = new ArrayList<>();
-            stack.add(seq);
-        }
-
-        /**
-         * Construct a new instance for a function.
-         *
-         * @param seq the sequence to populate (must not be {@code null} and must not be ended)
-         * @param resolver the resolver to use (must not be {@code null})
-         * @param definedFunc the outermost branch target (must not be {@code null})
-         */
-        public PopulatingVisitor(final InsnSeq seq, final Insn.Resolver resolver, final DefinedFunc definedFunc) {
-            this(seq, resolver);
-            Assert.checkNotNullParam("definedFunc", definedFunc);
-            branchTargets.add(definedFunc);
-        }
-
-        private InsnSeq current() {
-            return stack.get(stack.size() - 1);
-        }
-
-        @Override
-        public void visit(Op.AtomicMemoryAccess insn, int memory, int offset) {
-            current().add(insn, resolver.resolveMemory(memory), offset);
-        }
-
-        @Override
-        public void visit(Op.Block insn) {
-            InsnSeq child = current().newWithSharedCache(Flag.Set.of(insn == Op.Block.if_, Flag.ALLOW_ELSE));
-            BlockInsn bi = new BlockInsn(insn, child);
-            current().add(bi);
-            branchTargets.add(bi);
-            stack.add(child);
-        }
-
-        @Override
-        public void visit(Op.Block insn, int typeIdx) {
-            InsnSeq child = current().newWithSharedCache(Flag.Set.of(insn == Op.Block.if_, Flag.ALLOW_ELSE));
-            BlockInsn bi = new BlockInsn(insn, child, resolver.resolveFuncType(typeIdx));
-            current().add(bi);
-            branchTargets.add(bi);
-            stack.add(child);
-        }
-
-        @Override
-        public void visit(Op.Block insn, ValType valType) {
-            InsnSeq child = current().newWithSharedCache(Flag.Set.of(insn == Op.Block.if_, Flag.ALLOW_ELSE));
-            BlockInsn bi = new BlockInsn(insn, child, valType.asFuncTypeReturning());
-            current().add(bi);
-            branchTargets.add(bi);
-            stack.add(child);
-        }
-
-        @Override
-        public void visit(Op.ConstF32 insn, float val) {
-            current().add(insn, val);
-        }
-
-        @Override
-        public void visit(Op.ConstF64 insn, double val) {
-            current().add(insn, val);
-        }
-
-        @Override
-        public void visit(Op.ConstI32 insn, int val) {
-            current().add(insn, val);
-        }
-
-        @Override
-        public void visit(Op.ConstI64 insn, long val) {
-            current().add(insn, val);
-        }
-
-        @Override
-        public void visit(Op.ConstI128 insn, long lowVal, long highVal) {
-            current().add(insn, lowVal, highVal);
-        }
-
-        @Override
-        public void visit(Op.Data insn, int dataIdx) {
-            current().add(insn, resolver.resolveSegment(dataIdx));
-        }
-
-        @Override
-        public void visit(Op.Element insn, int elemIdx) {
-            current().add(insn, resolver.resolveElement(elemIdx));
-        }
-
-        @Override
-        public void visit(Op.ElementAndTable insn, int elemIdx, int tableIdx) throws E {
-            current().add(insn, resolver.resolveElement(elemIdx), resolver.resolveTable(tableIdx));
-        }
-
-        @Override
-        public void visit(Op.Exception insn, int blockIdx) throws E {
-            current().add(insn, branchTargets.get(blockIdx));
-        }
-
-        @Override
-        public void visit(Op.Func insn, int funcIdx) {
-            current().add(insn, resolver.resolveFunc(funcIdx));
-        }
-
-        @Override
-        public void visit(Op.Global insn, int globalIdx) {
-            current().add(insn, resolver.resolveGlobal(globalIdx));
-        }
-
-        @Override
-        public void visit(Op.Local insn, int index) {
-            current().add(insn, index);
-        }
-
-        @Override
-        public void visit(Op.Branch insn, int index) {
-            current().add(insn, branchTargets.get(index));
-        }
-
-        @Override
-        public void visit(Op.Lane insn, int laneIdx) {
-            current().add(insn, laneIdx);
-        }
-
-        @Override
-        public void visit(Op.Memory insn, int memory) {
-            current().add(insn, resolver.resolveMemory(memory));
-        }
-
-        @Override
-        public void visit(Op.MemoryAccess insn, int memory, int align, int offset) {
-            current().add(insn, resolver.resolveMemory(memory), offset, align);
-        }
-
-        @Override
-        public void visit(Op.MemoryAccessLane insn, int memory, int align, int offset, int laneIdx) {
-            current().add(insn, resolver.resolveMemory(memory), offset, align, laneIdx);
-        }
-
-        @Override
-        public void visit(Op.MemoryAndData insn, int dataIdx, int memIdx) {
-            current().add(insn, resolver.resolveMemory(memIdx), resolver.resolveSegment(dataIdx));
-        }
-
-        @Override
-        public void visit(Op.MemoryAndMemory insn, int memIdx1, int memIdx2) {
-            current().add(insn, resolver.resolveMemory(memIdx1), resolver.resolveMemory(memIdx2));
-        }
-
-        @Override
-        public void visit(Op.Simple insn) {
-            current().add(insn);
-            if (insn == Ops.end) {
-                stack.remove(stack.size() - 1);
-                if (stack.isEmpty()) {
-                    // done; no blocks left to pop
-                    return;
-                }
-                branchTargets.remove(branchTargets.size() - 1);
-            }
-        }
-
-        @Override
-        public void visit(Op.MultiBranch insn, int defIndex, int... targetIndexes) {
-            List<BranchTarget> mappedBlocks = new ArrayList<>(targetIndexes.length);
-            for (int index : targetIndexes) {
-                mappedBlocks.add(branchTargets.get(index));
-            }
-            current().add(insn, mappedBlocks, branchTargets.get(defIndex));
-        }
-
-        @Override
-        public void visit(Op.Types insn, ValType... types) {
-            current().add(insn, types);
-        }
-
-        @Override
-        public void visit(Op.Table insn, int index) {
-            current().add(insn, resolver.resolveTable(index));
-        }
-
-        @Override
-        public void visit(Op.TableAndTable insn, int index1, int index2) {
-            current().add(insn, resolver.resolveTable(index1), resolver.resolveTable(index2));
-        }
-
-        @Override
-        public void visit(Op.TableAndFuncType insn, int tableIdx, int typeIdx) {
-            current().add(insn, resolver.resolveTable(tableIdx), resolver.resolveFuncType(tableIdx));
-        }
-
-        @Override
-        public void visit(Op.Tag insn, int index) throws E {
-            current().add(insn, resolver.resolveTag(index));
-        }
-
-        @Override
-        public void visit(Op.RefTyped insn, RefType type) {
-            current().add(insn, type);
-        }
-
-        @Override
-        public void visitEnd() throws E {
-            while (! stack.isEmpty()) {
-                stack.remove(stack.size() - 1).end();
-            }
-            branchTargets.clear();
-        }
-    }
-
     /**
      * The possible flags for configuring an instruction sequence.
      */
@@ -644,6 +445,10 @@ public final class InsnSeq implements Iterable<Insn<?>> {
          * Allow {@link Ops#catch_} instructions and/or a {@link Ops#catch_all} instruction to occur in this block.
          */
         ALLOW_CATCH,
+        /**
+         * Allow only constant expressions.
+         */
+        CONSTANT,
         ;
 
         static final Flag[] values = values();

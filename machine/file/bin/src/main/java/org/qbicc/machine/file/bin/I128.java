@@ -1,8 +1,8 @@
 package org.qbicc.machine.file.bin;
 
 public record I128(long low, long high) implements Comparable<I128> {
-    public I128(long low) {
-        this(low, low < 0 ? ~0 : 0);
+    public I128(long value) {
+        this(value, value >> 63);
     }
 
     @Override

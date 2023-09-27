@@ -1,8 +1,9 @@
 package org.qbicc.machine.file.wasm.model;
 
-import org.qbicc.machine.file.wasm.FuncType;
+import java.io.IOException;
+
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction instance.
@@ -13,7 +14,7 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
                                                    ConstF64Insn,
                                                    ConstI32Insn,
                                                    ConstI64Insn,
-                                                   ConstI128Insn,
+                                                   ConstV128Insn,
                                                    DataInsn,
                                                    ElementInsn,
                                                    ElementAndTableInsn,
@@ -27,55 +28,17 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
                                                    MemoryAccessInsn,
                                                    MemoryAccessLaneInsn,
                                                    MemoryAndDataInsn,
-                                                   MemoryAndMemoryInsn,
+                                                   MemoryToMemoryInsn,
                                                    MultiBranchInsn,
                                                    RefTypedInsn,
                                                    SimpleInsn,
                                                    TableInsn,
                                                    TableAndFuncTypeInsn,
-                                                   TableAndTableInsn,
+                                                   TableToTableInsn,
                                                    TagInsn,
                                                    TypesInsn
 {
     I op();
 
-    <E extends Exception> void accept(final InsnSeqVisitor<E> ev, Encoder encoder) throws E;
-
-    interface Encoder {
-        int encode(BranchTarget branchTarget);
-
-        int encode(Element element);
-
-        int encode(Func func);
-
-        int encode(FuncType type);
-
-        int encode(Global global);
-
-        int encode(Memory memory);
-
-        int encode(Table table);
-
-        int encode(Segment seg);
-
-        int encode(Tag tag);
-    }
-
-    interface Resolver {
-        ElementHandle resolveElement(int index);
-
-        Func resolveFunc(int index);
-
-        FuncType resolveFuncType(int index);
-
-        Global resolveGlobal(int index);
-
-        Memory resolveMemory(int index);
-
-        Table resolveTable(int index);
-
-        SegmentHandle resolveSegment(int index);
-
-        Tag resolveTag(int index);
-    }
+    void writeTo(WasmOutputStream wos, Encoder encoder) throws IOException;
 }

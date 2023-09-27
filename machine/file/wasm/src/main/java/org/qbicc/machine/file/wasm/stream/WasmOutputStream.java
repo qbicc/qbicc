@@ -1,141 +1,68 @@
 package org.qbicc.machine.file.wasm.stream;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.file.bin.BinaryInput;
+import org.qbicc.machine.file.bin.BinaryOutput;
+import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Mutability;
+import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.ValType;
 
 /**
  * An output stream for write raw data to a WASM binary file.
  */
-final class WasmOutputStream implements Closeable {
-    private final OutputStream os;
+public final class WasmOutputStream implements Closeable {
+    private final BinaryOutput bo;
 
-    WasmOutputStream(ByteArrayOutputStream os) {
-        this.os = os;
+    public WasmOutputStream(BinaryOutput bo) {
+        this.bo = bo;
+        bo.order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    WasmOutputStream(OutputStream os) {
-        this.os = os instanceof BufferedOutputStream bos ? bos : os instanceof ByteArrayOutputStream baos ? baos : new BufferedOutputStream(os);
+    public void s33(long val) throws IOException {
+        bo.sleb(val);
     }
 
-    public void uleb128(int val) throws IOException {
-        int b;
-        b = val & 0x7f;
-        val >>>= 7;
-        while (val != 0) {
-            b |= 0x80;
-            os.write(b);
-            b = val & 0x7f;
-            val >>>= 7;
-        }
-        os.write(b);
-    }
-
-    public void uleb128(long val) throws IOException {
-        int b;
-        b = (int) (val & 0x7f);
-        val >>>= 7;
-        while (val != 0) {
-            b |= 0x80;
-            os.write(b);
-            b = (int) (val & 0x7f);
-            val >>>= 7;
-        }
-        os.write(b);
-    }
-
-    public void sleb128(int val) throws IOException {
-        int b;
-        if (val < 0) {
-            b = val & 0x7f;
-            val >>= 7;
-            while (val != -1) {
-                b |= 0x80;
-                os.write(b);
-                b = val & 0x7f;
-                val >>= 7;
-            }
-            os.write(b);
-        } else {
-            b = val & 0x7f;
-            val >>>= 7;
-            // write an extra byte if the sign bit is set on the last one
-            while (val != 0 || b >= 0x40) {
-                b |= 0x80;
-                os.write(b);
-                b = val & 0x7f;
-                val >>>= 7;
-            }
-            os.write(b);
-        }
-    }
-
-    public void sleb128(long val) throws IOException {
-        int b;
-        if (val < 0) {
-            b = (int) (val & 0x7f);
-            val >>= 7;
-            while (val != -1) {
-                b |= 0x80;
-                os.write(b);
-                b = (int) (val & 0x7f);
-                val >>= 7;
-            }
-            os.write(b);
-        } else {
-            b = (int) (val & 0x7f);
-            val >>>= 7;
-            // write an extra byte if the sign bit is set on the last one
-            while (val != 0 || b >= 0x40) {
-                b |= 0x80;
-                os.write(b);
-                b = (int) (val & 0x7f);
-                val >>>= 7;
-            }
-            os.write(b);
-        }
+    public void s128(long lo, long hi) throws IOException {
+        bo.sleb(lo, hi);
     }
 
     public void u128(long lo, long hi) throws IOException {
-        int b;
-        b = (int) (lo & 0x7f);
-        lo = (lo >>> 7) | (hi << 57);
-        hi >>>= 7;
-        while (lo != 0 && hi != 0) {
-            b |= 0x80;
-            os.write(b);
-            b = (int) (lo & 0x7f);
-            lo = (lo >>> 7) | (hi << 57);
-            hi >>>= 7;
-        }
-        os.write(b);
+        bo.uleb(lo, hi);
+    }
+
+    public void s64(long val) throws IOException {
+        bo.sleb(val);
     }
 
     public void u64(long val) throws IOException {
-        uleb128(val);
+        bo.uleb(val);
+    }
+
+    public void s32(int val) throws IOException {
+        bo.sleb(val);
     }
 
     public void u32(int val) throws IOException {
-        uleb128(val);
+        bo.uleb(val);
     }
 
     public void u32(long val) throws IOException {
-        uleb128((int)val);
+        bo.uleb((int)val);
     }
 
     public void u16(int val) throws IOException {
-        uleb128(val & 0xffff);
+        bo.uleb(val & 0xffff);
     }
 
     public void u8(int val) throws IOException {
-        uleb128(val & 0xff);
+        bo.uleb(val & 0xff);
     }
 
     public void rawShort(final int val) throws IOException {
@@ -162,11 +89,20 @@ final class WasmOutputStream implements Closeable {
     }
 
     public void rawByte(int val) throws IOException {
-        os.write(val);
+        bo.i8(val);
     }
 
     public void rawBytes(byte[] val) throws IOException {
-        os.write(val);
+        bo.i8array(val);
+    }
+
+    public void op(Op op) throws IOException {
+        if (op.prefix().isPresent()) {
+            op(op.prefix().get());
+            u32(op.opcode());
+        } else {
+            rawByte(op.opcode());
+        }
     }
 
     public void byteVec(byte[] val) throws IOException {
@@ -174,14 +110,33 @@ final class WasmOutputStream implements Closeable {
         rawBytes(val);
     }
 
+    public void byteVec(final BinaryInput bi) throws IOException {
+        u32(bi.remaining());
+        bi.transferTo(bo);
+    }
+
     public void type(final ValType type) throws IOException {
         Assert.checkNotNullParam("type", type);
-        os.write(type.byteValue());
+        bo.i8(type.byteValue());
+    }
+
+    public void funcType(final FuncType type) throws IOException {
+        Assert.checkNotNullParam("type", type);
+        bo.i8(0x60);
+        typeVec(type.parameterTypes());
+        typeVec(type.resultTypes());
+    }
+
+    public void typeVec(final List<ValType> types) throws IOException {
+        u32(types.size());
+        for (ValType type : types) {
+            type(type);
+        }
     }
 
     public void mut(final Mutability mut) throws IOException {
         Assert.checkNotNullParam("mut", mut);
-        os.write(mut.byteValue());
+        bo.i8(mut.byteValue());
     }
 
     public void utf8(final String string) throws IOException {
@@ -190,6 +145,6 @@ final class WasmOutputStream implements Closeable {
 
     @Override
     public void close() throws IOException {
-        os.close();
+        bo.close();
     }
 }

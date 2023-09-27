@@ -14,6 +14,8 @@ public record FuncType(
     public FuncType {
         Assert.checkNotNullParam("parameterTypes", parameterTypes);
         Assert.checkNotNullParam("resultTypes", resultTypes);
+        parameterTypes = List.copyOf(parameterTypes);
+        resultTypes = List.copyOf(resultTypes);
     }
 
     @Override
@@ -34,7 +36,7 @@ public record FuncType(
         int size = Math.min(size1, size2);
         int res;
         for (int i = 0; i < size; i ++) {
-            res = ValType.CMP.compare(list1.get(i), list2.get(i));
+            res = ValType.compare(list1.get(i), list2.get(i));
             if (res != 0) {
                 return res;
             }

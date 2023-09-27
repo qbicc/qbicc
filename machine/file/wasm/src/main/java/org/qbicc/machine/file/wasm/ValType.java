@@ -1,7 +1,6 @@
 package org.qbicc.machine.file.wasm;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -13,6 +12,13 @@ public sealed interface ValType extends Type permits NumType, VecType, RefType {
     List<ValType> asList();
 
     FuncType asFuncTypeReturning();
+
+    static boolean isValidByteValue(int val) {
+        return switch (val) {
+            case 0x7f, 0x7e, 0x7d, 0x7c, 0x7b, 0x70, 0x6f -> true;
+            default -> false;
+        };
+    }
 
     static ValType forByteValue(int val) {
         return switch (val) {
@@ -37,5 +43,20 @@ public sealed interface ValType extends Type permits NumType, VecType, RefType {
         return values;
     }
 
-    Comparator<ValType> CMP = (o1, o2) -> Integer.compareUnsigned(o1.byteValue(), o2.byteValue());
+    static int compare(ValType a, ValType b) {
+        return Integer.compareUnsigned(a.byteValue(), b.byteValue());
+    }
+
+    static int compare(List<ValType> a, List<ValType> b) {
+        int asz = a.size();
+        int bsz = b.size();
+        int minSize = Math.min(asz, bsz);
+        for (int idx = 0; idx < minSize; idx ++) {
+            int res = compare(a.get(idx), b.get(idx));
+            if (res != 0) {
+                return res;
+            }
+        }
+        return Integer.compare(asz, bsz);
+    }
 }

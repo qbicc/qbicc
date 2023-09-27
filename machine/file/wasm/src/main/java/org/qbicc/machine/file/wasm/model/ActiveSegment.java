@@ -6,19 +6,14 @@ import org.qbicc.machine.file.wasm.Data;
 /**
  *
  */
-public record ActiveSegment(Data data, InsnSeq init) implements Segment {
+public record ActiveSegment(String name, Data data, InsnSeq offset) implements Segment {
     public ActiveSegment {
+        Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("data", data);
-        Assert.checkNotNullParam("init", init);
+        Assert.checkNotNullParam("offset", offset);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        return this == obj;
-    }
-
-    @Override
-    public int hashCode() {
-        return System.identityHashCode(this);
+    public ActiveSegment(Data data, InsnSeq offset) {
+        this("", data, offset);
     }
 }

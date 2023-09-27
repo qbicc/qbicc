@@ -1,5 +1,6 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Map;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.ValType;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction that operates on a list of types.
@@ -20,9 +21,9 @@ public record TypesInsn(Op.Types op, List<ValType> types) implements Insn<Op.Typ
         Assert.checkNotEmptyParam("types", types);
     }
 
-    @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, types.toArray(ValType[]::new));
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.typeVec(types);
     }
 
     private static final EnumMap<Op.Types, Map<ValType, TypesInsn>> ONE_TYPE;

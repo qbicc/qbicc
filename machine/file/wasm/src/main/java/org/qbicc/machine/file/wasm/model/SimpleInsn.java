@@ -1,7 +1,9 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
+
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * Instructions which do not take arguments. Always singleton.
@@ -19,9 +21,8 @@ public final class SimpleInsn implements Insn<Op.Simple> {
         return op;
     }
 
-    @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op());
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        wos.op(op);
     }
 
     public static final SimpleInsn catch_all = new SimpleInsn(Op.Simple.catch_all);

@@ -52,6 +52,10 @@ public abstract class BinaryOutput implements Closeable {
         return new TemporaryBinaryOutput(order, onClose);
     }
 
+    public static BinaryOutput temporary(ExceptionConsumer<BinaryInput, IOException> onClose) throws IOException {
+        return temporary(ByteOrder.nativeOrder(), onClose);
+    }
+
     public abstract ByteOrder order();
 
     /**
@@ -200,7 +204,8 @@ public abstract class BinaryOutput implements Closeable {
         if (val < 0) {
             b = val & 0x7f;
             val >>= 7;
-            while (val != -1) {
+            // write an extra byte if the sign bit is clear on the last one
+            while (val != -1 || b < 0x40) {
                 b |= 0x80;
                 i8(b);
                 b = val & 0x7f;
@@ -226,7 +231,8 @@ public abstract class BinaryOutput implements Closeable {
         if (val < 0) {
             b = (int) (val & 0x7f);
             val >>= 7;
-            while (val != -1) {
+            // write an extra byte if the sign bit is clear on the last one
+            while (val != -1 || b < 0x40) {
                 b |= 0x80;
                 i8(b);
                 b = (int) (val & 0x7f);
@@ -256,7 +262,7 @@ public abstract class BinaryOutput implements Closeable {
         b = (int) (lo & 0x7f);
         lo = (lo >>> 7) | (hi << 57);
         hi >>>= 7;
-        while (lo != 0 && hi != 0) {
+        while (lo != 0 || hi != 0) {
             b |= 0x80;
             i8(b);
             b = (int) (lo & 0x7f);
@@ -273,9 +279,11 @@ public abstract class BinaryOutput implements Closeable {
     public void sleb(long lo, long hi) throws IOException {
         int b;
         if (hi < 0) {
-            b = (int) (hi & 0x7f);
+            b = (int) (lo & 0x7f);
+            lo = (lo >>> 7) | (hi << 57);
             hi >>= 7;
-            while (hi != -1 || lo != -1) {
+            // write an extra byte if the sign bit is clear on the last one
+            while (hi != -1 || lo != -1 || b < 0x40) {
                 b |= 0x80;
                 i8(b);
                 b = (int) (lo & 0x7f);
@@ -284,7 +292,8 @@ public abstract class BinaryOutput implements Closeable {
             }
             i8(b);
         } else {
-            b = (int) (hi & 0x7f);
+            b = (int) (lo & 0x7f);
+            lo = (lo >>> 7) | (hi << 57);
             hi >>>= 7;
             // write an extra byte if the sign bit is set on the last one
             while (hi != 0 || lo != 0 || b >= 0x40) {

@@ -1,11 +1,12 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
 import java.util.EnumMap;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.Op;
 import org.qbicc.machine.file.wasm.RefType;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * A reference-typed instruction.
@@ -29,8 +30,9 @@ public final class RefTypedInsn implements Insn<Op.RefTyped> {
     }
 
     @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, type);
+    public void writeTo(WasmOutputStream wos, Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.type(type);
     }
 
     private static final EnumMap<Op.RefTyped, EnumMap<RefType, RefTypedInsn>> ALL;

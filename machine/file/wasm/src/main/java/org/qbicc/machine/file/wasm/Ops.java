@@ -1,14 +1,21 @@
 package org.qbicc.machine.file.wasm;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+
+import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
+import org.eclipse.collections.api.map.primitive.ImmutableIntObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 
 /**
  * The complete set of operations, organized syntactically for simplified code generation.
  */
 @SuppressWarnings("SpellCheckingInspection")
 public final class Ops {
+
     private Ops() {
     }
 
@@ -87,7 +94,7 @@ public final class Ops {
         public static final Op.Table set = Op.Table.table_set;
         public static final Op.Table size = Op.Table.table_size;
 
-        public static final Op.TableAndTable copy = Op.TableAndTable.table_copy;
+        public static final Op.TableToTable copy = Op.TableToTable.table_copy;
 
         public static final Op.ElementAndTable init = Op.ElementAndTable.table_init;
     }
@@ -100,7 +107,7 @@ public final class Ops {
         public static final Op.Memory grow = Op.Memory.memory_grow;
         public static final Op.Memory size = Op.Memory.memory_size;
 
-        public static final Op.MemoryAndMemory copy = Op.MemoryAndMemory.memory_copy;
+        public static final Op.MemoryToMemory copy = Op.MemoryToMemory.memory_copy;
 
         public static final Op.MemoryAndData init = Op.MemoryAndData.memory_init;
 
@@ -185,7 +192,7 @@ public final class Ops {
         public static final Op.MemoryAccess load = Op.MemoryAccess.f64_load;
         public static final Op.MemoryAccess store = Op.MemoryAccess.f64_store;
 
-        public static final Op.ConstI64 const_ = Op.ConstI64.i64_const;
+        public static final Op.ConstF64 const_ = Op.ConstF64.f64_const;
     }
 
     public static final class i32 {
@@ -243,7 +250,7 @@ public final class Ops {
         public static final Op.MemoryAccess store16 = Op.MemoryAccess.i32_store16;
         public static final Op.MemoryAccess store8 = Op.MemoryAccess.i32_store8;
 
-        public static final Op.ConstF32 const_ = Op.ConstF32.f32_const;
+        public static final Op.ConstI32 const_ = Op.ConstI32.i32_const;
 
         public static final class atomic {
             private atomic() {
@@ -659,7 +666,7 @@ public final class Ops {
         public static final Op.MemoryAccess load32_zero = Op.MemoryAccess.v128_load32_zero;
         public static final Op.MemoryAccess load64_zero = Op.MemoryAccess.v128_load64_zero;
 
-        public static final Op.ConstI128 const_ = Op.ConstI128.v128_const;
+        public static final Op.ConstV128 const_ = Op.ConstV128.v128_const;
 
         public static final Op.MemoryAccessLane load8_lane = Op.MemoryAccessLane.v128_load8_lane;
         public static final Op.MemoryAccessLane load16_lane = Op.MemoryAccessLane.v128_load16_lane;
@@ -682,35 +689,33 @@ public final class Ops {
         public static final Op.RefTyped null_ = Op.RefTyped.ref_null;
     }
 
-    private static final Op[] OP_MAP;
-    private static final Op[] FC_MAP;
-    private static final Op[] FD_MAP;
-    private static final Op[] FE_MAP;
+    private static final EnumMap<Op.Prefix, ImmutableIntObjectMap<Op>> BY_PREFIX;
+    private static final ImmutableIntObjectMap<Op> NO_PREFIX;
+    private static final Function<Op.Prefix, ImmutableIntObjectMap<Op>> BY_PREFIX_GET;
+
     private static final Map<String, Op> NAME_MAP;
 
     static {
         Map<String, Op> nameMap = new HashMap<>(500);
-        Op[] opMap = new Op[256];
-        Op[] fcMap = new Op[256];
-        Op[] fdMap = new Op[256];
-        Op[] feMap = new Op[256];
+        EnumMap<Op.Prefix, MutableIntObjectMap<Op>> byPrefix = new EnumMap<>(Op.Prefix.class);
+        for (Op.Prefix pfx : Op.Prefix.values()) {
+            byPrefix.put(pfx, IntObjectMaps.mutable.ofInitialCapacity(256));
+        }
+        MutableIntObjectMap<Op> noPrefix = IntObjectMaps.mutable.ofInitialCapacity(256);
         for (Op.Kind kind : Op.Kind.all()) {
             for (Op instruction : kind.ops()) {
-                Op[] map = switch (instruction.prefix()) {
-                    case Opcodes.OP_PREFIX_FC -> fcMap;
-                    case Opcodes.OP_PREFIX_FD -> fdMap;
-                    case Opcodes.OP_PREFIX_FE -> feMap;
-                    case -1 -> opMap;
-                    default -> throw new IllegalStateException("Unexpected wrong prefix");
-                };
-                map[instruction.opcode()] = instruction;
+                MutableIntObjectMap<Op> map = instruction.prefix().map(byPrefix::get).orElse(noPrefix);
+                map.put(instruction.opcode(), instruction);
                 nameMap.put(instruction.toString(), instruction);
             }
         }
-        OP_MAP = opMap;
-        FC_MAP = fcMap;
-        FD_MAP = fdMap;
-        FE_MAP = feMap;
+        EnumMap<Op.Prefix, ImmutableIntObjectMap<Op>> immutable = new EnumMap<>(Op.Prefix.class);
+        for (Map.Entry<Op.Prefix, MutableIntObjectMap<Op>> e : byPrefix.entrySet()) {
+            immutable.put(e.getKey(), e.getValue().toImmutable());
+        }
+        BY_PREFIX = immutable;
+        BY_PREFIX_GET = BY_PREFIX::get;
+        NO_PREFIX = noPrefix.toImmutable();
         NAME_MAP = nameMap;
     }
 
@@ -719,19 +724,17 @@ public final class Ops {
         return instruction == null ? Optional.empty() : instruction.optional();
     }
 
-    public static Optional<? extends Op> forOpcode(int prefix, int opcode) {
-        Op[] map = switch (prefix) {
-            case Opcodes.OP_PREFIX_FC -> FC_MAP;
-            case Opcodes.OP_PREFIX_FD -> FD_MAP;
-            case Opcodes.OP_PREFIX_FE -> FE_MAP;
-            case -1 -> OP_MAP;
-            default -> null;
-        };
-        Op instruction = map != null && opcode >= 0 && opcode < map.length ? map[opcode] : null;
-        return instruction == null ? Optional.empty() : instruction.optional();
+    public static Optional<? extends Op> forOpcode(int opcode) {
+        return forOpcode(Optional.empty(), opcode);
     }
 
-    public static Optional<? extends Op> forOpcode(int opcode) {
-        return forOpcode(-1, opcode);
+    public static Optional<? extends Op> forOpcode(Op.Prefix prefix, int opcode) {
+        return forOpcode(prefix.optional(), opcode);
+    }
+
+    public static Optional<? extends Op> forOpcode(Optional<Op.Prefix> prefix, int opcode) {
+        ImmutableIntObjectMap<Op> map = prefix.map(BY_PREFIX_GET).orElse(NO_PREFIX);
+        Op op = map.get(opcode);
+        return op != null ? op.optional() : Optional.empty();
     }
 }

@@ -34,11 +34,10 @@ abstract class ChannelBinaryOutput extends BinaryOutput {
 
     @Override
     public void i8(int value) throws IOException {
-        if (buffer.hasRemaining()) {
-            buffer.put((byte) value);
-        } else {
+        if (! buffer.hasRemaining()) {
             flush();
         }
+        buffer.put((byte) value);
     }
 
     @Override
