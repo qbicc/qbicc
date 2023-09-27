@@ -1,10 +1,10 @@
 package org.qbicc.machine.file.wasm.test.model;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.ByteOrder;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -15,9 +15,10 @@ import java.util.Map;
 import io.smallrye.common.function.ExceptionConsumer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.qbicc.machine.file.bin.BinaryInput;
+import org.qbicc.machine.file.bin.BinaryOutput;
 import org.qbicc.machine.file.wasm.model.Module;
-import org.qbicc.machine.file.wasm.stream.ModuleReader;
-import org.qbicc.machine.file.wasm.stream.ModuleWriter;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 public class ModelTests {
 
@@ -39,15 +40,11 @@ public class ModelTests {
         try {
             // now just process each one, in to model, out to stream, and in to model again
             forEachWasmFile(p, path -> {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try (ModuleReader wr = ModuleReader.forFile(path)) {
-                    Module module = new Module();
-                    module.readFrom(wr);
-                    module.writeTo(ModuleWriter.forStream(baos));
-                }
-                try (ModuleReader wr = ModuleReader.forBytes(baos.toByteArray())) {
-                    Module module = new Module();
-                    module.readFrom(wr);
+                try (BinaryInput in = BinaryInput.open(path, ByteOrder.LITTLE_ENDIAN)) {
+                    Module module = Module.loadFrom(in);
+                    try (BinaryOutput out = BinaryOutput.temporary(Module::loadFrom)) {
+                        module.saveTo(new WasmOutputStream(out));
+                    }
                 }
             });
         } finally {

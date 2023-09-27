@@ -1,29 +1,24 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction which operates on an element and a table.
  */
-public record ElementAndTableInsn(Op.ElementAndTable op, ElementHandle elementHandle, Table table) implements Insn<Op.ElementAndTable> {
+public record ElementAndTableInsn(Op.ElementAndTable op, Element element, Table table) implements Insn<Op.ElementAndTable> {
     public ElementAndTableInsn {
         Assert.checkNotNullParam("op", op);
-        Assert.checkNotNullParam("elementHandle", elementHandle);
+        Assert.checkNotNullParam("element", element);
         Assert.checkNotNullParam("table", table);
     }
 
-    public ElementAndTableInsn(Op.ElementAndTable op, Element element, Table table) {
-        this(op, ElementHandle.of(element), table);
-    }
-
-    public Element element() {
-        return elementHandle().element();
-    }
-
-    @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, encoder.encode(element()), encoder.encode(table));
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.u32(encoder.encode(element()));
+        wos.u32(encoder.encode(table()));
     }
 }

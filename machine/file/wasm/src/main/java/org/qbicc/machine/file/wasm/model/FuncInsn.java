@@ -1,8 +1,10 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction which takes a function as its argument.
@@ -14,7 +16,8 @@ public record FuncInsn(Op.Func op, Func func) implements Insn<Op.Func> {
     }
 
     @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, encoder.encode(func));
+    public void writeTo(WasmOutputStream wos, Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.u32(encoder.encode(func()));
     }
 }

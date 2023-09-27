@@ -1,7 +1,5 @@
 package org.qbicc.machine.file.wasm.model;
 
-import java.util.List;
-
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.RefType;
 import org.qbicc.machine.file.wasm.Wasm;
@@ -9,7 +7,7 @@ import org.qbicc.machine.file.wasm.Wasm;
 /**
  *
  */
-public record DefinedTable(RefType type, long minSize, long maxSize, boolean shared, List<ActiveElement> initializers) implements Defined, Table {
+public record DefinedTable(RefType type, long minSize, long maxSize, boolean shared) implements Defined, Table {
 
     public DefinedTable {
         Assert.checkNotNullParam("type", type);
@@ -17,15 +15,14 @@ public record DefinedTable(RefType type, long minSize, long maxSize, boolean sha
         Assert.checkMaximumParameter("minSize", Wasm.LIMITS_MAXIMUM, minSize);
         Assert.checkMinimumParameter("maxSize", minSize, maxSize);
         Assert.checkMaximumParameter("maxSize", Wasm.LIMITS_MAXIMUM, maxSize);
-        Assert.checkNotNullParam("initializers", initializers);
     }
 
-    public DefinedTable(RefType type, long minSize, long maxSize, List<ActiveElement> initializers) {
-        this(type, minSize, maxSize, false, initializers);
+    public DefinedTable(RefType type, long minSize, long maxSize) {
+        this(type, minSize, maxSize, false);
     }
 
-    public DefinedTable(RefType type, long minSize, List<ActiveElement> activeInitializers) {
-        this(type, minSize, Wasm.LIMITS_MAXIMUM, activeInitializers);
+    public DefinedTable(RefType type, long minSize) {
+        this(type, minSize, Wasm.LIMITS_MAXIMUM);
     }
 
     @Override

@@ -1,9 +1,11 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.FuncType;
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction which operates on a table.
@@ -15,8 +17,9 @@ public record TableAndFuncTypeInsn(Op.TableAndFuncType op, Table table, FuncType
         Assert.checkNotNullParam("type", type);
     }
 
-    @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, encoder.encode(table), encoder.encode(type));
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.u32(encoder.encode(type()));
+        wos.u32(encoder.encode(table()));
     }
 }

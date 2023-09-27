@@ -26,17 +26,33 @@ public final class Wasm {
         DATA_COUNT(SECTION_DATA_COUNT),
         CODE(SECTION_CODE),
         DATA(SECTION_DATA),
+        NAME("name"),
         ;
 
         private static final Section[] vals = values();
         private final int id;
+        private final String customName;
 
         Section(final int id) {
             this.id = id;
+            customName = null;
+        }
+
+        Section(final String customName) {
+            this.id = SECTION_CUSTOM;
+            this.customName = customName;
         }
 
         public int id() {
             return id;
+        }
+
+        public boolean hasCustomName() {
+            return id == SECTION_CUSTOM && customName != null;
+        }
+
+        public String customName() {
+            return customName;
         }
 
         public boolean succeeds(Section other) {
@@ -45,6 +61,14 @@ public final class Wasm {
 
         public boolean precedes(Section other) {
             return ordinal() < other.ordinal();
+        }
+
+        public static Section forName(String name) {
+            Assert.checkNotNullParam("name", name);
+            return switch (name) {
+                case "name" -> NAME;
+                default -> null;
+            };
         }
 
         public static Section forId(int id) {
@@ -91,7 +115,7 @@ public final class Wasm {
      * @param val the value
      * @return the size
      */
-    public static int uleb128_size(int val) {
+    public static int uleb_size(int val) {
         if (val == 0) {
             return 1;
         }

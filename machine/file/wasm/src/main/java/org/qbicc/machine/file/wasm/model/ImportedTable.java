@@ -1,7 +1,5 @@
 package org.qbicc.machine.file.wasm.model;
 
-import java.util.List;
-
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.RefType;
 import org.qbicc.machine.file.wasm.Wasm;
@@ -9,7 +7,7 @@ import org.qbicc.machine.file.wasm.Wasm;
 /**
  *
  */
-public record ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, boolean shared, List<ActiveElement> initializers) implements Imported, Table {
+public record ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, boolean shared) implements Imported, Table {
 
     public ImportedTable {
         Assert.checkNotNullParam("moduleName", moduleName);
@@ -19,15 +17,14 @@ public record ImportedTable(String moduleName, String name, RefType type, long m
         Assert.checkMaximumParameter("minSize", Wasm.LIMITS_MAXIMUM, minSize);
         Assert.checkMinimumParameter("maxSize", minSize, maxSize);
         Assert.checkMaximumParameter("maxSize", Wasm.LIMITS_MAXIMUM, maxSize);
-        Assert.checkNotNullParam("initializers", initializers);
     }
 
-    public ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize, List<ActiveElement> initializers) {
-        this(moduleName, name, type, minSize, maxSize, false, initializers);
+    public ImportedTable(String moduleName, String name, RefType type, long minSize, long maxSize) {
+        this(moduleName, name, type, minSize, maxSize, false);
     }
 
-    public ImportedTable(String moduleName, String name, RefType type, long minSize, List<ActiveElement> initializers) {
-        this(moduleName, name, type, minSize, Wasm.LIMITS_MAXIMUM, initializers);
+    public ImportedTable(String moduleName, String name, RefType type, long minSize) {
+        this(moduleName, name, type, minSize, Wasm.LIMITS_MAXIMUM);
     }
 
     @Override

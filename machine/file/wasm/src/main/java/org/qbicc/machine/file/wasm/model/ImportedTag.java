@@ -26,5 +26,8 @@ public record ImportedTag(String moduleName, String name, TagAttribute attribute
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("attribute", attribute);
         Assert.checkNotNullParam("type", type);
+        if (attribute == TagAttribute.EXCEPTION && ! type.resultTypes().isEmpty()) {
+            throw new IllegalArgumentException("Result types must be empty for exceptions");
+        }
     }
 }

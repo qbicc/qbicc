@@ -6,7 +6,7 @@ import org.qbicc.machine.file.wasm.ValType;
 /**
  *
  */
-public sealed interface Global extends Exportable permits DefinedGlobal, ImportedGlobal {
+public sealed interface Global extends Exportable, Named permits DefinedGlobal, ImportedGlobal {
     ValType type();
 
     Mutability mutability();

@@ -5,6 +5,6 @@ import org.qbicc.machine.file.wasm.FuncType;
 /**
  *
  */
-public sealed interface Func extends Exportable permits DefinedFunc, ImportedFunc {
+public sealed interface Func extends Exportable, Named permits DefinedFunc, ImportedFunc {
     FuncType type();
 }

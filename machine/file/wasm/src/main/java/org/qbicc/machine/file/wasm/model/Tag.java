@@ -6,7 +6,7 @@ import org.qbicc.machine.file.wasm.TagAttribute;
 /**
  *
  */
-public sealed interface Tag permits DefinedTag, ImportedTag {
+public sealed interface Tag extends Named, Exportable permits DefinedTag, ImportedTag {
     TagAttribute attribute();
 
     FuncType type();

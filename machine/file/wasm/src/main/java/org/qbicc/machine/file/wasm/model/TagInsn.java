@@ -1,8 +1,10 @@
 package org.qbicc.machine.file.wasm.model;
 
+import java.io.IOException;
+
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.file.wasm.Op;
-import org.qbicc.machine.file.wasm.stream.InsnSeqVisitor;
+import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 
 /**
  * An instruction which operates on a tag.
@@ -22,8 +24,8 @@ public record TagInsn(Op.Tag op, Tag tag) implements Insn<Op.Tag> {
         Assert.checkNotNullParam("tag", tag);
     }
 
-    @Override
-    public <E extends Exception> void accept(InsnSeqVisitor<E> ev, Encoder encoder) throws E {
-        ev.visit(op, encoder.encode(tag));
+    public void writeTo(final WasmOutputStream wos, final Encoder encoder) throws IOException {
+        wos.op(op);
+        wos.u32(encoder.encode(tag));
     }
 }
