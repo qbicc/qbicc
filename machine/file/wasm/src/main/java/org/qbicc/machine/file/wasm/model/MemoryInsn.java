@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on some memory instance.
  */
-public record MemoryInsn(Op.Memory op, Memory memory) implements Insn<Op.Memory> {
+public record MemoryInsn(Op.Memory op, Memory memory) implements Insn<Op.Memory>, Cacheable {
     public MemoryInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("memory", memory);

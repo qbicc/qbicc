@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which takes a function as its argument.
  */
-public record FuncInsn(Op.Func op, Func func) implements Insn<Op.Func> {
+public record FuncInsn(Op.Func op, Func func) implements Insn<Op.Func>, Cacheable {
     public FuncInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("func", func);

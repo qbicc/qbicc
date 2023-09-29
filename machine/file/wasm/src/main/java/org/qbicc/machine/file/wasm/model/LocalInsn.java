@@ -12,7 +12,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
  * @param op The operation (not {@code null}).
  * @param local The local variable (not {@code null}).
  */
-public record LocalInsn(Op.Local op, Local local) implements Insn<Op.Local> {
+public record LocalInsn(Op.Local op, Local local) implements Insn<Op.Local>, Cacheable {
     /**
      * Construct a new instance.
      *

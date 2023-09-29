@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction that models a memory access involving a vector lane.
  */
-public record MemoryAccessLaneInsn(Op.MemoryAccessLane op, Memory memory, int offset, int alignment, int lane) implements Insn<Op.MemoryAccessLane> {
+public record MemoryAccessLaneInsn(Op.MemoryAccessLane op, Memory memory, int offset, int alignment, int lane) implements Insn<Op.MemoryAccessLane>, Cacheable {
     public MemoryAccessLaneInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("memory", memory);

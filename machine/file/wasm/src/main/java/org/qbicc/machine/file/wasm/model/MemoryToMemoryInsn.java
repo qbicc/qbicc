@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on two memory instances (destination and source).
  */
-public record MemoryToMemoryInsn(Op.MemoryToMemory op, Memory destination, Memory source) implements Insn<Op.MemoryToMemory> {
+public record MemoryToMemoryInsn(Op.MemoryToMemory op, Memory destination, Memory source) implements Insn<Op.MemoryToMemory>, Cacheable {
     public MemoryToMemoryInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("destination", destination);

@@ -14,7 +14,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction that operates on a list of types.
  */
-public record TypesInsn(Op.Types op, List<ValType> types) implements Insn<Op.Types> {
+public record TypesInsn(Op.Types op, List<ValType> types) implements Insn<Op.Types>, Cacheable {
     public TypesInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("types", types);

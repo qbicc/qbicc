@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which takes a constant value argument.
  */
-public record ConstI64Insn(Op.ConstI64 op, long val) implements Insn<Op.ConstI64> {
+public record ConstI64Insn(Op.ConstI64 op, long val) implements Insn<Op.ConstI64>, Cacheable {
     public ConstI64Insn {
         Assert.checkNotNullParam("op", op);
     }

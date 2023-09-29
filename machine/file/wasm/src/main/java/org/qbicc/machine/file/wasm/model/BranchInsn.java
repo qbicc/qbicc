@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which branches to some enclosing label.
  */
-public record BranchInsn(Op.Branch op, BranchTarget target) implements Insn<Op.Branch> {
+public record BranchInsn(Op.Branch op, BranchTarget target) implements Insn<Op.Branch>, Cacheable {
     public BranchInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("target", target);
@@ -20,5 +20,4 @@ public record BranchInsn(Op.Branch op, BranchTarget target) implements Insn<Op.B
         wos.op(op);
         wos.u32(encoder.encode(target));
     }
-
 }

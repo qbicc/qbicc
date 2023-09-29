@@ -12,7 +12,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
  * @param op The operation (not {@code null}).
  * @param tag The tag (not {@code null}).
  */
-public record TagInsn(Op.Tag op, Tag tag) implements Insn<Op.Tag> {
+public record TagInsn(Op.Tag op, Tag tag) implements Insn<Op.Tag>, Cacheable {
     /**
      * Construct a new instance.
      *
