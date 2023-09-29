@@ -153,11 +153,11 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
         Ops.end
     );
 
-    public <O extends Op, I extends Insn<O>> I add(I insn) {
+    <O extends Op, I extends Insn<O>> I add(I insn) {
         Assert.checkNotNullParam("insn", insn);
         O op = insn.op();
         if (ended) {
-            throw notAllowed(op);
+            throw new IllegalArgumentException("Add after end");
         } else if (op == Ops.end) {
             end();
         } else if (flags.contains(Flag.CONSTANT) && ! CONSTANT_OPS.contains(op)) {
@@ -185,6 +185,8 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
             } else {
                 throw notAllowed(op);
             }
+        } else if (insn instanceof Cacheable) {
+            instructions.add(getCached(insn));
         } else {
             instructions.add(insn);
         }
@@ -202,7 +204,7 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
     }
 
     public AtomicMemoryAccessInsn add(Op.AtomicMemoryAccess op, Memory memory, int offset) {
-        return add(getCached(new AtomicMemoryAccessInsn(op, memory, offset)));
+        return add(new AtomicMemoryAccessInsn(op, memory, offset));
     }
 
     /**
@@ -235,91 +237,91 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
      * @return the newly created instruction (not {@code null})
      */
     public BranchInsn add(Op.Branch op, BranchTarget target) {
-        return add(getCached(new BranchInsn(op, target)));
+        return add(new BranchInsn(op, target));
     }
 
     public ConstF32Insn add(Op.ConstF32 op, float val) {
-        return add(getCached(new ConstF32Insn(op, val)));
+        return add(new ConstF32Insn(op, val));
     }
 
     public ConstF64Insn add(Op.ConstF64 op, double val) {
-        return add(getCached(new ConstF64Insn(op, val)));
+        return add(new ConstF64Insn(op, val));
     }
 
     public ConstI32Insn add(Op.ConstI32 op, int val) {
-        return add(getCached(new ConstI32Insn(op, val)));
+        return add(new ConstI32Insn(op, val));
     }
 
     public ConstI64Insn add(Op.ConstI64 op, long val) {
-        return add(getCached(new ConstI64Insn(op, val)));
+        return add(new ConstI64Insn(op, val));
     }
 
     public ConstV128Insn add(Op.ConstV128 op, I128 val) {
-        return add(getCached(new ConstV128Insn(op, val.low(), val.high())));
+        return add(new ConstV128Insn(op, val.low(), val.high()));
     }
 
     public ConstV128Insn add(Op.ConstV128 op, long low) {
-        return add(getCached(new ConstV128Insn(op, low)));
+        return add(new ConstV128Insn(op, low));
     }
 
     public ConstV128Insn add(Op.ConstV128 op, long low, long high) {
-        return add(getCached(new ConstV128Insn(op, low, high)));
+        return add(new ConstV128Insn(op, low, high));
     }
 
     public DataInsn add(Op.Data op, Segment segment) {
-        return add(getCached(new DataInsn(op, segment)));
+        return add(new DataInsn(op, segment));
     }
 
     public ElementInsn add(Op.Element op, Element element) {
-        return add(getCached(new ElementInsn(op, element)));
+        return add(new ElementInsn(op, element));
     }
 
     public ElementAndTableInsn add(Op.ElementAndTable op, Element element, Table table) {
-        return add(getCached(new ElementAndTableInsn(op, element, table)));
+        return add(new ElementAndTableInsn(op, element, table));
     }
 
     public ExceptionInsn add(Op.Exception op, BranchTarget target) {
-        return add(getCached(new ExceptionInsn(op, target)));
+        return add(new ExceptionInsn(op, target));
     }
 
     public FuncInsn add(Op.Func op, Func func) {
-        return add(getCached(new FuncInsn(op, func)));
+        return add(new FuncInsn(op, func));
     }
 
     public GlobalInsn add(Op.Global op, Global global) {
-        return add(getCached(new GlobalInsn(op, global)));
+        return add(new GlobalInsn(op, global));
     }
 
     public LaneInsn add(Op.Lane op, int laneIdx) {
-        return add(getCached(new LaneInsn(op, laneIdx)));
+        return add(new LaneInsn(op, laneIdx));
     }
 
     public LocalInsn add(Op.Local op, Local local) {
-        return add(getCached(new LocalInsn(op, local)));
+        return add(new LocalInsn(op, local));
     }
 
     public MemoryInsn add(Op.Memory op, Memory memory) {
-        return add(getCached(new MemoryInsn(op, memory)));
+        return add(new MemoryInsn(op, memory));
     }
 
     public MemoryAccessInsn add(Op.MemoryAccess op, Memory memory, int offset, int alignment) {
-        return add(getCached(new MemoryAccessInsn(op, memory, offset, alignment)));
+        return add(new MemoryAccessInsn(op, memory, offset, alignment));
     }
 
     public MemoryAccessLaneInsn add(Op.MemoryAccessLane op, Memory memory, int offset, int alignment, int laneIdx) {
-        return add(getCached(new MemoryAccessLaneInsn(op, memory, offset, alignment, laneIdx)));
+        return add(new MemoryAccessLaneInsn(op, memory, offset, alignment, laneIdx));
     }
 
     public MemoryAndDataInsn add(Op.MemoryAndData op, Memory memory, Segment data) {
-        return add(getCached(new MemoryAndDataInsn(op, memory, data)));
+        return add(new MemoryAndDataInsn(op, memory, data));
     }
 
     public MemoryToMemoryInsn add(Op.MemoryToMemory op, Memory dest, Memory src) {
-        return add(getCached(new MemoryToMemoryInsn(op, dest, src)));
+        return add(new MemoryToMemoryInsn(op, dest, src));
     }
 
     public MultiBranchInsn add(Op.MultiBranch op, List<BranchTarget> targets, BranchTarget defaultTarget) {
-        return add(getCached(new MultiBranchInsn(op, targets, defaultTarget)));
+        return add(new MultiBranchInsn(op, targets, defaultTarget));
     }
 
     public RefTypedInsn add(Op.RefTyped op, RefType type) {
@@ -331,19 +333,19 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
     }
 
     public TableInsn add(Op.Table op, Table table) {
-        return add(getCached(new TableInsn(op, table)));
+        return add(new TableInsn(op, table));
     }
 
     public TableAndFuncTypeInsn add(Op.TableAndFuncType op, Table table, FuncType funcType) {
-        return add(getCached(new TableAndFuncTypeInsn(op, table, funcType)));
+        return add(new TableAndFuncTypeInsn(op, table, funcType));
     }
 
     public TableToTableInsn add(Op.TableToTable op, Table table1, Table table2) {
-        return add(getCached(new TableToTableInsn(op, table1, table2)));
+        return add(new TableToTableInsn(op, table1, table2));
     }
 
     public TagInsn add(Op.Tag op, Tag tag) {
-        return add(getCached(new TagInsn(op, tag)));
+        return add(new TagInsn(op, tag));
     }
 
     public TypesInsn add(Op.Types op, ValType type) {
@@ -539,7 +541,7 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
              */
             public Set with(Flag other) {
                 Assert.checkNotNullParam("other", other);
-                return sets[bits | (1 << other.ordinal())];
+                return sets[bits | 1 << other.ordinal()];
             }
 
             /**
@@ -551,7 +553,7 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
              */
             public Set with(boolean when, Flag other) {
                 Assert.checkNotNullParam("other", other);
-                return when ? sets[bits | (1 << other.ordinal())] : this;
+                return when ? sets[bits | 1 << other.ordinal()] : this;
             }
 
             /**
@@ -584,7 +586,7 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
              *      {@code other} is {@code null}
              */
             public boolean contains(Flag other) {
-                return other != null && (bits & (1 << other.ordinal())) != 0;
+                return other != null && (bits & 1 << other.ordinal()) != 0;
             }
         }
     }

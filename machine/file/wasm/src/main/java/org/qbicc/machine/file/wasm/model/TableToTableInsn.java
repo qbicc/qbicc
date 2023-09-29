@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on two tables (destination and source).
  */
-public record TableToTableInsn(Op.TableToTable op, Table destination, Table source) implements Insn<Op.TableToTable> {
+public record TableToTableInsn(Op.TableToTable op, Table destination, Table source) implements Insn<Op.TableToTable>, Cacheable {
     public TableToTableInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("destination", destination);

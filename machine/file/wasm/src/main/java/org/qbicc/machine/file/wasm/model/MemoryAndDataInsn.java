@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on some memory instance and a data segment.
  */
-public record MemoryAndDataInsn(Op.MemoryAndData op, Memory memory, Segment segment) implements Insn<Op.MemoryAndData> {
+public record MemoryAndDataInsn(Op.MemoryAndData op, Memory memory, Segment segment) implements Insn<Op.MemoryAndData>, Cacheable {
     public MemoryAndDataInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("memory", memory);

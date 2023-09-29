@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  *
  */
-public record DataInsn(Op.Data op, Segment segment) implements Insn<Op.Data> {
+public record DataInsn(Op.Data op, Segment segment) implements Insn<Op.Data>, Cacheable {
     public DataInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("segment", segment);

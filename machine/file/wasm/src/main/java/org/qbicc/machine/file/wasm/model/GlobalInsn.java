@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on a global variable.
  */
-public record GlobalInsn(Op.Global op, Global global) implements Insn<Op.Global> {
+public record GlobalInsn(Op.Global op, Global global) implements Insn<Op.Global>, Cacheable {
     public GlobalInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("global", global);

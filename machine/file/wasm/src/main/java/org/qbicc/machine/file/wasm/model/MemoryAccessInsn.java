@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction that models a memory access.
  */
-public record MemoryAccessInsn(Op.MemoryAccess op, Memory memory, int offset, int alignment) implements Insn<Op.MemoryAccess> {
+public record MemoryAccessInsn(Op.MemoryAccess op, Memory memory, int offset, int alignment) implements Insn<Op.MemoryAccess>, Cacheable {
     public MemoryAccessInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("memory", memory);

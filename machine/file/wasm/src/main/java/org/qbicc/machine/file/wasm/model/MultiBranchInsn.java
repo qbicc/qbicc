@@ -10,7 +10,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which targets some enclosing label.
  */
-public record MultiBranchInsn(Op.MultiBranch op, List<BranchTarget> branchTargets, BranchTarget defaultTarget) implements Insn<Op.MultiBranch> {
+public record MultiBranchInsn(Op.MultiBranch op, List<BranchTarget> branchTargets, BranchTarget defaultTarget) implements Insn<Op.MultiBranch>, Cacheable {
     public MultiBranchInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("branchTargets", branchTargets);

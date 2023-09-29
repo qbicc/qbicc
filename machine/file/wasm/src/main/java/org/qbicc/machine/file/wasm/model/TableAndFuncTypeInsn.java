@@ -10,7 +10,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which operates on a table.
  */
-public record TableAndFuncTypeInsn(Op.TableAndFuncType op, Table table, FuncType type) implements Insn<Op.TableAndFuncType> {
+public record TableAndFuncTypeInsn(Op.TableAndFuncType op, Table table, FuncType type) implements Insn<Op.TableAndFuncType>, Cacheable {
     public TableAndFuncTypeInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("table", table);

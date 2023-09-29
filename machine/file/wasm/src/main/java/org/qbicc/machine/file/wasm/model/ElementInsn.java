@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  * An instruction which takes an element as its argument.
  */
-public record ElementInsn(Op.Element op, Element element) implements Insn<Op.Element> {
+public record ElementInsn(Op.Element op, Element element) implements Insn<Op.Element>, Cacheable {
     public ElementInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("element", element);

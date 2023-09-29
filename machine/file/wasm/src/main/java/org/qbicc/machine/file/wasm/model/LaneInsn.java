@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  *
  */
-public record LaneInsn(Op.Lane op, int laneIdx) implements Insn<Op.Lane> {
+public record LaneInsn(Op.Lane op, int laneIdx) implements Insn<Op.Lane>, Cacheable {
     public LaneInsn {
         Assert.checkNotNullParam("op", op);
     }

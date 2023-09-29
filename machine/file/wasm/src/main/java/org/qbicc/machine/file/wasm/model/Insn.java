@@ -41,4 +41,5 @@ public sealed interface Insn<I extends Op> permits AtomicMemoryAccessInsn,
     I op();
 
     void writeTo(WasmOutputStream wos, Encoder encoder) throws IOException;
+
 }

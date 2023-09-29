@@ -9,7 +9,7 @@ import org.qbicc.machine.file.wasm.stream.WasmOutputStream;
 /**
  *
  */
-public record ExceptionInsn(Op.Exception op, BranchTarget target) implements Insn<Op.Exception> {
+public record ExceptionInsn(Op.Exception op, BranchTarget target) implements Insn<Op.Exception>, Cacheable {
     public ExceptionInsn {
         Assert.checkNotNullParam("op", op);
         Assert.checkNotNullParam("target", target);
