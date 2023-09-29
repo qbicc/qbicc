@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.qbicc.interpreter.Memory;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.PhysicalObjectType;
@@ -190,6 +191,10 @@ public abstract class Pointer {
 
     public boolean isNoSideEffect() {
         return false;
+    }
+
+    public SafePointBehavior safePointBehavior() {
+        return SafePointBehavior.POLLING;
     }
 
     public interface Visitor<T, R> extends RootPointer.Visitor<T, R> {

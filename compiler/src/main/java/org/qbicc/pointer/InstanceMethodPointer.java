@@ -1,5 +1,6 @@
 package org.qbicc.pointer;
 
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 
@@ -63,6 +64,10 @@ public final class InstanceMethodPointer extends RootPointer implements Executab
     @Override
     public boolean isNoSideEffect() {
         return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS);
+    }
+
+    public SafePointBehavior safePointBehavior() {
+        return getExecutableElement().safePointBehavior();
     }
 
     public <T, R> R accept(final Visitor<T, R> visitor, final T t) {
