@@ -7,6 +7,6 @@ public interface CatchNode extends Terminator {
     BlockLabel getCatchLabel();
 
     default BasicBlock getCatchBlock() {
-        return BlockLabel.getTargetOf(getCatchLabel());
+        return BlockLabel.requireTargetOf(getCatchLabel());
     }
 }

@@ -395,13 +395,13 @@ public class Main implements Callable<DiagnosticContext> {
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
 
+                            builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
                             builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                             builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                             builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                             builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
                             builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
                             builder.addTypeBuilderFactory(ReflectiveElementTypeBuilder::new);
-                            builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
                             builder.addTypeBuilderFactory(InitAtRuntimeTypeBuilder::new);
                             builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
 
@@ -492,6 +492,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IndyResolvingBasicBlockBuilder::new);
                             builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
                             if (optMemoryTracking) {
                                 // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)
                                 // builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
@@ -596,7 +597,6 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addCopyFactory(Phase.LOWER, InitialHeapLiteralSerializingVisitor::new);
                             builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
 
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
                             if (platform.isWasm()) {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
                             } else {

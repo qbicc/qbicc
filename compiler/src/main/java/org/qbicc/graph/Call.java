@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ValueType;
 
 /**
@@ -62,7 +63,7 @@ public final class Call extends AbstractValue implements OrderedNode, Invocation
 
     @Override
     public boolean maySafePoint() {
-        return ! target.isNoSafePoints();
+        return target.safePointBehavior() != SafePointBehavior.FORBIDDEN;
     }
 
     @Override

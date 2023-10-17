@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  * <p>
  * Additional thread-state flags may be given to set or clear on safepoint entry or exit.
  * These values will be ignored for calls which do not cause safepoint entry.
- * The values are only meaningful to the runtime library.
+ * The values are only meaningful to the runtime library, representing JVMTI state bits.
  * <p>
  * Taking a pointer to a method will discard/obscure its safepoint mode.
  * External callers to functions will not cause safepoint to be entered; it is assumed that such callers
@@ -23,13 +23,17 @@ import java.lang.annotation.Target;
 @Target({METHOD, CONSTRUCTOR})
 @Retention(CLASS)
 public @interface SafePoint {
+    /** {@return the safe point behavior} */
     SafePointBehavior value() default SafePointBehavior.ENTER;
 
-    int setOnEntry() default 0;
+    /** {@return the thread state bits to set on safepoint entry/exit and re-clear on safepoint exit/reentry} */
+    int setBits() default 0;
 
-    int clearOnEntry() default 0;
+    /** {@return the thread state bits to clear on safepoint entry/exit and re-set on safepoint exit/reentry} */
+    int clearBits() default 0;
 
-    int setOnExit() default 0;
-
-    int clearOnExit() default 0;
+    /**
+     * The JVMTI constant indicating that a thread is inside a native method.
+     */
+    int STATE_IN_NATIVE = 1 << 22;
 }

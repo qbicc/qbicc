@@ -2,8 +2,9 @@ package org.qbicc.runtime.stdc;
 
 import static org.qbicc.runtime.CNative.*;
 
-import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoThrow;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.runtime.patcher.AccessWith;
 import org.qbicc.runtime.patcher.Accessor;
 import org.qbicc.runtime.Build;
@@ -36,15 +37,16 @@ public final class Errno {
 
 final class GLibCErrnoAccessor implements Accessor<Integer> {
     @extern
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native ptr<c_int> __errno_location();
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getAsInt() {
         return __errno_location().loadUnshared().intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void set(int value) {
         __errno_location().storeUnshared(word(value));
@@ -53,15 +55,16 @@ final class GLibCErrnoAccessor implements Accessor<Integer> {
 
 final class MacOsErrnoAccessor implements Accessor<Integer> {
     @extern
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native ptr<c_int> __error();
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getAsInt() {
         return __error().loadUnshared().intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void set(int value) {
         __error().storeUnshared(word(value));
@@ -70,15 +73,16 @@ final class MacOsErrnoAccessor implements Accessor<Integer> {
 
 final class AixErrnoAccessor implements Accessor<Integer> {
     @extern
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native ptr<c_int> _Errno();
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getAsInt() {
         return _Errno().loadUnshared().intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void set(int value) {
         _Errno().storeUnshared(word(value));

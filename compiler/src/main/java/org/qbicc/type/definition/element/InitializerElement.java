@@ -6,16 +6,16 @@ import java.lang.invoke.VarHandle;
 import java.util.List;
 import java.util.function.Function;
 
+import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.ClassContext;
 import org.qbicc.pointer.InitializerPointer;
-import org.qbicc.pointer.StaticMethodPointer;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.StaticMethodType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.generic.MethodSignature;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -116,6 +116,18 @@ public final class InitializerElement extends BasicElement implements Executable
 
     public int getMaximumLineNumber() {
         return maximumLineNumber;
+    }
+
+    public SafePointBehavior safePointBehavior() {
+        return SafePointBehavior.POLLING;
+    }
+
+    public int safePointSetBits() {
+        return 0;
+    }
+
+    public int safePointClearBits() {
+        return 0;
     }
 
     /**

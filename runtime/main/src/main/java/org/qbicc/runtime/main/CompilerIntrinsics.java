@@ -2,7 +2,8 @@ package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative.*;
 import org.qbicc.runtime.Hidden;
-import org.qbicc.runtime.NoSafePoint;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.runtime.stdc.Stdint.*;
 
 /**
@@ -20,7 +21,7 @@ public class CompilerIntrinsics {
     public static native Object emitNew(Class<?> clazz);
 
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void copyInstanceFields(Class<?> clazz, Object src, Object dst);
 
     /**
@@ -28,14 +29,14 @@ public class CompilerIntrinsics {
      * Classes, interfaces, and primitive arrays have dimensionality 0.
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native uint8_t getDimensionsFromClass(Class<?> cls);
 
     /**
      * Get the concrete type ID for the represented type from a java.lang.Class instance.
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id getTypeIdFromClass(Class<?> cls);
 
     /**
@@ -48,7 +49,7 @@ public class CompilerIntrinsics {
      * Get the java.lang.Class instance for the type ID for non-array classes.
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native Class<?> getClassFromTypeIdSimple(type_id typeId);
 
     /**
@@ -58,7 +59,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native Class<?> getArrayClassOf(Class<?> componentClass);
 
     /**
@@ -70,70 +71,70 @@ public class CompilerIntrinsics {
      * @return boolean true if atomic operation succeeds, false otherwise
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean setArrayClass(Class<?> componentClass, Class<?> arrayClass);
 
     /**
      * Is the argument typeId the typeId for java.lang.Object?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isJavaLangObject(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.lang.Cloneable?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isJavaLangCloneable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId for java.io.Serializable?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isJavaIoSerializable(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a Class?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isClass(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of an Interface?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isInterface(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive array?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isPrimArray(type_id typeId);
 
     /**
      * Is the argument typeId the typeId of a primitive?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isPrimitive(type_id typeId);
 
     /**
      * Is the argument typeId the typeId use for reference arrays?
      */
-    @NoSafePoint
     @Hidden
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean isReferenceArray(type_id typeId);
 
     /**
      * Returns the typeId used for reference arrays
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id getReferenceArrayTypeId();
 
     /**
@@ -141,7 +142,7 @@ public class CompilerIntrinsics {
      * This will be 1 higher than the highest typeid
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id getNumberOfTypeIds();
 
     /**
@@ -154,7 +155,7 @@ public class CompilerIntrinsics {
      * @return instance of java.lang.Class
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native Class<?> createClass(String name, type_id id, uint8_t dimension, Class<?> componentType);
 
     /**
@@ -165,7 +166,7 @@ public class CompilerIntrinsics {
      * @return the type ID of the object
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id typeIdOf(Object reference);
 
     /**
@@ -175,7 +176,7 @@ public class CompilerIntrinsics {
      * @return the dimensionality of the array
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native uint8_t dimensionsOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
@@ -185,7 +186,7 @@ public class CompilerIntrinsics {
      * @return the array element type ID
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id elementTypeIdOf(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
@@ -195,25 +196,25 @@ public class CompilerIntrinsics {
      * @return the array length
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native int lengthOf(Object array);
 
     /**
      * Get the maxTypeId assigned to subclasses of the argument typeId
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id maxSubClassTypeIdOf(type_id typeId);
 
     /**
      * Does a typeId implement the argument interface?
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native boolean doesImplement(type_id valueTypeId, type_id interfaceTypeId);
 
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void callRuntimeInitializer(int initID);
 
     /**
@@ -222,18 +223,18 @@ public class CompilerIntrinsics {
      * @return superclass's type_id
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id getSuperClassTypeId(type_id typeId);
 
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native type_id getFirstInterfaceTypeId();
 
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native int getNumberOfBytesInInterfaceBitsArray();
 
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native byte getByteOfInterfaceBits(type_id typeId, int index);
 }

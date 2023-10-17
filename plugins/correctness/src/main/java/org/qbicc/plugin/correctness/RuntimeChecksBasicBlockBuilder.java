@@ -226,7 +226,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
      * @return {@code true} if the current element is no-throw; {@code false} otherwise
      */
     private boolean isNoThrow() {
-        return element().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW);
+        return element().hasAllModifiersOf(ClassFile.I_ACC_NO_THROW) || element().safePointBehavior().isInSafePoint();
     }
 
     @Override

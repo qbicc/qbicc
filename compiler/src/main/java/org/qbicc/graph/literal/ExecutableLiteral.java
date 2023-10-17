@@ -1,5 +1,6 @@
 package org.qbicc.graph.literal;
 
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -68,8 +69,18 @@ public abstract sealed class ExecutableLiteral extends Literal permits Initializ
     }
 
     @Override
-    public boolean isNoSafePoints() {
-        return element.hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
+    public SafePointBehavior safePointBehavior() {
+        return element.safePointBehavior();
+    }
+
+    @Override
+    public int safePointSetBits() {
+        return element.safePointSetBits();
+    }
+
+    @Override
+    public int safePointClearBits() {
+        return element.safePointClearBits();
     }
 
     @Override

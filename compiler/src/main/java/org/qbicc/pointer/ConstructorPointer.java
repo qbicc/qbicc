@@ -47,11 +47,6 @@ public final class ConstructorPointer extends RootPointer implements ExecutableE
     }
 
     @Override
-    public boolean isNoSafePoints() {
-        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
-    }
-
-    @Override
     public boolean isNoReturn() {
         return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_RETURN);
     }

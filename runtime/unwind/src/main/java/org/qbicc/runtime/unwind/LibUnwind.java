@@ -1,6 +1,8 @@
 package org.qbicc.runtime.unwind;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 
 import static org.qbicc.runtime.CNative.*;
 
@@ -14,20 +16,28 @@ public final class LibUnwind {
     private LibUnwind() {}
 
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_getcontext(ptr<unw_context_t> context_ptr);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_init_local(ptr<unw_cursor_t> cursor, ptr<unw_context_t> context_ptr);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_step(ptr<unw_cursor_t> cursor);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_get_reg(ptr<unw_cursor_t> cursor, unw_regnum_t reg, ptr<unw_word_t> output);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_set_reg(ptr<unw_cursor_t> cursor, unw_regnum_t reg, unw_word_t value);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_resume(ptr<unw_cursor_t> cursor);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_get_proc_info(ptr<unw_cursor_t> cursor, ptr<unw_proc_info_t> info);
     @macro
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native c_int unw_is_signal_frame(ptr<unw_cursor_t> cursor);
 
     public static final class unw_context_t extends object {}

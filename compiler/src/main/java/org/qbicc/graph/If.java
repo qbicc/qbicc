@@ -37,7 +37,7 @@ public final class If extends AbstractTerminator implements Terminator {
     }
 
     public BasicBlock getTrueBranch() {
-        return BlockLabel.getTargetOf(trueBranchLabel);
+        return BlockLabel.requireTargetOf(trueBranchLabel);
     }
 
     public BlockLabel getFalseBranchLabel() {
@@ -45,7 +45,7 @@ public final class If extends AbstractTerminator implements Terminator {
     }
 
     public BasicBlock getFalseBranch() {
-        return BlockLabel.getTargetOf(falseBranchLabel);
+        return BlockLabel.requireTargetOf(falseBranchLabel);
     }
 
     @Override

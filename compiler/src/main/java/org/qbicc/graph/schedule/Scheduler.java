@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockParameter;
@@ -137,7 +138,11 @@ public final class Scheduler {
                     // schedule all outbound values to blocks; we reduce the set when we build the sequence
                     for (Slot slot : t.getOutboundArgumentNames()) {
                         // make sure that the argument does not get scheduled after this terminator
-                        scheduleEarly(t, t.getOutboundArgument(slot));
+                        Value argument = t.getOutboundArgument(slot);
+                        // todo: a more general fix for eliminating unused/unreachable block parameters
+                        if (! (argument instanceof BlockParameter bp) || bp.getPinnedBlock().isReachable()) {
+                            scheduleEarly(t, argument);
+                        }
                     }
                 }
             }
@@ -181,6 +186,8 @@ public final class Scheduler {
             // pinned to a block; always select that block.
             selected = blockInfos.get(pinnedBlock);
             if (selected == null) {
+                CompilationContext ctxt = node.element().getEnclosingType().getContext().getCompilationContext();
+                ctxt.error(node.getLocation(), "Failed to select a block while scheduling");
                 throw new IllegalStateException("No block selected");
             }
             earliestMapping.put(node, selected);

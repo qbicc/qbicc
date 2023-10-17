@@ -5,7 +5,7 @@ package org.qbicc.graph;
  */
 public interface PinnedNode extends Node {
     default BasicBlock getPinnedBlock() {
-        return BlockLabel.getTargetOf(getPinnedBlockLabel());
+        return BlockLabel.requireTargetOf(getPinnedBlockLabel());
     }
 
     BlockLabel getPinnedBlockLabel();

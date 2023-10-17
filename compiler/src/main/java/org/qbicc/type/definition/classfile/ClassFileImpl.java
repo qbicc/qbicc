@@ -28,12 +28,15 @@ import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
+import org.qbicc.type.annotation.EnumConstantAnnotationValue;
+import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.type.TargetInfo;
 import org.qbicc.type.annotation.type.TypeAnnotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -1182,15 +1185,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             if (methodAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
                 List<Annotation> annotations = Annotation.parseList(this, ctxt, data);
-                for (Annotation annotation : annotations) {
-                    if (annotation.getDescriptor().packageAndClassNameEquals("jdk/internal/reflect", "CallerSensitive")) {
-                        builder.addModifiers(I_ACC_CALLER_SENSITIVE);
-                    }
-                }
                 builder.addVisibleAnnotations(annotations);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
-                builder.addInvisibleAnnotations(Annotation.parseList(this, ctxt, data));
+                List<Annotation> annotations = Annotation.parseList(this, ctxt, data);
+                builder.addInvisibleAnnotations(annotations);
             } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
                 builder.setVisibleTypeAnnotations(list);

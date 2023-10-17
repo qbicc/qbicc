@@ -6,6 +6,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -30,9 +31,21 @@ public final class SafePoints {
         return new DelegatingBasicBlockBuilder(delegate) {
 
             @Override
-            public Node safePoint() {
+            public Node pollSafePoint() {
                 final MethodElement pollSafePoint = dt.load().requireSingleMethod("pollSafePoint");
                 return getFirstBuilder().call(getLiteralFactory().literalOf(pollSafePoint), List.of());
+            }
+
+            @Override
+            public Node enterSafePoint(Value setBits, Value clearBits) {
+                final MethodElement enterSafePoint = dt.load().requireSingleMethod("enterSafePoint");
+                return getFirstBuilder().call(getLiteralFactory().literalOf(enterSafePoint), List.of(setBits, clearBits));
+            }
+
+            @Override
+            public Node exitSafePoint(Value setBits, Value clearBits) {
+                final MethodElement exitSafePoint = dt.load().requireSingleMethod("exitSafePoint");
+                return getFirstBuilder().call(getLiteralFactory().literalOf(exitSafePoint), List.of(setBits, clearBits));
             }
         };
     }

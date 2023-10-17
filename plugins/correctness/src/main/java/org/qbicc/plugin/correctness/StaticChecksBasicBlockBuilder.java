@@ -211,23 +211,6 @@ public final class StaticChecksBasicBlockBuilder extends DelegatingBasicBlockBui
 
     private Value check(Value targetPtr) {
         checkTargetType(targetPtr);
-        if (element().hasAllModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
-            ExecutableElement target;
-            // not an exhaustive check but good enough for detecting common errors
-            // todo: targetPtr.isNoSafePoints()
-            if (targetPtr instanceof ExecutableLiteral xl) {
-                if (xl instanceof MethodLiteral || xl instanceof InitializerLiteral) {
-                    target = xl.getExecutable();
-                } else {
-                    return targetPtr;
-                }
-            } else {
-                return targetPtr;
-            }
-            if (target.hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS)) {
-                getContext().error(getLocation(), "This method may not call methods or functions that are not marked as no-safepoint");
-            }
-        }
         return targetPtr;
     }
 }

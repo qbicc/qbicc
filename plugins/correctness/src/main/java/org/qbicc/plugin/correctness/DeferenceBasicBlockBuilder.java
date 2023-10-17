@@ -334,8 +334,8 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Node safePoint() {
-        return super.safePoint();
+    public Node pollSafePoint() {
+        return super.pollSafePoint();
     }
 
     @Override

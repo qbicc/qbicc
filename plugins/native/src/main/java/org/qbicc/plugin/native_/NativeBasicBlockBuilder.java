@@ -247,7 +247,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
             // declare it
             return ctxt.getLiteralFactory().literalOf(ctxt.getOrAddProgramModule(getRootElement())
-                .declareFunction(null, functionInfo.getName(), functionInfo.getType(), Function.FN_NO_SAFEPOINTS));
+                .declareFunction(functionInfo.originalElement(), functionInfo.getName(), functionInfo.getType(), 0));
         }
         return super.resolveStaticMethod(owner, name, deNative(descriptor));
     }

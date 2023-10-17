@@ -61,6 +61,10 @@ public interface ExecutableElement extends MemberElement {
 
     SafePointBehavior safePointBehavior();
 
+    int safePointSetBits();
+
+    int safePointClearBits();
+
     interface Builder extends MemberElement.Builder {
 
         void setMethodBodyFactory(MethodBodyFactory factory, int index);

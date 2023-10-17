@@ -407,7 +407,6 @@ final class CompilationContextImpl implements CompilationContext {
         }
         return exactFunctions.computeIfAbsent(element, e -> {
             ModuleSection implicit = getImplicitSection(element);
-            InvokableType elementType = element.getType();
             FunctionType functionType = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element), functionType);
         });

@@ -28,6 +28,14 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, EnterSafePoint node) {
+        return visitUnknown(t, node);
+    }
+
+    default R visit(T t, ExitSafePoint node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, Fence node) {
         return visitUnknown(t, node);
     }
@@ -44,7 +52,7 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
-    default R visit(T t, SafePoint node) {
+    default R visit(T t, PollSafePoint node) {
         return visitUnknown(t, node);
     }
 
@@ -79,6 +87,14 @@ public interface ActionVisitor<T, R> {
             return getDelegateActionVisitor().visit(t, node);
         }
 
+        default R visit(T t, EnterSafePoint node) {
+            return getDelegateActionVisitor().visit(t, node);
+        }
+
+        default R visit(T t, ExitSafePoint node) {
+            return getDelegateActionVisitor().visit(t, node);
+        }
+
         default R visit(T t, Fence node) {
             return getDelegateActionVisitor().visit(t, node);
         }
@@ -95,7 +111,7 @@ public interface ActionVisitor<T, R> {
             return getDelegateActionVisitor().visit(t, node);
         }
 
-        default R visit(T t, SafePoint node) {
+        default R visit(T t, PollSafePoint node) {
             return getDelegateActionVisitor().visit(t, node);
         }
 

@@ -181,10 +181,6 @@ public abstract class Pointer {
         return false;
     }
 
-    public boolean isNoSafePoints() {
-        return false;
-    }
-
     public boolean isNoReturn() {
         return false;
     }

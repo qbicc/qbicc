@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.ValueType;
 
@@ -42,6 +43,21 @@ public final class ThreadBound extends AbstractValue {
             case 1 -> target;
             default -> throw new IndexOutOfBoundsException(index);
         };
+    }
+
+    @Override
+    public SafePointBehavior safePointBehavior() {
+        return target.safePointBehavior();
+    }
+
+    @Override
+    public int safePointSetBits() {
+        return target.safePointSetBits();
+    }
+
+    @Override
+    public int safePointClearBits() {
+        return target.safePointClearBits();
     }
 
     @Override

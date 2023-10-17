@@ -5,6 +5,8 @@ import static org.qbicc.runtime.stdc.Stddef.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
 
 import org.qbicc.runtime.Build;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 
 /**
  * Unwind ABI as described at <a href="https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html">https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html</a>.
@@ -16,15 +18,25 @@ public final class Unwind {
     private Unwind() {
     }
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native _Unwind_Reason_Code _Unwind_RaiseException(ptr<struct__Unwind_Exception> exception_object);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void _Unwind_Resume(ptr<struct__Unwind_Exception> exception_object);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void _Unwind_DeleteException(ptr<struct__Unwind_Exception> exception_object);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native unsigned_long _Unwind_GetGR(ptr<struct__Unwind_Context> context, c_int index);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void _Unwind_SetGR(ptr<struct__Unwind_Context> context, c_int index, unsigned_long new_value);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native unsigned_long _Unwind_GetIP(ptr<struct__Unwind_Context> context);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void _Unwind_SetIP(ptr<struct__Unwind_Context> context, unsigned_long new_value);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native unsigned_long _Unwind_GetRegionStart(ptr<struct__Unwind_Context> context);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native unsigned_long _Unwind_GetLanguageSpecificData(ptr<struct__Unwind_Context> context);
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, ptr<function<_Unwind_Stop_Fn>> stop, ptr<?> stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
@@ -60,8 +72,8 @@ public final class Unwind {
         } else if (Build.Target.isAmd64()) {
             SP = word(7); // rsp
         } else if (Build.Target.isI386()) {
-            SP = word(4); // esp {
-        } else if (Build.Target.isWasm()){
+            SP = word(4); // esp
+        } else if (Build.Target.isWasm()) {
             SP = word(4);
         } else {
             throw new IllegalStateException("Unsupported architecture");
@@ -111,6 +123,7 @@ public final class Unwind {
     }
 
     @export
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
                                     ptr<struct__Unwind_Exception> exceptionObject, ptr<struct__Unwind_Context> context) {
         unsigned_long ip = _Unwind_GetIP(context);
@@ -135,6 +148,7 @@ public final class Unwind {
         }
     }
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static long getHandlerOffset(ptr<uint8_t> lsda, long pcOffset) {
         int offset = auto(0);
         ptr<int32_t> offsetPtr = addr_of(offset);
@@ -159,6 +173,7 @@ public final class Unwind {
         return 0;
     }
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static long read(ptr<uint8_t> lsda, ptr<int32_t> offset, int callSiteEncoding) {
         long result = 0;
         switch (callSiteEncoding) {
@@ -175,6 +190,7 @@ public final class Unwind {
         return result;
     }
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static long readULEB(ptr<uint8_t> lsda, ptr<int32_t> offset) {
         long result = 0;
         int shift = 0;

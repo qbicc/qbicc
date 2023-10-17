@@ -6,27 +6,28 @@ import static org.qbicc.runtime.stackwalk.CallSiteTable.*;
 import java.lang.invoke.MethodType;
 
 import org.qbicc.runtime.AutoQueued;
+import org.qbicc.runtime.ExtModifier;
 import org.qbicc.runtime.Hidden;
-import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoThrow;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.runtime.StackObject;
 import org.qbicc.runtime.main.CompilerIntrinsics;
 
 public final class JavaStackWalker extends StackObject {
-    private static final int I_ACC_HIDDEN = 1 << 18;
 
     private final boolean skipHidden;
     private int index = -1;
     private ptr<@c_const struct_call_site> call_site_ptr;
     private ptr<@c_const struct_source> source_ptr;
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public JavaStackWalker(boolean skipHidden) {
         this.skipHidden = skipHidden;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public JavaStackWalker(JavaStackWalker original) {
         skipHidden = original.skipHidden;
@@ -35,7 +36,7 @@ public final class JavaStackWalker extends StackObject {
         source_ptr = original.source_ptr;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public boolean next(StackWalker stackWalker) {
         for (;;) {
@@ -56,7 +57,7 @@ public final class JavaStackWalker extends StackObject {
             }
             if (source_ptr != null) {
                 final ptr<@c_const struct_subprogram> method_ptr = getMethodInfo(source_ptr);
-                if (skipHidden && methodHasAllModifiersOf(method_ptr, I_ACC_HIDDEN)) {
+                if (skipHidden && methodHasAllModifiersOf(method_ptr, ExtModifier.I_ACC_HIDDEN)) {
                     // try again
                     continue;
                 }
@@ -68,7 +69,7 @@ public final class JavaStackWalker extends StackObject {
 
     @Hidden
     @AutoQueued
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public static int getFrameCount(Throwable exceptionObject) {
         StackWalker sw = new StackWalker();
@@ -89,7 +90,7 @@ public final class JavaStackWalker extends StackObject {
      * @return the number of matching frames
      */
     @Hidden
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public static int getFrameCount(int skipRawFrames, int skipJavaFrames, boolean skipHidden) {
         StackWalker sw = new StackWalker();
@@ -107,31 +108,31 @@ public final class JavaStackWalker extends StackObject {
         return cnt;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getIndex() {
         return index;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public String getFrameSourceFileName() {
         return getMethodFileName(getMethodInfo(source_ptr));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public String getFrameMethodName() {
         return getMethodName(getMethodInfo(source_ptr));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public MethodType getFrameMethodType() {
         return getMethodType(getMethodInfo(source_ptr));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public String getFrameClassName() {
         final type_id enclosingType = getEnclosingType(getMethodInfo(source_ptr));
@@ -139,43 +140,43 @@ public final class JavaStackWalker extends StackObject {
         return clazz.name;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public ptr<struct_call_site> getCallSitePtr() {
         return call_site_ptr;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public ptr<struct_source> getSourcePtr() {
         return source_ptr;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     public Class<?> getFrameClass() {
         return CompilerIntrinsics.getClassFromTypeIdSimple(getEnclosingType(getMethodInfo(source_ptr)));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getFrameLineNumber() {
         return deref(source_ptr).line.intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getFrameBytecodeIndex() {
         return deref(source_ptr).bci.intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getSourceIndex() {
         return getCallSiteSourceIndex(call_site_ptr);
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void reset() {
         call_site_ptr = zero();

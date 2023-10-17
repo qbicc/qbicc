@@ -62,9 +62,10 @@ final class ExceptionOnThreadBasicBlockBuilder extends DelegatingBasicBlockBuild
         for (Map.Entry<BlockLabel, BlockLabel> entry : landingPads.entrySet()) {
             BlockLabel delegateCatch = entry.getKey();
             BlockLabel landingPad = entry.getValue();
-            begin(landingPad);
-            Value ex = readModifyWrite(instanceFieldOf(decodeReference(load(currentThread(), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
-            goto_(delegateCatch, Slot.thrown(), ex);
+            begin(landingPad, sb -> {
+                Value ex = sb.readModifyWrite(instanceFieldOf(decodeReference(load(currentThread(), SingleUnshared)), exceptionField), ReadModifyWrite.Op.SET, lf.zeroInitializerLiteralOfType(exceptionField.getType()), SingleUnshared, SingleUnshared);
+                sb.goto_(delegateCatch, Slot.thrown(), ex);
+            });
         }
         super.finish();
     }

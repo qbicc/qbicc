@@ -35,6 +35,8 @@ import org.qbicc.interpreter.Vm;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.runtime.ExtModifier;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -206,7 +208,11 @@ public class Driver implements Closeable {
     private NativeMethodConfigurator constructNativeMethodConfigurator(final Builder builder) {
         List<UnaryOperator<NativeMethodConfigurator>> list = new ArrayList<>(builder.nativeMethodConfiguratorFactories);
         Collections.reverse(list);
-        NativeMethodConfigurator result = (bbb, enclosing, name, methodDescriptor) -> {};
+        NativeMethodConfigurator result = (methodBuilder, enclosing, name, methodDescriptor) -> {
+            if (methodBuilder.hasModifiers(ExtModifier.ACC_NATIVE)) {
+                methodBuilder.setSafePointBehavior(SafePointBehavior.ENTER);
+            }
+        };
         for (UnaryOperator<NativeMethodConfigurator> item : list) {
             result = item.apply(result);
         }

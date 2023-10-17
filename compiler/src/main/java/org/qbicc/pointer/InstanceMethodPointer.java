@@ -52,11 +52,6 @@ public final class InstanceMethodPointer extends RootPointer implements Executab
     }
 
     @Override
-    public boolean isNoSafePoints() {
-        return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_SAFEPOINTS);
-    }
-
-    @Override
     public boolean isNoReturn() {
         return getExecutableElement().hasNoModifiersOf(ClassFile.I_ACC_NO_RETURN);
     }

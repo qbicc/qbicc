@@ -7,6 +7,6 @@ public interface Resume extends Terminator {
     BlockLabel getResumeTargetLabel();
 
     default BasicBlock getResumeTarget() {
-        return BlockLabel.getTargetOf(getResumeTargetLabel());
+        return BlockLabel.requireTargetOf(getResumeTargetLabel());
     }
 }

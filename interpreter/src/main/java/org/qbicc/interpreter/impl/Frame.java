@@ -46,6 +46,8 @@ import org.qbicc.graph.DecodeReference;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.EncodeReference;
+import org.qbicc.graph.EnterSafePoint;
+import org.qbicc.graph.ExitSafePoint;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
@@ -86,6 +88,7 @@ import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.OffsetPointer;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.PointerDifference;
+import org.qbicc.graph.PollSafePoint;
 import org.qbicc.graph.PopCount;
 import org.qbicc.graph.Reachable;
 import org.qbicc.graph.ReadModifyWrite;
@@ -2407,6 +2410,24 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Void visit(VmThreadImpl vmThread, Reachable node) {
         // no operation needed because we aggressively keep values live
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl vmThread, EnterSafePoint node) {
+        // no operation
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl vmThread, ExitSafePoint node) {
+        // no operation
+        return null;
+    }
+
+    @Override
+    public Void visit(VmThreadImpl vmThread, PollSafePoint node) {
+        // no operation
         return null;
     }
 

@@ -115,7 +115,7 @@ public final class Location {
     }
 
     public StringBuilder appendLocationString(final StringBuilder b) {
-        return b.append("location: type ").append(classSimpleName);
+        return b.append("location: type ").append(classInternalName.replace('/', '.'));
     }
 
     public StringBuilder appendBaseString(final StringBuilder b) {
