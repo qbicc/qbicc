@@ -15,12 +15,14 @@ import org.qbicc.object.ModuleSection;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.core.ConditionEvaluation;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.MethodType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
+import org.qbicc.type.annotation.EnumConstantAnnotationValue;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -274,12 +276,11 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 } else {
                     type = ts.getFunctionType(origType.getReturnType(), origType.getParameterTypes());
                 }
-                origMethod.setModifierFlags(ClassFile.I_ACC_NO_SAFEPOINTS);
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),
                     origMethod.getName(),
                     origMethod.getDescriptor(),
-                    new ExternalFunctionInfo(origMethod.getEnclosingType(), name, type)
+                    new ExternalFunctionInfo(origMethod.getEnclosingType(), name, type, origMethod)
                 );
             }
 
@@ -288,6 +289,10 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 int constructorPriority = 0;
                 boolean destructor = false;
                 int destructorPriority = 0;
+                // default for functions
+                SafePointBehavior safePointBehavior = SafePointBehavior.ENTER;
+                int safePointSetBits = 0;
+                int safePointClearBits = 0;
                 for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -298,6 +303,20 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         } else if (desc.getClassName().equals(Native.ANN_DESTRUCTOR)) {
                             destructor = true;
                             destructorPriority = priority == null ? 1000 : priority.intValue();
+                        } else if (desc.getClassName().equals(Native.ANN_SAFEPOINT)) {
+                            // explicit behavior
+                            EnumConstantAnnotationValue behaviorValue = (EnumConstantAnnotationValue) annotation.getValue("value");
+                            if (behaviorValue != null) {
+                                safePointBehavior = SafePointBehavior.valueOf(behaviorValue.getValueName());
+                            }
+                            IntAnnotationValue setBitsValue = (IntAnnotationValue) annotation.getValue("setBits");
+                            if (setBitsValue != null) {
+                                safePointSetBits = setBitsValue.intValue();
+                            }
+                            IntAnnotationValue clearBitsValue = (IntAnnotationValue) annotation.getValue("clearBits");
+                            if (clearBitsValue != null) {
+                                safePointClearBits = clearBitsValue.intValue();
+                            }
                         }
                     }
                 }
@@ -310,6 +329,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setMinimumLineNumber(origMethod.getMinimumLineNumber());
                 builder.setMaximumLineNumber(origMethod.getMaximumLineNumber());
                 builder.setMethodBodyFactory(origMethod.getMethodBodyFactory(), origMethod.getMethodBodyFactoryIndex());
+                builder.setSafePointBehavior(safePointBehavior);
+                builder.setSafePointSetBits(safePointSetBits);
+                builder.setSafePointClearBits(safePointClearBits);
                 FunctionElement function = builder.build();
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),

@@ -12,6 +12,7 @@ import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.ExecutableLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
@@ -20,9 +21,11 @@ import org.qbicc.graph.literal.StaticMethodLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeIdLiteral;
 import org.qbicc.interpreter.VmString;
+import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
@@ -168,7 +171,8 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), List.of(ts.getFloat32Type()));
-            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f32", fnType);
+            ExecutableElement executable = ((ExecutableLiteral) targetPtr).getExecutable();
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(executable, "llvm.fptosi.sat.i32.f32", fnType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
             return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
@@ -178,7 +182,8 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), List.of(ts.getFloat32Type()));
-            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f32", fnType);
+            ExecutableElement executable = ((ExecutableLiteral) targetPtr).getExecutable();
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(executable, "llvm.fptosi.sat.i64.f32", fnType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
             return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
@@ -188,7 +193,8 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger32Type(), List.of(ts.getFloat64Type()));
-            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i32.f64", fnType);
+            ExecutableElement executable = ((ExecutableLiteral) targetPtr).getExecutable();
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(executable, "llvm.fptosi.sat.i32.f64", fnType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
             return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 
@@ -198,7 +204,8 @@ public final class LLVMIntrinsics {
             TypeSystem ts = ctxt.getTypeSystem();
             LiteralFactory lf = ctxt.getLiteralFactory();
             FunctionType fnType = ts.getFunctionType(ts.getSignedInteger64Type(), List.of(ts.getFloat64Type()));
-            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(null, "llvm.fptosi.sat.i64.f64", fnType);
+            ExecutableElement executable = ((ExecutableLiteral) targetPtr).getExecutable();
+            FunctionDeclaration decl = ctxt.getOrAddProgramModule(builder.getRootElement()).declareFunction(executable, "llvm.fptosi.sat.i64.f64", fnType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
             return builder.getFirstBuilder().callNoSideEffects(lf.literalOf(decl), arguments);
         };
 

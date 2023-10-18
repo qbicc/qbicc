@@ -58,12 +58,7 @@ public final class ExtModifier {
      * For classes which represent value-based (aka primitive) types.
      */
     public static final int I_ACC_PRIMITIVE = 1 << 17;
-    /**
-     * For methods which cannot be interrupted with a safepoint.
-     * Such methods should only call other methods that are not interruptible.
-     * Methods which are uninterruptible must be {@code final} or {@code static}.
-     */
-    public static final int I_ACC_NO_SAFEPOINTS = 1 << 17;
+    // reserved = 1 << 17; (methods)
     /**
      * On methods, hide from stack traces.  On classes, defined as a JEP 371 "hidden class".
      */

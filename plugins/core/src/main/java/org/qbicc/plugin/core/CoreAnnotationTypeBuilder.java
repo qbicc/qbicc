@@ -31,7 +31,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
     private final ClassTypeDescriptor jdkHidden;
     private final ClassTypeDescriptor noReflect;
     private final ClassTypeDescriptor noReturn;
-    private final ClassTypeDescriptor noSafePoint;
     private final ClassTypeDescriptor noThrow;
     private final ClassTypeDescriptor inline;
     private final ClassTypeDescriptor fold;
@@ -47,7 +46,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
         jdkHidden = ClassTypeDescriptor.synthesize(classCtxt, "jdk/internal/vm/annotation/Hidden");
         noReflect = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReflect");
         noReturn = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoReturn");
-        noSafePoint = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSafePoint");
         noThrow = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoThrow");
         inline = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Inline");
         fold = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Fold");
@@ -75,8 +73,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_RETURN);
                     } else if (annotation.getDescriptor().equals(noReflect)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);
-                    } else if (annotation.getDescriptor().equals(noSafePoint)) {
-                        methodElement.setModifierFlags(ClassFile.I_ACC_NO_SAFEPOINTS);
                     } else if (annotation.getDescriptor().equals(noThrow)) {
                         methodElement.setModifierFlags(ClassFile.I_ACC_NO_THROW);
                     } else if (annotation.getDescriptor().equals(inline)) {
@@ -155,8 +151,6 @@ public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Bu
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_RETURN);
                     } else if (annotation.getDescriptor().equals(noReflect)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_REFLECT);
-                    } else if (annotation.getDescriptor().equals(noSafePoint)) {
-                        constructorElement.setModifierFlags(ClassFile.I_ACC_NO_SAFEPOINTS);
                     } else if (annotation.getDescriptor().equals(noThrow)) {
                         constructorElement.setModifierFlags(ClassFile.I_ACC_NO_THROW);
                     } else if (annotation.getDescriptor().equals(inline)) {

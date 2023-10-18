@@ -702,7 +702,11 @@ public interface BasicBlockBuilder extends ProgramLocatable {
      *
      * @return the node representing the safepoint poll
      */
-    Node safePoint();
+    Node pollSafePoint();
+
+    Node enterSafePoint(Value setBits, Value clearBits);
+
+    Node exitSafePoint(Value setBits, Value clearBits);
 
     // control flow - terminalBlock is updated to point to this terminator
 

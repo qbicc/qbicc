@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.context.ProgramLocatable;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.InstanceMethodElement;
 
@@ -40,6 +41,21 @@ public abstract class AbstractMethodLookup extends AbstractValue implements Orde
 
     public InstanceMethodElement getMethod() {
         return method;
+    }
+
+    @Override
+    public SafePointBehavior safePointBehavior() {
+        return method.safePointBehavior();
+    }
+
+    @Override
+    public int safePointSetBits() {
+        return method.safePointSetBits();
+    }
+
+    @Override
+    public int safePointClearBits() {
+        return method.safePointClearBits();
     }
 
     @Override

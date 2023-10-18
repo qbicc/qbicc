@@ -17,7 +17,7 @@ public final class Build {
      *
      * @return {@code true} if the caller is calling from the build host, {@code false} otherwise
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static boolean isHost() {
         return false;
     }
@@ -27,7 +27,7 @@ public final class Build {
      *
      * @return {@code true} if the caller is calling from the build target, {@code false} otherwise
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static boolean isTarget() {
         return false;
     }
@@ -37,7 +37,7 @@ public final class Build {
      *
      * @return {@code true} if the caller is calling from a regular JVM, {@code false} otherwise
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static boolean isJvm() {
         return true;
     }

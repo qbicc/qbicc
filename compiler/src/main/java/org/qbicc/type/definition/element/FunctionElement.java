@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.pointer.FunctionPointer;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -132,6 +133,7 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         BuilderImpl(String name, MethodDescriptor descriptor, int index) {
             super(descriptor, index);
             this.name = name;
+            this.safePointBehavior = SafePointBehavior.ENTER;
         }
 
         @Override

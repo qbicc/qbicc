@@ -1,5 +1,7 @@
 package org.qbicc.graph;
 
+import java.util.Objects;
+
 public final class BlockLabel {
     private Object target;
 
@@ -49,6 +51,10 @@ public final class BlockLabel {
 
     public static BasicBlock getTargetOf(BlockLabel handle) {
         return handle == null ? null : (BasicBlock) handle.lastHandle().target;
+    }
+
+    public static BasicBlock requireTargetOf(final BlockLabel label) {
+        return Objects.requireNonNull(getTargetOf(label), "Unresolved block label");
     }
 
     public String toString() {

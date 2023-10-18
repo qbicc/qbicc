@@ -1,6 +1,7 @@
 package org.qbicc.plugin.native_;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.runtime.ExtModifier;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.NativeMethodConfigurator;
@@ -34,6 +35,12 @@ public final class NativeBindingMethodConfigurator implements NativeMethodConfig
                     MethodElement methodElement = loaded.getMethod(methodIndex);
                     // make sure the stack trace makes sense
                     builder.setSourceFileName(methodElement.getSourceFileName());
+                    builder.setSafePointBehavior(methodElement.safePointBehavior());
+                    builder.setSafePointSetBits(methodElement.safePointSetBits());
+                    builder.setSafePointClearBits(methodElement.safePointClearBits());
+                    builder.setMinimumLineNumber(methodElement.getMinimumLineNumber());
+                    builder.setMaximumLineNumber(methodElement.getMaximumLineNumber());
+                    builder.dropModifiers(ExtModifier.ACC_NATIVE);
                     builder.setMethodBodyFactory(methodElement.getMethodBodyFactory(), methodElement.getMethodBodyFactoryIndex());
                     return;
                 }

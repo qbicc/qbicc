@@ -53,11 +53,6 @@ public final class ProgramObjectPointer extends RootPointer {
     }
 
     @Override
-    public boolean isNoSafePoints() {
-        return programObject instanceof FunctionDeclaration fd && fd.isNoSafePoints() || programObject instanceof Function fn && fn.isNoSafePoints();
-    }
-
-    @Override
     public boolean isNoReturn() {
         return programObject instanceof FunctionDeclaration fd && fd.isNoReturn() || programObject instanceof Function fn && fn.isNoReturn();
     }

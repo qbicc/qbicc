@@ -565,15 +565,16 @@ public final class CoreIntrinsics {
             Literal base = lf.literalOf(ProgramObjectPointer.of(rootArray));
             Value elem = builder.elementOf(base, arguments.get(0));
             Value componentClass = builder.encodeReference(elem, jlcRef);
-            Value result = componentClass;
+            builder.begin(trueBranch, nb -> {
+                // true; create Class for array reference
+                Value res = nb.getFirstBuilder().call(lf.literalOf(getOrCreateArrayClass), List.of(componentClass, dims));
+                nb.goto_(fallThrough, Slot.temp(0), res);
+            });
 
-            builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of(Slot.temp(0), result)); // if (dimensions > 0)
+            builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough, Map.of(Slot.temp(0), componentClass)); // if (dimensions > 0)
 
-            builder.begin(trueBranch); // true; create Class for array reference
-            result = builder.getFirstBuilder().call(lf.literalOf(getOrCreateArrayClass), List.of(componentClass, dims));
-            builder.goto_(fallThrough, Slot.temp(0), result);
             builder.begin(fallThrough);
-            return builder.addParam(fallThrough, Slot.temp(0), result.getType());
+            return builder.addParam(fallThrough, Slot.temp(0), componentClass.getType());
         };
         intrinsics.registerIntrinsic(Phase.LOWER, ciDesc, "getClassFromTypeId", typeIdClsDesc, getClassFromTypeId);
 

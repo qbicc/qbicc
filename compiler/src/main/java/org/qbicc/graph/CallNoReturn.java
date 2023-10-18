@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ProgramLocatable;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.InvokableType;
 
 /**
@@ -66,7 +67,7 @@ public final class CallNoReturn extends AbstractTerminator implements Invocation
 
     @Override
     public boolean maySafePoint() {
-        return ! target.isNoSafePoints();
+        return target.safePointBehavior() != SafePointBehavior.FORBIDDEN;
     }
 
     public InvokableType getCalleeType() {

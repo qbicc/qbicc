@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.qbicc.graph.atomic.AccessMode;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 
@@ -68,6 +69,11 @@ public final class AsmLiteral extends Literal {
     @Override
     public boolean isNoSideEffect() {
         return ! (flags.contains(Flag.SIDE_EFFECT) || flags.contains(Flag.IMPLICIT_SIDE_EFFECT));
+    }
+
+    @Override
+    public SafePointBehavior safePointBehavior() {
+        return SafePointBehavior.ALLOWED;
     }
 
     @Override

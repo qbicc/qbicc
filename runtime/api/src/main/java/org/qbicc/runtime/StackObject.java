@@ -11,7 +11,7 @@ import java.lang.ref.Reference;
  * Arrays of stack objects are also stack objects.
  */
 public abstract class StackObject {
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     protected StackObject() {
     }
 
@@ -28,6 +28,7 @@ public abstract class StackObject {
      * <p>
      * This method must not leak {@code this}, otherwise a compilation error will result.
      */
+    @SafePoint(SafePointBehavior.ALLOWED)
     protected void destroy() {
     }
 }

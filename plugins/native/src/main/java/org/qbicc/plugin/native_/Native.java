@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.IntFunction;
 
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.SafePoint;
 
 final class Native {
     static final String C_NATIVE = className(CNative.class);
@@ -38,6 +39,8 @@ final class Native {
     static final String ANN_SIZE_LIST = className(size.List.class);
     static final String ANN_UNDEF = className(undef.class);
     static final String ANN_UNDEF_LIST = className(undef.List.class);
+
+    static final String ANN_SAFEPOINT = className(SafePoint.class);
 
     static final String ARRAY_SIZE_INT_NAME = intName(array_size.class);
     static final String RESTRICT_INT_NAME = intName(restrict.class);

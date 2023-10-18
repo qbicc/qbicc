@@ -1,10 +1,14 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.object.Data;
+import org.qbicc.object.Declaration;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramObject;
+import org.qbicc.object.SectionObject;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A literal referring to some program object.
@@ -37,6 +41,39 @@ public final class ProgramObjectLiteral extends Literal {
      */
     public ProgramObject getProgramObject() {
         return programObject;
+    }
+
+    @Override
+    public SafePointBehavior safePointBehavior() {
+        if (programObject instanceof SectionObject so && so.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointBehavior();
+        } else if (programObject instanceof Declaration d && d.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointBehavior();
+        } else {
+            return super.safePointBehavior();
+        }
+    }
+
+    @Override
+    public int safePointSetBits() {
+        if (programObject instanceof SectionObject so && so.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointSetBits();
+        } else if (programObject instanceof Declaration d && d.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointSetBits();
+        } else {
+            return super.safePointSetBits();
+        }
+    }
+
+    @Override
+    public int safePointClearBits() {
+        if (programObject instanceof SectionObject so && so.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointClearBits();
+        } else if (programObject instanceof Declaration d && d.getOriginalElement() instanceof ExecutableElement ee) {
+            return ee.safePointClearBits();
+        } else {
+            return super.safePointClearBits();
+        }
     }
 
     @Override

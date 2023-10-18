@@ -420,9 +420,9 @@ public interface Node extends ProgramLocatable {
                 return copier.getBlockBuilder().reachable(copier.copyValue(node.getReachableValue()));
             }
 
-            public Node visit(Copier copier, SafePoint node) {
+            public Node visit(Copier copier, PollSafePoint node) {
                 copier.copyNode(node.getDependency());
-                return copier.getBlockBuilder().safePoint();
+                return copier.getBlockBuilder().pollSafePoint();
             }
 
             public Node visit(Copier param, InitCheck node) {
@@ -443,6 +443,16 @@ public interface Node extends ProgramLocatable {
             public Node visit(Copier param, DebugValueDeclaration node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().setDebugValue(node.getVariable(), param.copyValue(node.getValue()));
+            }
+
+            public Node visit(final Copier copier, final EnterSafePoint node) {
+                copier.copyNode(node.getDependency());
+                return copier.getBlockBuilder().enterSafePoint(copier.copyValue(node.setBits()), copier.copyValue(node.clearBits()));
+            }
+
+            public Node visit(final Copier copier, final ExitSafePoint node) {
+                copier.copyNode(node.getDependency());
+                return copier.getBlockBuilder().exitSafePoint(copier.copyValue(node.setBits()), copier.copyValue(node.clearBits()));
             }
 
             public Node visit(Copier param, Fence node) {

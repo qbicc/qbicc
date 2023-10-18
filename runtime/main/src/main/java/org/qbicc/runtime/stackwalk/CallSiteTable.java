@@ -7,8 +7,9 @@ import static org.qbicc.runtime.unwind.LibUnwind.*;
 
 import java.lang.invoke.MethodType;
 
-import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoThrow;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.runtime.main.CompilerIntrinsics;
 
 /**
@@ -165,7 +166,7 @@ public final class CallSiteTable {
 
     // * -> struct_instr_tbl
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static ptr<@c_const struct_call_site> findInsnTableEntry(ptr<@c_const ?> ip) {
         final int size = call_site_tbl_size.intValue();
@@ -193,19 +194,19 @@ public final class CallSiteTable {
 
     // struct_call_site -> *
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static ptr<@c_const struct_source> getCallSiteSourceInfo(ptr<@c_const struct_call_site> call_site_ptr) {
         return getSourceInfo(getCallSiteSourceIndex(call_site_ptr));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static int getCallSiteSourceIndex(ptr<@c_const struct_call_site> call_site_ptr) {
         return deref(call_site_ptr).source_idx.intValue();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static ptr<@c_const struct_source> getSourceInfo(int index) {
         return addr_of(source_tbl[index]);
@@ -213,7 +214,7 @@ public final class CallSiteTable {
 
     // struct_source -> *
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static ptr<@c_const struct_source> getInlinedAt(ptr<@c_const struct_source> source_entry_ptr) {
         final uint32_t inlinedAt = deref(source_entry_ptr).inlined_at_source_idx;
@@ -224,13 +225,13 @@ public final class CallSiteTable {
         return addr_of(source_tbl[inlinedAt.intValue()]);
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static ptr<@c_const struct_subprogram> getMethodInfo(ptr<@c_const struct_source> source_entry_ptr) {
         return addr_of(subprogram_tbl[deref(source_entry_ptr).subprogram_idx.intValue()]);
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static int getSourceLine(ptr<@c_const struct_source> source_entry_ptr) {
         return deref(source_entry_ptr).line.intValue();
@@ -238,44 +239,44 @@ public final class CallSiteTable {
 
     // struct_method -> *
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     static String getMethodFileName(ptr<@c_const struct_subprogram> method_ptr) {
         final int idx = deref(method_ptr).file_name_idx.intValue();
         return idx == -1 ? null : file_name_refs[idx].toObject();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     static String getMethodName(ptr<@c_const struct_subprogram> method_ptr) {
         return method_name_refs[deref(method_ptr).method_name_idx.intValue()].toObject();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     static MethodType getMethodType(ptr<@c_const struct_subprogram> method_ptr) {
         return method_type_refs[deref(method_ptr).method_type_idx.intValue()].toObject();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.NONE)
     @NoThrow
     static Class<?> getEnclosingTypeClass(ptr<@c_const struct_subprogram> method_ptr) {
         return CompilerIntrinsics.getClassFromTypeIdSimple(getEnclosingType(method_ptr));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static type_id getEnclosingType(ptr<@c_const struct_subprogram> method_ptr) {
         return deref(method_ptr).type_id;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static int getMethodModifiers(ptr<@c_const struct_subprogram> method_ptr) {
         return deref(method_ptr).modifiers;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     static boolean methodHasAllModifiersOf(ptr<@c_const struct_subprogram> method_ptr, int mods) {
         return mods == (mods & deref(method_ptr).modifiers);
@@ -295,7 +296,7 @@ public final class CallSiteTable {
      * @param iter the iterator pointer, which typically should be stack-allocated (must not be {@code null})
      * @param instr_ptr the pointer to the corresponding instruction table entry (must not be {@code null})
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     @export
     public static void lvi_iterator_init(ptr<lvi_iterator> iter, ptr<@c_const struct_call_site> instr_ptr) {
@@ -314,7 +315,7 @@ public final class CallSiteTable {
      * @param cursor_ptr the {@code unwind} stack cursor pointer which is used to read registers (must not be {@code null})
      * @return the next non-{@code null} reference, or {@code null} if the end of the bitmap was reached
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     @export
     public static reference<?> lvi_iterator_next(ptr<lvi_iterator> iter, ptr<unw_cursor_t> cursor_ptr) {
@@ -403,7 +404,7 @@ public final class CallSiteTable {
      * @param val the new reference value to write
      * @throws IllegalStateException if the state of the iterator is not valid
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     @export
     public static void lvi_iterator_set(ptr<lvi_iterator> iter, ptr<unw_cursor_t> cursor_ptr, reference<?> val) {

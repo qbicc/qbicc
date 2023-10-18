@@ -8,8 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.qbicc.runtime.ExtModifier;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InvokableType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.EnumConstantAnnotationValue;
+import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
@@ -41,6 +46,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     private final int[] parameterResolverIndexes;
     private final String[] parameterNames;
     private final TypeDescriptor[] parameterDescs;
+    private final SafePointBehavior safePointBehavior;
+    private final int safePointSetBits;
+    private final int safePointClearBits;
     private List<TypeAnnotationList> parameterVisibleTypeAnnotations;
     private List<TypeAnnotationList> parameterInvisibleTypeAnnotations;
     private volatile InvokableType type;
@@ -67,6 +75,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.methodBodyFactoryIndex = 0;
         this.minimumLineNumber = 1;
         this.maximumLineNumber = 1;
+        this.safePointBehavior = SafePointBehavior.FORBIDDEN;
+        this.safePointSetBits = 0;
+        this.safePointClearBits = 0;
     }
 
     InvokableElement(BuilderImpl builder) {
@@ -85,6 +96,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.minimumLineNumber = builder.minimumLineNumber;
         this.maximumLineNumber = builder.maximumLineNumber;
         this.type = builder.type;
+        this.safePointBehavior = builder.safePointBehavior;
+        this.safePointSetBits = builder.safePointSetBits;
+        this.safePointClearBits = builder.safePointClearBits;
     }
 
     public boolean hasMethodBodyFactory() {
@@ -191,6 +205,21 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     @Override
+    public SafePointBehavior safePointBehavior() {
+        return safePointBehavior;
+    }
+
+    @Override
+    public int safePointSetBits() {
+        return safePointSetBits;
+    }
+
+    @Override
+    public int safePointClearBits() {
+        return safePointClearBits;
+    }
+
+    @Override
     public TypeParameter resolveTypeParameter(String parameterName) throws NoSuchElementException {
         TypeParameter parameter = getSignature().getTypeParameter(parameterName);
         if (parameter == null) {
@@ -275,6 +304,12 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
         void setMaximumLineNumber(int maximumLineNumber);
 
+        void setSafePointBehavior(SafePointBehavior behavior);
+
+        void setSafePointSetBits(int bits);
+
+        void setSafePointClearBits(int bits);
+
         InvokableElement build();
 
         interface Delegating extends AnnotatedElement.Builder.Delegating, ExecutableElement.Builder.Delegating, Builder {
@@ -327,6 +362,21 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             }
 
             @Override
+            default void setSafePointBehavior(SafePointBehavior behavior) {
+                getDelegate().setSafePointBehavior(behavior);
+            }
+
+            @Override
+            default void setSafePointSetBits(int bits) {
+                getDelegate().setSafePointSetBits(bits);
+            }
+
+            @Override
+            default void setSafePointClearBits(int bits) {
+                getDelegate().setSafePointClearBits(bits);
+            }
+
+            @Override
             default InvokableElement build() {
                 return getDelegate().build();
             }
@@ -348,6 +398,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         int minimumLineNumber = 1;
         int maximumLineNumber = 1;
         FunctionType type;
+        SafePointBehavior safePointBehavior = SafePointBehavior.POLLING;
+        int safePointSetBits;
+        int safePointClearBits;
 
         BuilderImpl(MethodDescriptor descriptor, int index) {
             super(index);
@@ -427,6 +480,54 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
         public void setMaximumLineNumber(int maximumLineNumber) {
             this.maximumLineNumber = maximumLineNumber;
+        }
+
+        public void setSafePointBehavior(SafePointBehavior safePointBehavior) {
+            this.safePointBehavior = safePointBehavior;
+        }
+
+        public void setSafePointSetBits(int safePointSetBits) {
+            this.safePointSetBits = safePointSetBits;
+        }
+
+        public void setSafePointClearBits(int safePointClearBits) {
+            this.safePointClearBits = safePointClearBits;
+        }
+
+        @Override
+        public void addVisibleAnnotations(List<Annotation> annotations) {
+            super.addVisibleAnnotations(annotations);
+            // process meaningful annotations
+            for (Annotation annotation : annotations) {
+                if (annotation.getDescriptor().packageAndClassNameEquals("jdk/internal/reflect", "CallerSensitive")) {
+                    addModifiers(ExtModifier.I_ACC_CALLER_SENSITIVE);
+                }
+            }
+        }
+
+        @Override
+        public void addInvisibleAnnotations(List<Annotation> annotations) {
+            super.addInvisibleAnnotations(annotations);
+            // process meaningful annotations
+            for (Annotation annotation : annotations) {
+                if (annotation.getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "SafePoint")) {
+                    // assume default
+                    SafePointBehavior behavior = SafePointBehavior.ENTER;
+                    EnumConstantAnnotationValue value = (EnumConstantAnnotationValue) annotation.getValue("value");
+                    if (value != null) {
+                        behavior = SafePointBehavior.valueOf(value.getValueName());
+                    }
+                    setSafePointBehavior(behavior);
+                    IntAnnotationValue setBits = (IntAnnotationValue) annotation.getValue("setBits");
+                    if (setBits != null) {
+                        setSafePointSetBits(setBits.intValue());
+                    }
+                    IntAnnotationValue clearBits = (IntAnnotationValue) annotation.getValue("clearBits");
+                    if (clearBits != null) {
+                        setSafePointClearBits(clearBits.intValue());
+                    }
+                }
+            }
         }
 
         void setType(FunctionType type) {

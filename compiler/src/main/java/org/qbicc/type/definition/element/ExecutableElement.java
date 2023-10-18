@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.InvokableType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
@@ -57,6 +58,12 @@ public interface ExecutableElement extends MemberElement {
 
     int getMinimumLineNumber();
     int getMaximumLineNumber();
+
+    SafePointBehavior safePointBehavior();
+
+    int safePointSetBits();
+
+    int safePointClearBits();
 
     interface Builder extends MemberElement.Builder {
 

@@ -4,6 +4,9 @@ import static org.qbicc.graph.atomic.AccessModes.SingleUnshared;
 
 import org.qbicc.graph.atomic.AccessMode;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.runtime.SafePointBehavior;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.MethodType;
 import org.qbicc.type.StructType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.InvokableType;
@@ -194,12 +197,23 @@ public interface Value extends Node {
     }
 
     /**
-     * Determine whether this value points to a function or method that cannot safepoint.
+     * Get the safepoint behavior of the pointee.
      *
-     * @return {@code true} if the pointer referee can never safepoint, or {@code false} otherwise
+     * @return the pointee's safepoint behavior
      */
-    default boolean isNoSafePoints() {
-        return false;
+    default SafePointBehavior safePointBehavior() {
+        return getPointeeType() instanceof FunctionType ? SafePointBehavior.ENTER :
+            getPointeeType() instanceof MethodType ? SafePointBehavior.EXIT :
+            // unknown
+            SafePointBehavior.ALLOWED;
+    }
+
+    default int safePointSetBits() {
+        return 0;
+    }
+
+    default int safePointClearBits() {
+        return 0;
     }
 
     /**

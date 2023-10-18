@@ -131,6 +131,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.methodinfo.CallSiteInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
@@ -1307,13 +1308,13 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         final boolean callerIsHidden = origElement != null && origElement.hasAllModifiersOf(ClassFile.I_ACC_HIDDEN);
         if (! moduleVisitor.config.isStatepointEnabled()) {
             return StatepointReason.DISABLED;
-        } else if (origElement instanceof FunctionElement) {
+        } else if (origElement instanceof FunctionElement || origElement != null && origElement.safePointBehavior().mayBeInSafePoint()) {
             // it's not a method; no statepoints allowed from functions
             return StatepointReason.FUNCTION;
-        } else if (callerIsHidden && functionObj.isNoSafePoints()) {
+        } else if (callerIsHidden && origElement.safePointBehavior() == SafePointBehavior.FORBIDDEN) {
             // caller is hidden, caller is noSafePoints, so no stack walker will see this call and no safepoint is possible
             return StatepointReason.HIDDEN_NO_SP_CALLER;
-        } else if (callerIsHidden && target.isNoSafePoints()) {
+        } else if (callerIsHidden && target.safePointBehavior() == SafePointBehavior.FORBIDDEN) {
             // caller is hidden, callee is noSafePoints, so no stack walker will see this call and no safepoint is possible
             return StatepointReason.HIDDEN_NO_SP_CALLEE;
         } else if (callerIsHidden && noLive) {
@@ -1325,7 +1326,7 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
             return StatepointReason.EXTERN;
         } else if (target instanceof AsmLiteral) {
             return StatepointReason.ASM;
-        } else if (functionObj.isNoSafePoints() || target.isNoSafePoints() || noLive) {
+        } else if (noLive) {
             // stack walkers can see us but GC is impossible; we do not need live values
             return StatepointReason.VISIBLE_STACK;
         } else {

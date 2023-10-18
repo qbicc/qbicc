@@ -52,12 +52,16 @@ public final class ConstraintMaterializingBasicBlockBuilder extends DelegatingBa
         }
         BasicBlock if_ = super.if_(condition, trueTarget, falseTarget, trueIsConstrained && falseIsConstrained ? Map.of() : targetArguments);
         if (trueIsConstrained) {
-            begin(trueTarget);
-            goto_(originalTrueTarget, transform(targetArguments, Function.identity(), input -> condition.getValueIfTrue(this, input)));
+            BlockLabel finalOriginalTrueTarget = originalTrueTarget;
+            begin(trueTarget, nb -> {
+                nb.goto_(finalOriginalTrueTarget, transform(targetArguments, Function.identity(), input -> condition.getValueIfTrue(this, input)));
+            });
         }
         if (falseIsConstrained) {
-            begin(falseTarget);
-            goto_(originalFalseTarget, transform(targetArguments, Function.identity(), input -> condition.getValueIfFalse(this, input)));
+            BlockLabel finalOriginalFalseTarget = originalFalseTarget;
+            begin(falseTarget, nb -> {
+                nb.goto_(finalOriginalFalseTarget, transform(targetArguments, Function.identity(), input -> condition.getValueIfFalse(this, input)));
+            });
         }
         return if_;
     }

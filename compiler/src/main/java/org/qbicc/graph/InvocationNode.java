@@ -83,9 +83,6 @@ public interface InvocationNode extends Node {
             }
         }
         b.append(')');
-        if (target.isNoSafePoints()) {
-            b.append(" no-safepoints");
-        }
         if (target.isNoThrow()) {
             b.append(" no-throw");
         }

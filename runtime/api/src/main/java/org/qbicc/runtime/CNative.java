@@ -347,6 +347,7 @@ public final class CNative {
      * @param <W> the word type
      * @return the result of the operation
      */
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <W extends word> W wordAnd(W w1, W w2);
 
     /**
@@ -357,6 +358,7 @@ public final class CNative {
      * @param <W> the word type
      * @return the result of the operation
      */
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <W extends word> W wordOr(W w1, W w2);
 
     /**
@@ -367,6 +369,7 @@ public final class CNative {
      * @param <W> the word type
      * @return the result of the operation
      */
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <W extends word> W wordXor(W w1, W w2);
 
     /**
@@ -376,20 +379,28 @@ public final class CNative {
      * @param <W> the word type
      * @return the result of the operation
      */
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <W extends word> W wordComp(W w);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <T, P extends ptr<T>> void fill(P ptr, T value, long cnt);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void clear(ptr<?> ptr);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native void clear(ptr<?> ptr, long cnt);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <T> void copy(ptr<T> dest, ptr<T> src);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <T> void copy(ptr<T> dest, ptr<T> src, long cnt);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <T> void copy_overlap(ptr<T> dest, ptr<T> src, long cnt);
 
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static native <T> void swap(ptr<T> ptr1, ptr<T> ptr2);
 
     public static void copy(ptr<int8_t> dest, byte[] src, int srcOff, int len) {
@@ -518,6 +529,7 @@ public final class CNative {
 
     // intrinsic
     @NoSideEffects
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native int floatToInt1(float fv);
 
     /**
@@ -529,12 +541,14 @@ public final class CNative {
      */
     @NoSideEffects
     @AutoQueued
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static int floatToInt(float fv) {
         return floatToInt1(fv);
     }
 
     // intrinsic
     @NoSideEffects
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native long floatToLong1(float fv);
 
     /**
@@ -546,12 +560,14 @@ public final class CNative {
      */
     @NoSideEffects
     @AutoQueued
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static long floatToLong(float fv) {
         return floatToLong1(fv);
     }
 
     // intrinsic
     @NoSideEffects
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native int doubleToInt1(double dv);
 
     /**
@@ -563,12 +579,14 @@ public final class CNative {
      */
     @NoSideEffects
     @AutoQueued
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static int doubleToInt(double dv) {
         return doubleToInt1(dv);
     }
 
     // intrinsic
     @NoSideEffects
+    @SafePoint(SafePointBehavior.ALLOWED)
     private static native long doubleToLong1(double dv);
 
     /**
@@ -580,6 +598,7 @@ public final class CNative {
      */
     @NoSideEffects
     @AutoQueued
+    @SafePoint(SafePointBehavior.ALLOWED)
     public static long doubleToLong(double dv) {
         return doubleToLong1(dv);
     }

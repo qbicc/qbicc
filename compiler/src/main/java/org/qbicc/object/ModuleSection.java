@@ -7,6 +7,7 @@ import java.util.Map;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Value;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeUtil;
 import org.qbicc.type.ValueType;
@@ -113,14 +114,18 @@ public final class ModuleSection extends ProgramObject implements Comparable<Mod
     }
 
     public Function addFunction(ExecutableElement originalElement, String name, FunctionType type) {
+        return addFunction(originalElement, name, type, originalElement == null ? SafePointBehavior.ENTER : originalElement.safePointBehavior());
+    }
+
+    public Function addFunction(ExecutableElement originalElement, String name, FunctionType type, SafePointBehavior safePointBehavior) {
         if (section.isDataOnly()) {
             throw dataOnlyException();
         }
         Function obj = new Function(originalElement,
             this, Assert.checkNotNullParam("name", name),
             Assert.checkNotNullParam("type", type),
-            Function.getFunctionFlags(originalElement)
-        );
+            Function.getFunctionFlags(originalElement),
+            safePointBehavior);
         Map<String, ProgramObject> definedObjects = programModule.moduleObjects;
         synchronized (programModule) {
             ProgramObject existing = definedObjects.get(name);

@@ -778,7 +778,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
                 getContext().error(getLocation(), "Block not terminated");
                 firstBuilder.unreachable();
             }
-        } catch (BlockEarlyTermination ignored) {
+        } catch (BlockEarlyTermination bet) {
+            blockLabel.setTarget(bet.getTerminatedBlock());
         }
         return BlockLabel.getTargetOf(blockLabel);
     }
@@ -787,8 +788,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return asDependency(new Reachable(this, requireDependency(), value));
     }
 
-    public Node safePoint() {
-        return asDependency(new SafePoint(this, requireDependency()));
+    public Node pollSafePoint() {
+        return asDependency(new PollSafePoint(this, requireDependency()));
+    }
+
+    public Node enterSafePoint(Value setBits, Value clearBits) {
+        return asDependency(new EnterSafePoint(this, requireDependency(), setBits, clearBits));
+    }
+
+    public Node exitSafePoint(Value setBits, Value clearBits) {
+        return asDependency(new ExitSafePoint(this, requireDependency(), setBits, clearBits));
     }
 
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {

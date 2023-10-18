@@ -29,6 +29,7 @@ import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.LayoutInfo;
 import org.qbicc.plugin.unwind.UnwindExceptionStrategy;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ReferenceType;
@@ -122,7 +123,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private Value minMaxIntrinsic(String funcName, NumericType numericType, Value v1, Value v2) {
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, funcName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, funcName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v1, v2));
     }
@@ -137,7 +138,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             throw new IllegalArgumentException("Invalid integer type " + inputType + " for byte swap (must be a multiple of 16 bits)");
         }
         String functionName = "llvm.bswap.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
     }
@@ -149,7 +150,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType, inputType);
         int minBits = inputType.getMinBits();
         String functionName = "llvm.bitreverse.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         return getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
     }
@@ -161,7 +162,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType, tps.getBooleanType());
         int minBits = inputType.getMinBits();
         String functionName = "llvm.ctlz.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
@@ -184,7 +185,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType, tps.getBooleanType());
         int minBits = inputType.getMinBits();
         String functionName = "llvm.cttz.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v, lf.literalOf(false)));
         // LLVM always returns the same type as the input
@@ -207,7 +208,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(inputType.asUnsigned(), inputType);
         int minBits = inputType.getMinBits();
         String functionName = "llvm.ctpop.i" + minBits;
-        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SAFEPOINTS | Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, functionName, functionType, Function.FN_NO_SIDE_EFFECTS, SafePointBehavior.ALLOWED);
         final LiteralFactory lf = ctxt.getLiteralFactory();
         Value result = getFirstBuilder().callNoSideEffects(lf.literalOf(declaration), List.of(v));
         // LLVM always returns the same type as the input
@@ -317,7 +318,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock unreachable() {
         TypeSystem ts = ctxt.getTypeSystem();
-        FunctionDeclaration decl = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType()));
+        FunctionDeclaration decl = ctxt.getOrAddProgramModule(getRootElement()).declareFunction(null, "llvm.trap", ts.getFunctionType(ts.getVoidType(), List.of()), Function.FN_NO_RETURN, SafePointBehavior.ALLOWED);
         return callNoReturn(ctxt.getLiteralFactory().literalOf(decl), List.of());
     }
 

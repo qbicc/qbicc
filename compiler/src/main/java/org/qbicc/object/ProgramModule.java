@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -192,30 +193,34 @@ public final class ProgramModule {
     }
 
     public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type, int flags) {
+        return declareFunction(originalElement, name, type, flags, originalElement == null ? SafePointBehavior.ENTER : originalElement.safePointBehavior());
+    }
+
+    public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type, int flags, SafePointBehavior safePointBehavior) {
         Assert.checkNotNullParam("name", name);
         Map<String, ProgramObject> definedObjects = this.moduleObjects;
         synchronized (this) {
             ProgramObject existing = definedObjects.get(name);
             if (existing == null) {
-                FunctionDeclaration decl = new FunctionDeclaration(originalElement, this, name, type, flags);
+                FunctionDeclaration decl = new FunctionDeclaration(originalElement, this, name, type, flags, safePointBehavior);
                 definedObjects.put(name, decl);
                 return decl;
             } else {
                 if (existing instanceof FunctionDeclaration decl) {
                     if (! type.equals(decl.getValueType())) {
                         clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, this, name, type, flags);
+                        return new FunctionDeclaration(originalElement, this, name, type, flags, safePointBehavior);
                     }
                     return decl;
                 } else if (existing instanceof Function fn) {
                     if (! type.equals(fn.getValueType())) {
                         clash(originalElement, name);
-                        return new FunctionDeclaration(originalElement, this, name, type, flags);
+                        return new FunctionDeclaration(originalElement, this, name, type, flags, safePointBehavior);
                     }
                     return fn.getDeclaration();
                 } else {
                     clash(originalElement, name);
-                    return new FunctionDeclaration(originalElement, this, name, type, flags);
+                    return new FunctionDeclaration(originalElement, this, name, type, flags, safePointBehavior);
                 }
             }
         }

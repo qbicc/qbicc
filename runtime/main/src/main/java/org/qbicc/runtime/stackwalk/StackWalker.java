@@ -7,8 +7,9 @@ import static org.qbicc.runtime.stdc.String.*;
 import static org.qbicc.runtime.unwind.LibUnwind.*;
 
 import org.qbicc.runtime.Build;
-import org.qbicc.runtime.NoSafePoint;
 import org.qbicc.runtime.NoThrow;
+import org.qbicc.runtime.SafePoint;
+import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.runtime.StackObject;
 
 public final class StackWalker extends StackObject {
@@ -17,7 +18,7 @@ public final class StackWalker extends StackObject {
     int index = -1;
     boolean ready;
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public StackWalker() {
         ptr<unw_context_t> context_ptr = addr_of(deref(refToPtr(this)).context);
@@ -25,7 +26,7 @@ public final class StackWalker extends StackObject {
         unw_init_local(addr_of(deref(refToPtr(this)).cursor), context_ptr);
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public StackWalker(ptr<unw_context_t> context_ptr) {
         memcpy(addr_of(deref(refToPtr(this)).context).cast(), context_ptr.cast(), sizeof(unw_context_t.class));
@@ -33,7 +34,7 @@ public final class StackWalker extends StackObject {
     }
 
     @SuppressWarnings("CopyConstructorMissesField")
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public StackWalker(StackWalker orig) {
         memcpy(addr_of(deref(refToPtr(this)).context).cast(), addr_of(deref(refToPtr(orig)).context).cast(), sizeof(unw_context_t.class));
@@ -42,7 +43,7 @@ public final class StackWalker extends StackObject {
         ready = orig.ready;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public boolean next() {
         if (unw_step(addr_of(deref(refToPtr(this)).cursor)).isGt(zero())) {
@@ -52,7 +53,7 @@ public final class StackWalker extends StackObject {
         return ready = false;
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public <T> ptr<T> getIp() {
         if (! ready) return zero();
@@ -66,7 +67,7 @@ public final class StackWalker extends StackObject {
         return ip.cast();
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public <T> ptr<T> getSp() {
         if (! ready) return zero();
@@ -81,7 +82,7 @@ public final class StackWalker extends StackObject {
      *
      * @param ptr a pointer to the new cursor value (must not be {@code null})
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void setCursor(ptr<@c_const unw_cursor_t> ptr) {
         memcpy(addr_of(deref(refToPtr(this)).cursor).cast(), ptr.cast(), sizeof(unw_cursor_t.class));
@@ -93,13 +94,13 @@ public final class StackWalker extends StackObject {
      *
      * @param ptr a pointer to memory into which the copy should be stored (must not be {@code null})
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public void getCursor(ptr<unw_cursor_t> ptr) {
         memcpy(ptr.cast(), addr_of(deref(refToPtr(this)).cursor).cast(), sizeof(unw_cursor_t.class));
     }
 
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public int getIndex() {
         return index;
@@ -110,7 +111,7 @@ public final class StackWalker extends StackObject {
      *
      * @return the call site pointer, or {@code null} if the call site is not known
      */
-    @NoSafePoint
+    @SafePoint(SafePointBehavior.ALLOWED)
     @NoThrow
     public ptr<struct_call_site> getCallSite() {
         return findInsnTableEntry(getIp());

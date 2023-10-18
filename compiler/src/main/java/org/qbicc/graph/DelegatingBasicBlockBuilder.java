@@ -374,8 +374,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().reachable(value);
     }
 
-    public Node safePoint() {
-        return getDelegate().safePoint();
+    public Node pollSafePoint() {
+        return getDelegate().pollSafePoint();
+    }
+
+    public Node enterSafePoint(Value setBits, Value clearBits) {
+        return getDelegate().enterSafePoint(setBits, clearBits);
+    }
+
+    public Node exitSafePoint(Value setBits, Value clearBits) {
+        return getDelegate().exitSafePoint(setBits, clearBits);
     }
 
     public BasicBlock callNoReturn(Value targetPtr, Value receiver, List<Value> arguments) {
