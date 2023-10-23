@@ -29,7 +29,7 @@ public class TestProbes {
         final Iterator<CToolChain> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
         compiler = iterator.next();
-        final ObjectType objectType = Platform.HOST_PLATFORM.getObjectType();
+        final ObjectType objectType = Platform.HOST_PLATFORM.objectType();
         System.out.println("Local object file type: " + objectType);
         objectFileProvider = ObjectFileProvider.findProvider(objectType, TestProbes.class.getClassLoader()).orElseThrow();
     }

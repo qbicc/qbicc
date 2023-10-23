@@ -27,7 +27,7 @@ public class TestSimpleCompile {
     public void testSimpleCompile() throws Exception {
         final Path objectFilePath = Files.createTempFile("temp", ".wasm");
         Platform plaf = Platform.parse("wasm-wasi");
-        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
+        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.objectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
         Path clang = ToolUtil.findExecutable("emcc");
         assumeTrue(clang != null);

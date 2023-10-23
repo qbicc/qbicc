@@ -58,7 +58,7 @@ public final class LLVMStripStackMapStage implements Consumer<CompilationContext
         }
         LlvmObjCopyInvoker objCopyInvoker = llvmToolChain.newLlvmObjCopyInvoker();
         objCopyInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
-        objCopyInvoker.removeSection(context.getPlatform().getObjectType().formatSectionName("llvm_stackmaps", "llvm_stackmaps"));
+        objCopyInvoker.removeSection(context.getPlatform().objectType().formatSectionName("llvm_stackmaps", "llvm_stackmaps"));
         return objCopyInvoker;
     }
 }

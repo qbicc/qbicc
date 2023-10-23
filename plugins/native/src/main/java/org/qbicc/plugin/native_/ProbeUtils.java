@@ -2,6 +2,7 @@ package org.qbicc.plugin.native_;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.qbicc.context.ClassContext;
@@ -108,6 +109,15 @@ final class ProbeUtils {
         @Override
         public void accept(CProbe.Builder builder) {
             // defines first, then undefs, then includes
+            Map<String, String> globalDefs = classContext.getCompilationContext().getPlatform().os().globalDefinitions();
+            for (Map.Entry<String, String> entry : globalDefs.entrySet()) {
+                String value = entry.getValue();
+                if (value.isEmpty()) {
+                    builder.define(entry.getKey());
+                } else {
+                    builder.define(entry.getKey(), value);
+                }
+            }
             for (Annotation define : defines) {
                 String str = ((StringAnnotationValue) define.getValue("value")).getString();
                 if (ConditionEvaluation.get(classContext.getCompilationContext()).evaluateConditions(classContext, locatable, define)) {

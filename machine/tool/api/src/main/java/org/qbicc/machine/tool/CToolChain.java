@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.machine.arch.OS;
+import org.qbicc.machine.arch.Os;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.process.InputSource;
 
@@ -30,15 +30,15 @@ public interface CToolChain extends Tool {
         List<Path> paths = new ArrayList<>();
         List<String> names = new ArrayList<>(16);
         // cross-compiler: cpu-os-vendor
-        Cpu cpu = platform.getCpu();
-        String cpuName = cpu.getSimpleName();
-        OS os = platform.getOs();
-        String osName = os.getName();
+        Cpu cpu = platform.cpu();
+        String cpuName = cpu.simpleName();
+        Os os = platform.os();
+        String osName = os.name();
         String cc = System.getenv("CC");
         if (cc != null) {
             names.add(cc);
         } else {
-            if (os == OS.LINUX && (os != Platform.HOST_PLATFORM.getOs() || cpu != Platform.HOST_PLATFORM.getCpu())) {
+            if (os == Os.linux && (os != Platform.HOST_PLATFORM.os() || cpu != Platform.HOST_PLATFORM.cpu())) {
                 names.add(cpuName + "-" + osName + "-gnu-gcc");
             }
             // generic compiler names

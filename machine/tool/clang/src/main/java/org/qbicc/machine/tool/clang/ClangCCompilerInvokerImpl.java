@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.qbicc.machine.arch.Abi;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
@@ -16,7 +17,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
     private final List<Path> includePaths = new ArrayList<>(1);
     private final List<String> definedSymbols = new ArrayList<>(2);
     private InputSource inputSource = InputSource.empty();
-    private Path outputPath = TMP.resolve("qbicc-output." + getTool().getPlatform().getObjectType().objectSuffix());
+    private Path outputPath = TMP.resolve("qbicc-output." + getTool().getPlatform().objectType().objectSuffix());
     private SourceLanguage sourceLanguage = SourceLanguage.C;
 
     ClangCCompilerInvokerImpl(final ClangToolChainImpl tool) {
@@ -81,7 +82,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
     void addArguments(final List<String> cmd) {
         Platform platform = getTool().getPlatform();
         cmd.add("-target");
-        cmd.add(platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
+        cmd.add(platform.llvmString());
         if (sourceLanguage == SourceLanguage.C) {
             Collections.addAll(cmd, "-std=gnu11", "-f" + "input-charset=UTF-8");
             cmd.add("-pthread");

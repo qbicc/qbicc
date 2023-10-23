@@ -13,7 +13,6 @@ import org.qbicc.runtime.Build;
  *
  */
 @include("<errno.h>")
-@define(value = "_THREAD_SAFE_ERRNO", as = "1", when = Build.Target.IsAix.class) // TODO this should be global for AIX
 public final class Errno {
     @AccessWith(value = GLibCErrnoAccessor.class, when = Build.Target.IsGLibCLike.class)
     @AccessWith(value = MacOsErrnoAccessor.class, when = Build.Target.IsMacOs.class)

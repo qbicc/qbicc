@@ -12,7 +12,6 @@ import org.qbicc.machine.arch.ObjectType;
 import org.qbicc.machine.file.bin.BinaryBuffer;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
-import io.smallrye.common.constraint.Assert;
 import org.qbicc.machine.object.Section;
 
 /**
@@ -117,7 +116,7 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
             }
 
             public ObjectType getObjectType() {
-                return ObjectType.ELF;
+                return ObjectType.elf;
             }
 
             @Override
@@ -180,6 +179,6 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
     }
 
     public ObjectType getObjectType() {
-        return ObjectType.ELF;
+        return ObjectType.elf;
     }
 }

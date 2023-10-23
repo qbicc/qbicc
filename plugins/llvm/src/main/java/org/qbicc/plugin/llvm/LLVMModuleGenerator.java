@@ -70,6 +70,7 @@ final class LLVMModuleGenerator {
     }
 
     public void processProgramModule(final ProgramModule programModule, BufferedWriter writer, Path irFile) {
+        final Platform platform = context.getPlatform();
         final Module module = Module.newModule();
         TypeSystem ts = context.getTypeSystem();
         module.dataLayout()
@@ -85,6 +86,10 @@ final class LLVMModuleGenerator {
             .float32Align(ts.getFloat32Type().getAlign() * 8)
             .float64Align(ts.getFloat64Type().getAlign() * 8)
             ;
+        module.triple()
+                .arch(platform.cpu().llvmName())
+                .vendor(platform.vendor().llvmName())
+                .os(platform.os().llvmName() + platform.osVersion());
         module.sourceFileName(irFile.toString());
         final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(this, programModule, module, context, config);
         final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(programModule, module, context);
@@ -96,7 +101,6 @@ final class LLVMModuleGenerator {
         if (pieLevel != 0) {
             module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
         }
-        final Platform platform = context.getPlatform();
 
         // declare debug function here
         org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.value");

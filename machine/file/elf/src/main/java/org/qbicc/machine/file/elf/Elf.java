@@ -265,29 +265,29 @@ public final class Elf {
         }
 
         default Cpu toCpu() {
-            return Cpu.UNKNOWN;
+            return Cpu.unknown;
         }
 
         enum Std implements Machine {
-            NONE(0, Cpu.UNKNOWN),
-            M32(1, Cpu.UNKNOWN),
-            SPARC(2, Cpu.UNKNOWN),
-            X86(3, Cpu.X86),
-            _68K(4, Cpu.UNKNOWN),
-            _88K(5, Cpu.UNKNOWN),
-            IA_MCU(6, Cpu.UNKNOWN),
-            _860(7, Cpu.UNKNOWN),
-            MIPS(8, Cpu.UNKNOWN),
-            S370(9, Cpu.UNKNOWN),
-            MIPS_RS3_LE(0x0A, Cpu.UNKNOWN),
-            PARISC(0x0F, Cpu.UNKNOWN),
-            VPP500(0x11, Cpu.UNKNOWN),
-            SPARC32PLUS(0x12, Cpu.UNKNOWN),
-            _960(0x13, Cpu.UNKNOWN),
-            PPC(0x14, Cpu.PPC32),
-            PPC64(0x15, Cpu.PPC64),
-            S390(0x16, Cpu.UNKNOWN),
-            ARM(0x28, Cpu.ARM) {
+            NONE(0, Cpu.unknown),
+            M32(1, Cpu.unknown),
+            SPARC(2, Cpu.unknown),
+            X86(3, Cpu.x86),
+            _68K(4, Cpu.unknown),
+            _88K(5, Cpu.unknown),
+            IA_MCU(6, Cpu.unknown),
+            _860(7, Cpu.unknown),
+            MIPS(8, Cpu.unknown),
+            S370(9, Cpu.unknown),
+            MIPS_RS3_LE(0x0A, Cpu.unknown),
+            PARISC(0x0F, Cpu.unknown),
+            VPP500(0x11, Cpu.unknown),
+            SPARC32PLUS(0x12, Cpu.unknown),
+            _960(0x13, Cpu.unknown),
+            PPC(0x14, Cpu.ppc32),
+            PPC64(0x15, Cpu.ppc),
+            S390(0x16, Cpu.unknown),
+            ARM(0x28, Cpu.arm) {
                 public long maskFlags(final long original) {
                     return original & 0xffffff;
                 }
@@ -318,14 +318,14 @@ public final class Elf {
                     return (specificValue & 0xff) << 24 | value & 0xffffff;
                 }
             },
-            SUPER_H(0x2A, Cpu.UNKNOWN),
-            SPARCV9(0x2B, Cpu.UNKNOWN),
-            IA_64(0x32, Cpu.UNKNOWN),
-            X86_64(0x3E, Cpu.X86_64),
-            OPENRISC(0x5C, Cpu.UNKNOWN),
-            AARCH64(0xB7, Cpu.AARCH64),
-            CUDA(0xBE, Cpu.UNKNOWN),
-            RISC_V(0xF3, Cpu.UNKNOWN),
+            SUPER_H(0x2A, Cpu.unknown),
+            SPARCV9(0x2B, Cpu.unknown),
+            IA_64(0x32, Cpu.unknown),
+            X86_64(0x3E, Cpu.x64),
+            OPENRISC(0x5C, Cpu.unknown),
+            AARCH64(0xB7, Cpu.aarch64),
+            CUDA(0xBE, Cpu.unknown),
+            RISC_V(0xF3, Cpu.unknown),
             ;
 
             private static final Std[] VALUES = values();

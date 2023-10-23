@@ -16,7 +16,7 @@ public enum ArmProfile {
         this.letter = letter;
     }
 
-    public char getLetter() {
+    public char letter() {
         return letter;
     }
 }

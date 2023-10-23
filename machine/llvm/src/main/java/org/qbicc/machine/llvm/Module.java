@@ -28,6 +28,8 @@ import org.qbicc.machine.llvm.impl.LLVM;
 public interface Module {
     DataLayout dataLayout();
 
+    Triple triple();
+
     void sourceFileName(String path);
 
     // todo: metadata goes at the end for definitions

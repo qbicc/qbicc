@@ -19,6 +19,6 @@ public final class MachOObjectFileProvider implements ObjectFileProvider {
     }
 
     public ObjectType getObjectType() {
-        return ObjectType.MACH_O;
+        return ObjectType.macho;
     }
 }

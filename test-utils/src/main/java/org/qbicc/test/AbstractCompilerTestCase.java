@@ -37,7 +37,7 @@ public abstract class AbstractCompilerTestCase {
         builder.setOutputDirectory(Path.of(System.getProperty("user.dir", "."), "target", "test-fwk"));
         final Platform platform = getPlatform();
         builder.setTargetPlatform(platform);
-        Optional<ObjectFileProvider> ofp = ObjectFileProvider.findProvider(platform.getObjectType(), AbstractCompilerTestCase.class.getClassLoader());
+        Optional<ObjectFileProvider> ofp = ObjectFileProvider.findProvider(platform.objectType(), AbstractCompilerTestCase.class.getClassLoader());
         if (ofp.isEmpty()) {
             fail("No object file provider found for " + platform);
             throw unreachableCode();

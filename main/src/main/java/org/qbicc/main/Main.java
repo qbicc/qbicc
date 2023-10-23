@@ -323,9 +323,9 @@ public class Main implements Callable<DiagnosticContext> {
             // first, probe the target platform
             Platform target = platform;
             builder.setTargetPlatform(target);
-            Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.getObjectType(), Main.class.getClassLoader());
+            Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.objectType(), Main.class.getClassLoader());
             if (optionalProvider.isEmpty()) {
-                initialContext.error("No object file provider found for %s", target.getObjectType());
+                initialContext.error("No object file provider found for %s", target.objectType());
             } else {
                 ObjectFileProvider objectFileProvider = optionalProvider.get();
                 Iterator<CToolChain> toolChains = CToolChain.findAllCToolChains(target, t -> true, Main.class.getClassLoader()).iterator();

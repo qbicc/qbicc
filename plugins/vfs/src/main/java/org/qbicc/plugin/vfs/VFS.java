@@ -16,7 +16,7 @@ import org.qbicc.interpreter.VmReferenceArray;
 import org.qbicc.interpreter.VmString;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowableClass;
-import org.qbicc.machine.arch.OS;
+import org.qbicc.machine.arch.Os;
 import org.qbicc.machine.vfs.AbsoluteVirtualPath;
 import org.qbicc.machine.vfs.PosixVirtualFileSystem;
 import org.qbicc.machine.vfs.VFSUtils;
@@ -48,8 +48,8 @@ public final class VFS {
         ioException = (VmThrowableClass) classContext.findDefinedType("java/io/IOException").load().getVmClass();
         unsupportedOperationException = (VmThrowableClass) classContext.findDefinedType("java/lang/UnsupportedOperationException").load().getVmClass();
         vioSystem = VIO.get(ctxt).getVIOSystem();
-        OS os = ctxt.getPlatform().getOs();
-        fileSystem = os == OS.WIN32 ? new WindowsVirtualFileSystem(vioSystem) : new PosixVirtualFileSystem(vioSystem, os != OS.DARWIN);
+        Os os = ctxt.getPlatform().os();
+        fileSystem = os == Os.win32 ? new WindowsVirtualFileSystem(vioSystem) : new PosixVirtualFileSystem(vioSystem, os != Os.macos);
         qbiccPath = fileSystem.getPath("/qbicc").toAbsolutePath();
     }
 
