@@ -17,7 +17,6 @@ import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.ObjectType;
 import org.qbicc.machine.file.bin.BinaryBuffer;
 import org.qbicc.machine.object.ObjectFile;
-import io.smallrye.common.constraint.Assert;
 
 /**
  * A Mach-O object file.
@@ -230,7 +229,7 @@ public final class MachOObjectFile implements ObjectFile {
     }
 
     public ObjectType getObjectType() {
-        return ObjectType.MACH_O;
+        return ObjectType.macho;
     }
 
     @Override

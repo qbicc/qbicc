@@ -48,19 +48,19 @@ public final class MachO {
     public static final int CPU_ARCH_ABI64 = 0x01000000;
 
     public enum CpuType implements NumericEnumeration {
-        CPU_TYPE_UNKNOWN(0, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_VAX(1, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_MC680x0(6, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_X86(7, Cpu.X86, Cpu.X86_64),
-        CPU_TYPE_MIPS(8, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_MC98000(10, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_HPPA(11, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_ARM(12, Cpu.ARM, Cpu.AARCH64),
-        CPU_TYPE_MC88000(13, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_SPARC(14, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_I860(15, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_ALPHA(16, Cpu.UNKNOWN, Cpu.UNKNOWN),
-        CPU_TYPE_POWERPC(18, Cpu.PPC32, Cpu.PPC64),
+        CPU_TYPE_UNKNOWN(0, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_VAX(1, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_MC680x0(6, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_X86(7, Cpu.x86, Cpu.x64),
+        CPU_TYPE_MIPS(8, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_MC98000(10, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_HPPA(11, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_ARM(12, Cpu.arm, Cpu.aarch64),
+        CPU_TYPE_MC88000(13, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_SPARC(14, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_I860(15, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_ALPHA(16, Cpu.unknown, Cpu.unknown),
+        CPU_TYPE_POWERPC(18, Cpu.ppc32, Cpu.ppc),
         ;
 
         private final int value;

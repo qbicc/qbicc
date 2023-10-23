@@ -27,7 +27,7 @@ public class TestSimpleCompile {
     public void testSimpleCompile() throws Exception {
         final Path objectFilePath = Files.createTempFile("temp", ".o");
         Platform plaf = Platform.HOST_PLATFORM;
-        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
+        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.objectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
         Path clang = ToolUtil.findExecutable("clang");
         assumeTrue(clang != null);

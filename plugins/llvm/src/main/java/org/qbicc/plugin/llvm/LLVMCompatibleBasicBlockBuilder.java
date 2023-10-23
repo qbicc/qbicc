@@ -90,7 +90,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             FloatType t1 = (FloatType) v1.getType();
             FloatType t2 = (FloatType) v2.getType();
             // todo: CPU capability bits
-            if (ctxt.getPlatform().getCpu() == Cpu.AARCH64) {
+            if (ctxt.getPlatform().cpu() == Cpu.aarch64) {
                 numericType = (t1.getSize() == 4) ? tps.getFloat32Type() : tps.getFloat64Type();
                 fullFuncName = "llvm." + funcName + "imum.f" + numericType.getMinBits();
                 return minMaxIntrinsic(fullFuncName, numericType, v1, v2);

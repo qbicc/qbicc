@@ -24,7 +24,7 @@ final class OptInvokerImpl extends AbstractLlvmInvoker implements OptInvoker {
 
     void addArguments(final List<String> cmd) {
         Platform platform = getTool().getPlatform();
-        cmd.add("-mtriple=" + platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
+        cmd.add("-mtriple=" + platform.cpu().toString() + "-" + platform.os().toString() + "-" + platform.abi().toString());
         for (OptPass pass : passes) {
             cmd.add("-" + pass.name);
         }

@@ -51,7 +51,7 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
     void addArguments(final List<String> cmd) {
         LlvmToolChain tool = getTool();
         Platform platform = tool.getPlatform();
-        cmd.add("-mtriple=" + platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
+        cmd.add("-mtriple=" + platform.llvmString());
         cmd.add("--relocation-model=" + relocationModel.value);
         cmd.add("-" + optLevel.name());
         cmd.add("--filetype=" + outputFormat.toOptionString());

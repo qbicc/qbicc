@@ -27,7 +27,7 @@ public class TestSimpleCompile {
     public void testSimpleCompile() throws Exception {
         final Path objectFilePath = Files.createTempFile("temp", ".o");
         Platform plaf = Platform.HOST_PLATFORM;
-        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
+        Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.objectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
         final Iterable<GccToolChainImpl> tools = ToolProvider.findAllTools(GccToolChainImpl.class, Platform.HOST_PLATFORM, c -> true,
             TestSimpleCompile.class.getClassLoader(), List.of(ToolUtil.findExecutable("gcc")));

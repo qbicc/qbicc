@@ -60,7 +60,7 @@ public class LLVMCompilerImpl implements LLVMCompiler {
     @Override
     public void compileModule(final CompilationContext ctxt, LoadedTypeDefinition typeDefinition, LLVMModuleGenerator moduleGenerator) {
         final Path directory = ctxt.getOutputDirectory(typeDefinition);
-        final Path objectFile = ctxt.getOutputFile(typeDefinition, ctxt.getPlatform().getObjectType().objectSuffix());
+        final Path objectFile = ctxt.getOutputFile(typeDefinition, ctxt.getPlatform().objectType().objectSuffix());
         final Path irFile = ctxt.getOutputFile(typeDefinition, "ll");
         final Path asmFile = ctxt.getOutputFile(typeDefinition, "s");
         final ProgramModule programModule = ctxt.getOrAddProgramModule(typeDefinition);

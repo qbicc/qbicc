@@ -13,6 +13,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.IdentifiedType;
 import org.qbicc.machine.llvm.ModuleFlagBehavior;
+import org.qbicc.machine.llvm.Triple;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.debuginfo.DIBasicType;
@@ -58,6 +59,10 @@ final class ModuleImpl implements Module {
 
     public DataLayout dataLayout() {
         return add(header, new DataLayoutImpl());
+    }
+
+    public Triple triple() {
+        return add(header, new TripleImpl());
     }
 
     public void sourceFileName(final String path) {

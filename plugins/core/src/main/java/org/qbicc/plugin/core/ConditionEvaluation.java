@@ -14,7 +14,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.machine.arch.OS;
+import org.qbicc.machine.arch.Os;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
@@ -44,21 +44,21 @@ public final class ConditionEvaluation {
         predefinedResults = Map.ofEntries(
             // Operating systems
             Map.entry("org/qbicc/runtime/Build$Target$IsAix", Boolean.FALSE /* todo */),
-            Map.entry("org/qbicc/runtime/Build$Target$IsApple", Boolean.valueOf(platform.getOs() == OS.DARWIN)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsLinux", Boolean.valueOf(platform.getOs() == OS.LINUX)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsMacOs", Boolean.valueOf(platform.getOs() == OS.DARWIN)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsPosix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsUnix", Boolean.valueOf(platform.getOs() != OS.WIN32)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsWasi", Boolean.valueOf(platform.getOs() == OS.WASI)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsApple", Boolean.valueOf(platform.os() == Os.macos)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsLinux", Boolean.valueOf(platform.os() == Os.linux)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsMacOs", Boolean.valueOf(platform.os() == Os.macos)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsPosix", Boolean.valueOf(platform.os() != Os.win32)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsUnix", Boolean.valueOf(platform.os() != Os.win32)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsWasi", Boolean.valueOf(platform.os() == Os.wasi)),
 
             // CPU architectures
-            Map.entry("org/qbicc/runtime/Build$Target$IsAarch64", Boolean.valueOf(platform.getCpu() == Cpu.AARCH64)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsAmd64", Boolean.valueOf(platform.getCpu() == Cpu.X86_64)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsArm", Boolean.valueOf(platform.getCpu() == Cpu.ARM)),
-            Map.entry("org/qbicc/runtime/Build$Target$IsWasm", Boolean.valueOf(platform.getCpu() == Cpu.WASM32)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsAarch64", Boolean.valueOf(platform.cpu() == Cpu.aarch64)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsAmd64", Boolean.valueOf(platform.cpu() == Cpu.x64)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsArm", Boolean.valueOf(platform.cpu() == Cpu.arm)),
+            Map.entry("org/qbicc/runtime/Build$Target$IsWasm", Boolean.valueOf(platform.cpu() == Cpu.wasm32)),
 
             // Capabilities
-            Map.entry("org/qbicc/runtime/Build$Target$IsPThreads", Boolean.valueOf(platform.getCpu() != Cpu.WASM32))
+            Map.entry("org/qbicc/runtime/Build$Target$IsPThreads", Boolean.valueOf(platform.cpu() != Cpu.wasm32))
         );
     }
 

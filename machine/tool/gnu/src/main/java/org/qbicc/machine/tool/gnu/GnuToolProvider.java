@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.qbicc.machine.arch.Cpu;
-import org.qbicc.machine.arch.OS;
+import org.qbicc.machine.arch.Os;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.Tool;
 import org.qbicc.machine.tool.ToolProvider;
@@ -28,9 +28,9 @@ public class GnuToolProvider implements ToolProvider {
     public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform, final Path path) {
         final ArrayList<T> list = new ArrayList<>();
         if (type.isAssignableFrom(GccToolChainImpl.class)) {
-            final String cpuSimpleName = platform.getCpu().getSimpleName();
-            final String osName = platform.getOs().getName();
-            final String abiName = platform.getAbi().getName();
+            final String cpuSimpleName = platform.cpu().simpleName();
+            final String osName = platform.os().name();
+            final String abiName = platform.abi().name();
             tryGcc(type, platform, list, path);
             return list;
         } else {
@@ -61,10 +61,10 @@ public class GnuToolProvider implements ToolProvider {
                             String osStr = matcher.group(3);
                             String abiStr = matcher.group(4);
                             Cpu cpu = Cpu.forName(cpuStr);
-                            boolean m32 = platform.getCpu().equals(Cpu.X86) && cpu.equals(Cpu.X86_64);
-                            boolean cpuMatch = cpu.equals(platform.getCpu()) || m32;
-                            OS os = OS.forName(osStr);
-                            boolean osMatch = os.equals(platform.getOs());
+                            boolean m32 = platform.cpu().equals(Cpu.x86) && cpu.equals(Cpu.x64);
+                            boolean cpuMatch = cpu.equals(platform.cpu()) || m32;
+                            Os os = Os.forName(osStr);
+                            boolean osMatch = os.equals(platform.os());
                             // todo: ABI match might be a little trickier
                             res.match = cpuMatch && osMatch;
                             res.m32 = m32;

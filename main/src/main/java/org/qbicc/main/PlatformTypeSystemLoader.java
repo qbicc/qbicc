@@ -150,8 +150,14 @@ public class PlatformTypeSystemLoader {
     }
 
     TypeSystem fromYaml() throws IOException {
-        String fpath = "bundles/" + platform.toString() + "/platform-type-info.yaml";
+        String searchName = platform.cpu() + "-" + platform.os() + "-" + platform.abi();
+        String fpath = "bundles/" + searchName + "/platform-type-info.yaml";
         InputStream stream = this.getClass().getClassLoader().getResourceAsStream(fpath);
+        if (stream == null) {
+            searchName = platform.cpu() + "-" + platform.os();
+            fpath = "bundles/" + searchName + "/platform-type-info.yaml";
+            stream = this.getClass().getClassLoader().getResourceAsStream(fpath);
+        }
         if (stream == null) return null;
         JsonNode jsonNode = new ObjectMapper(new YAMLFactory()).readTree(stream);
         JsonNode platformTypeInfo = jsonNode.get("platform-type-info");

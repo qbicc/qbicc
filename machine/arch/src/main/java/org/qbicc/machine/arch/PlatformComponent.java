@@ -1,33 +1,17 @@
 package org.qbicc.machine.arch;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  *
  */
-public abstract class PlatformComponent {
-    private final String name;
-    private final Set<String> aliases;
+public sealed interface PlatformComponent permits Abi, Cpu, Cpu.SubArch, Os, ObjectType, Vendor {
+    String name();
 
-    PlatformComponent(final String name, final String... aliases) {
-        this.name = name;
-        this.aliases = Set.of(aliases);
-    }
+    Set<String> aliases();
 
-    PlatformComponent(final String name) {
-        this.name = name;
-        this.aliases = Set.of();
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String toString() {
-        return getName();
-    }
-
-    public Set<String> getAliases() {
-        return aliases;
+    default String matchRegex() {
+        return Pattern.quote(name());
     }
 }

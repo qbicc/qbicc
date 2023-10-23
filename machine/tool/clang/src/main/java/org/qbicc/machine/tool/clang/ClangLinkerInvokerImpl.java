@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.arch.Platform;
 
 /**
  *
@@ -80,7 +81,9 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
         }
         cmd.add("-pthread");
         cmd.add("-Wno-unused-command-line-argument");
-
+        Platform platform = getTool().getPlatform();
+        cmd.add("-target");
+        cmd.add(platform.llvmString());
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
         }

@@ -48,7 +48,7 @@ final class HooksForSystemPropsRaw {
             //        @Native private static final int _file_encoding_NDX = 1 + _display_variant_NDX;
             fileEncoding.name(),
             //        @Native private static final int _file_separator_NDX = 1 + _file_encoding_NDX;
-            platform.getOs().getFileSeparator(),
+            platform.os().fileSeparator(),
             //        @Native private static final int _format_country_NDX = 1 + _file_separator_NDX;
             formatLocale.getCountry(),
             //        @Native private static final int _format_language_NDX = 1 + _format_country_NDX;
@@ -76,15 +76,15 @@ final class HooksForSystemPropsRaw {
             //        @Native private static final int _java_io_tmpdir_NDX = 1 + _https_proxyPort_NDX;
             tempDir,
             //        @Native private static final int _line_separator_NDX = 1 + _java_io_tmpdir_NDX;
-            platform.getOs().getLineSeparator(),
+            platform.os().lineSeparator(),
             //        @Native private static final int _os_arch_NDX = 1 + _line_separator_NDX;
-            platform.getCpu().getName(),
+            platform.cpu().name(),
             //        @Native private static final int _os_name_NDX = 1 + _os_arch_NDX;
-            platform.getOs().getName(),
+            platform.os().name(),
             //        @Native private static final int _os_version_NDX = 1 + _os_name_NDX;
             "generic version",
             //        @Native private static final int _path_separator_NDX = 1 + _os_version_NDX;
-            platform.getOs().getPathSeparator(),
+            platform.os().pathSeparator(),
             //        @Native private static final int _socksNonProxyHosts_NDX = 1 + _path_separator_NDX;
             "",
             //        @Native private static final int _socksProxyHost_NDX = 1 + _socksNonProxyHosts_NDX;
@@ -92,15 +92,15 @@ final class HooksForSystemPropsRaw {
             //        @Native private static final int _socksProxyPort_NDX = 1 + _socksProxyHost_NDX;
             "",
             //        @Native private static final int _sun_arch_abi_NDX = 1 + _socksProxyPort_NDX;
-            platform.getAbi().getName(),
+            platform.abi().name(),
             //        @Native private static final int _sun_arch_data_model_NDX = 1 + _sun_arch_abi_NDX;
-            String.valueOf(platform.getCpu().getCpuWordSize() << 3),
+            String.valueOf(platform.cpu().wordSize() << 3),
             //        @Native private static final int _sun_cpu_endian_NDX = 1 + _sun_arch_data_model_NDX;
-            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "big" : "little",
+            platform.cpu().byteOrder() == ByteOrder.BIG_ENDIAN ? "big" : "little",
             //        @Native private static final int _sun_cpu_isalist_NDX = 1 + _sun_cpu_endian_NDX;
             "",
             //        @Native private static final int _sun_io_unicode_encoding_NDX = 1 + _sun_cpu_isalist_NDX;
-            ctxt.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN ? "UnicodeBig" : "UnicodeLittle",
+            platform.cpu().byteOrder() == ByteOrder.BIG_ENDIAN ? "UnicodeBig" : "UnicodeLittle",
             //        @Native private static final int _sun_jnu_encoding_NDX = 1 + _sun_io_unicode_encoding_NDX;
             jnuEncoding.name(),
             //        @Native private static final int _sun_os_patch_level_NDX = 1 + _sun_jnu_encoding_NDX;

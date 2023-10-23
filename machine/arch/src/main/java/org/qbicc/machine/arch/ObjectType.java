@@ -4,18 +4,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public final class ObjectType extends PlatformComponent {
-
-    public static final ObjectType UNKNOWN = new ObjectType("unknown", "o");
-    public static final ObjectType ELF = new ObjectType("elf", "o");
-    public static final ObjectType MACH_O = new ObjectType("macho", "o");
-    public static final ObjectType COFF = new ObjectType("coff", "obj");
-    public static final ObjectType WASM = new ObjectType("wasm", "o");
+public enum ObjectType implements PlatformComponent {
+    unknown("o"),
+    elf("o"),
+    macho("o"),
+    coff("obj"),
+    wasm("o"),
+    ;
 
     private final String objectSuffix;
 
-    ObjectType(final String name, final String objectSuffix) {
-        super(name);
+    ObjectType(final String objectSuffix) {
         this.objectSuffix = objectSuffix;
     }
 
@@ -26,10 +25,10 @@ public final class ObjectType extends PlatformComponent {
     private static final Map<String, ObjectType> index = Indexer.index(ObjectType.class);
 
     public static ObjectType forName(String name) {
-        return index.getOrDefault(name.toLowerCase(Locale.ROOT), UNKNOWN);
+        return index.getOrDefault(name.toLowerCase(Locale.ROOT), unknown);
     }
 
-    public static Set<String> getNames() {
+    public static Set<String> names() {
         return index.keySet();
     }
 
@@ -41,7 +40,7 @@ public final class ObjectType extends PlatformComponent {
      * @return the object-specific section name (not {@code null})
      */
     public String formatSectionName(final String segmentName, final String... simpleNameParts) {
-        if (this == MACH_O) {
+        if (this == macho) {
             return formatSegmentName(segmentName) + ",__" + String.join("_", simpleNameParts);
         } else {
             return "." + String.join(".", simpleNameParts);
@@ -55,7 +54,7 @@ public final class ObjectType extends PlatformComponent {
      * @return the object-specific segment name (not {@code null})
      */
     public String formatSegmentName(final String name) {
-        if (this == MACH_O) {
+        if (this == macho) {
             return "__" + name.toUpperCase(Locale.ROOT);
         } else {
             return name + "-segment";
@@ -71,7 +70,7 @@ public final class ObjectType extends PlatformComponent {
      */
     public String formatStartOfSectionSymbolName(final String segmentName, final String simpleName) {
         // todo: COFF: https://stackoverflow.com/questions/3808053/how-to-get-a-pointer-to-a-binary-section-in-msvc?noredirect=1&lq=1
-        if (this == MACH_O) {
+        if (this == macho) {
             return "section$start$" + formatSegmentName(segmentName) + "$__" + simpleName;
         } else {
             return "__start_" + simpleName;
@@ -86,10 +85,15 @@ public final class ObjectType extends PlatformComponent {
      * @return the object-specific symbol (not {@code null})
      */
     public String formatEndOfSectionSymbolName(final String segmentName, final String simpleName) {
-        if (this == MACH_O) {
+        if (this == macho) {
             return "section$end$" + formatSegmentName(segmentName) + "$__" + simpleName;
         } else {
             return "__stop_" + simpleName;
         }
+    }
+
+    @Override
+    public Set<String> aliases() {
+        return Set.of();
     }
 }

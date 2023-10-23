@@ -13,7 +13,7 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
     private final List<Path> includePaths = new ArrayList<>(1);
     private final List<String> definedSymbols = new ArrayList<>(2);
     private InputSource inputSource = InputSource.empty();
-    private Path outputPath = TMP.resolve("qbicc-output." + getTool().getPlatform().getObjectType().objectSuffix());
+    private Path outputPath = TMP.resolve("qbicc-output." + getTool().getPlatform().objectType().objectSuffix());
     private SourceLanguage sourceLanguage = SourceLanguage.C;
 
     GnuCCompilerInvokerImpl(final GccToolChainImpl tool) {
