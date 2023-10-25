@@ -513,6 +513,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-wasm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
 
             <!-- external -->
 

@@ -5,5 +5,6 @@ package org.qbicc.main;
  */
 public enum Backend {
     llvm,
+    wasm,
     ;
 }

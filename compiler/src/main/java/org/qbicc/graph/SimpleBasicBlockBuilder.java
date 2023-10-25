@@ -351,6 +351,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder {
         return unique(new CmpL(this, v1, v2, getTypeSystem().getSignedInteger32Type()));
     }
 
+    public Value split(final Value value) {
+        return unique(new Split(this, value));
+    }
+
     public Value notNull(Value v) {
         return v.isNullable() ? unique(new NotNull(this, v)) : v;
     }

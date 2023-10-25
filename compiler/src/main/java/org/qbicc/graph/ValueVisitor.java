@@ -287,6 +287,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         return visitUnknown(t, node);
     }
 
+    default R visit(T t, Split node) {
+        return visitUnknown(t, node);
+    }
+
     default R visit(T t, StackAllocation node) {
         return visitUnknown(t, node);
     }
@@ -595,6 +599,10 @@ public interface ValueVisitor<T, R> extends LiteralVisitor<T, R> {
         }
 
         default R visit(T t, Shr node) {
+            return getDelegateValueVisitor().visit(t, node);
+        }
+
+        default R visit(T t, Split node) {
             return getDelegateValueVisitor().visit(t, node);
         }
 

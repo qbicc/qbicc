@@ -1,10 +1,12 @@
 package org.qbicc.graph;
 
+import java.util.BitSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import io.smallrye.common.constraint.Assert;
 
@@ -22,6 +24,8 @@ public final class BasicBlock {
     private int index;
     private List<Node> instructions;
     private Map<Slot, BlockParameter> usedParameters;
+    private BitSet dominateSet;
+    private List<BasicBlock> allBlocks;
 
     BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
         this.blockEntry = blockEntry;
@@ -144,6 +148,15 @@ public final class BasicBlock {
         return incoming;
     }
 
+    /**
+     * {@return <code>true</code> when the given block is an incoming back-edge, or <code>false</code> if it is not or
+     * is not an incoming block of this block}
+     * @param block the incoming block (must not be {@code null})
+     */
+    public boolean incomingIsBackEdge(BasicBlock block) {
+        return getIncoming().contains(block) && block.index > index;
+    }
+
     public boolean isSucceededBy(final BasicBlock block) {
         int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
@@ -154,12 +167,55 @@ public final class BasicBlock {
         return false;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
     public void setIndex(int index) {
         this.index = index;
     }
 
-    public int getIndex() {
-        return index;
+    public void setDominateSet(final BitSet bitSet) {
+        this.dominateSet = bitSet;
+    }
+
+    public void setAllBlocks(final List<BasicBlock> allBlocksList) {
+        this.allBlocks = allBlocksList;
+    }
+
+    public boolean dominates(BasicBlock other) {
+        return dominateSet.get(other.index);
+    }
+
+    public Stream<BasicBlock> dominatedStream() {
+        return dominateSet.stream().mapToObj(allBlocks::get);
+    }
+
+    public boolean immediatelyDominates(BasicBlock other) {
+        return dominates(other) && isSucceededBy(other);
+    }
+
+    public boolean hasBackIncomingEdge() {
+        for (BasicBlock block : incoming) {
+            if (incomingIsBackEdge(block)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int forwardIncomingEdgeCount() {
+        int cnt = 0;
+        for (BasicBlock block : incoming) {
+            if (! incomingIsBackEdge(block)) {
+                cnt ++;
+            }
+        }
+        return cnt;
+    }
+
+    public List<BasicBlock> allBlocks() {
+        return allBlocks;
     }
 
     /**

@@ -402,8 +402,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invoke(targetPtr, receiver, arguments, catchLabel, resumeLabel, targetArguments);
     }
 
-    public BasicBlock goto_(final BlockLabel resumeLabel, Map<Slot, Value> args) {
-        return getDelegate().goto_(resumeLabel, args);
+    public BasicBlock goto_(final BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return getDelegate().goto_(resumeLabel, targetArguments);
     }
 
     public BasicBlock if_(Value condition, BlockLabel trueTarget, BlockLabel falseTarget, Map<Slot, Value> targetArguments) {
@@ -516,6 +516,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value cmpL(Value v1, Value v2) {
         return getDelegate().cmpL(v1, v2);
+    }
+
+    public Value split(final Value value) {
+        return getDelegate().split(value);
     }
 
     public Value notNull(final Value v) {

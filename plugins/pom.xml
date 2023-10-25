@@ -43,13 +43,14 @@
         <module>patcher</module>
         <module>reachability</module>
         <module>reflection</module>
+        <module>serialization</module>
         <module>source</module>
         <module>thread-local</module>
         <module>try-catch</module>
         <module>verification</module>
-        <module>vio</module>
         <module>vfs</module>
+        <module>vio</module>
         <module>unwind</module>
-        <module>serialization</module>
+        <module>wasm</module>
     </modules>
 </project>

@@ -209,6 +209,10 @@
             <artifactId>qbicc-plugin-unwind</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-plugin-wasm</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-machine-tool-gnu</artifactId>
         </dependency>
