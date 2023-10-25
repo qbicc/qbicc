@@ -23,7 +23,6 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.type.ReferenceType;
 
 /**
  * The scheduler.
@@ -101,6 +100,9 @@ public final class Scheduler {
             }
             // and build the sequence
             buildSequence();
+            for (BlockInfo blockInfo : allBlocks) {
+                blockInfo.block.setDominateSet(blockInfo.dominateSet(allBlocks));
+            }
         }
 
         // 🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼

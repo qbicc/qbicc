@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.BitSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ public final class BasicBlock {
     private int index;
     private List<Node> instructions;
     private Map<Slot, BlockParameter> usedParameters;
+    private BitSet dominateSet;
 
     BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
         this.blockEntry = blockEntry;
@@ -144,6 +146,15 @@ public final class BasicBlock {
         return incoming;
     }
 
+    /**
+     * {@return <code>true</code> when the given block is an incoming back-edge, or <code>false</code> if it is not or
+     * is not an incoming block of this block}
+     * @param block the incoming block (must not be {@code null})
+     */
+    public boolean incomingIsBackEdge(BasicBlock block) {
+        return getIncoming().contains(block) && block.index > index;
+    }
+
     public boolean isSucceededBy(final BasicBlock block) {
         int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
@@ -158,8 +169,20 @@ public final class BasicBlock {
         this.index = index;
     }
 
+    public void setDominateSet(final BitSet bitSet) {
+        this.dominateSet = bitSet;
+    }
+
     public int getIndex() {
         return index;
+    }
+
+    public boolean dominates(BasicBlock other) {
+        return dominateSet.get(other.index);
+    }
+
+    public boolean immediatelyDominates(BasicBlock other) {
+        return dominates(other) && isSucceededBy(other);
     }
 
     /**
