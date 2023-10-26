@@ -52,7 +52,7 @@
 
         <version.commons.codec>1.16.0</version.commons.codec>
         <version.commons.lang3>3.13.0</version.commons.lang3>
-        <version.commons.io>2.14.0</version.commons.io>
+        <version.commons.io>2.15.0</version.commons.io>
         <version.eclipse.sisu>0.3.5</version.eclipse.sisu>
         <version.httpcomponents.httpclient>4.5.14</version.httpcomponents.httpclient>
         <version.httpcomponents.httpcore>4.4.16</version.httpcomponents.httpcore>
