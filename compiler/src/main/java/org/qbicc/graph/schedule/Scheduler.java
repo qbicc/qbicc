@@ -85,6 +85,7 @@ public final class Scheduler {
             for (BlockInfo block : allBlocks) {
                 block.findDomDepths(allBlocks);
             }
+            BlockInfo.computeDomSets(allBlocks);
             // now, use the dominator depths to calculate the schedule
             Map<Node, BlockInfo> scheduleToUse;
             scheduleEarly();
@@ -103,7 +104,7 @@ public final class Scheduler {
             buildSequence();
             List<BasicBlock> allBlocksList = Arrays.stream(allBlocks).map(blockInfo -> blockInfo.block).toList();
             for (BlockInfo blockInfo : allBlocks) {
-                blockInfo.block.setDominateSet(blockInfo.dominateSet(allBlocks));
+                blockInfo.block.setDominateSet(blockInfo.dominateSet());
                 blockInfo.block.setAllBlocks(allBlocksList);
             }
         }
@@ -261,7 +262,7 @@ public final class Scheduler {
                         candidate = allBlocks[candidate.dominator - 1]; // index is one-based; array is zero-based
                     }
                     // find the latest dominator of `latest` which also dominates `candidate`
-                    while (! selected.dominates(allBlocks, candidate)) {
+                    while (! selected.dominates(candidate)) {
                         // our selected block must dominate all uses
                         selected = allBlocks[selected.dominator - 1]; // index is one-based; array is zero-based
                     }
@@ -270,7 +271,7 @@ public final class Scheduler {
             if (selected != null) {
                 for (Node dependent : dependents) {
                     BlockInfo dependentBlock = scheduleLate(dependent);
-                    if (!selected.dominates(allBlocks, dependentBlock)) {
+                    if (!selected.dominates(dependentBlock)) {
                         throw new AssertionError();
                     }
                 }

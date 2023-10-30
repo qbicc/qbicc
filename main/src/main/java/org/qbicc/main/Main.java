@@ -182,6 +182,7 @@ import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
 import org.qbicc.plugin.wasm.WasmCompatibleBasicBlockBuilder;
+import org.qbicc.plugin.wasm.WasmGenerator;
 import org.qbicc.plugin.wasm.WasmLocalAllocatorHelperBasicBlockBuilder;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
@@ -330,352 +331,362 @@ public class Main implements Callable<DiagnosticContext> {
             // first, probe the target platform
             Platform target = platform;
             builder.setTargetPlatform(target);
-            Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.objectType(), Main.class.getClassLoader());
-            if (optionalProvider.isEmpty()) {
-                initialContext.error("No object file provider found for %s", target.objectType());
+            ObjectFileProvider objectFileProvider;
+            CToolChain toolChain;
+            if (wasm) {
+                toolChain = null;
+                objectFileProvider = null;
             } else {
-                ObjectFileProvider objectFileProvider = optionalProvider.get();
+                Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.objectType(), Main.class.getClassLoader());
+                if (optionalProvider.isEmpty()) {
+                    initialContext.error("No object file provider found for %s", target.objectType());
+                    return;
+                }
+                objectFileProvider = optionalProvider.get();
+                builder.setObjectFileProvider(objectFileProvider);
                 Iterator<CToolChain> toolChains = CToolChain.findAllCToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
                 if (! toolChains.hasNext()) {
                     initialContext.error("No working C compiler found");
-                } else {
-                    CToolChain toolChain = toolChains.next();
-                    builder.setToolChain(toolChain);
-                    // probe the basic system sizes
-                    try {
-                        PlatformTypeSystemLoader platformTypeSystemLoader = new PlatformTypeSystemLoader(
-                            platform, toolChain, objectFileProvider, initialContext,
-                            PlatformTypeSystemLoader.ReferenceType.POINTER,
-                            smallTypeIds);
-                        TypeSystem typeSystem = platformTypeSystemLoader.load();
+                    return;
+                }
+                toolChain = toolChains.next();
+                builder.setToolChain(toolChain);
+            }
+            // probe the basic system sizes
+            try {
+                PlatformTypeSystemLoader platformTypeSystemLoader = new PlatformTypeSystemLoader(
+                    platform, toolChain, objectFileProvider, initialContext,
+                    PlatformTypeSystemLoader.ReferenceType.POINTER,
+                    smallTypeIds);
+                TypeSystem typeSystem = platformTypeSystemLoader.load();
 
-                        builder.setTypeSystem(typeSystem);
-                        // add additional manual initializers by chaining `.andThen(...)`
-                        builder.setVmFactory(cc -> {
-                            AbstractGc.reserveMovedBit(cc);
-                            CoreClasses.reserveStackAllocatedBit(cc);
-                            QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
-                            CoreClasses.init(cc);
-                            ExceptionOnThreadStrategy.initialize(cc);
-                            UnwindExceptionStrategy.init(cc);
-                            return VmImpl.create(cc,
-                                new BasicHeaderManualInitializer(cc)
-                            ).setPropertyDefines(this.propertyDefines);
-                        });
-                        builder.setObjectFileProvider(objectFileProvider);
-                        ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
-                        Iterator<DriverPlugin> iterator = loader.iterator();
-                        for (;;) try {
-                            if (! iterator.hasNext()) {
-                                break;
-                            }
-                            DriverPlugin plugin = iterator.next();
-                            plugin.accept(builder);
-                        } catch (ServiceConfigurationError error) {
-                            initialContext.error(error, "Failed to load plugin");
+                builder.setTypeSystem(typeSystem);
+                // add additional manual initializers by chaining `.andThen(...)`
+                builder.setVmFactory(cc -> {
+                    AbstractGc.reserveMovedBit(cc);
+                    CoreClasses.reserveStackAllocatedBit(cc);
+                    QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
+                    CoreClasses.init(cc);
+                    ExceptionOnThreadStrategy.initialize(cc);
+                    UnwindExceptionStrategy.init(cc);
+                    return VmImpl.create(cc,
+                        new BasicHeaderManualInitializer(cc)
+                    ).setPropertyDefines(this.propertyDefines);
+                });
+                ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
+                Iterator<DriverPlugin> iterator = loader.iterator();
+                for (;;) try {
+                    if (! iterator.hasNext()) {
+                        break;
+                    }
+                    DriverPlugin plugin = iterator.next();
+                    plugin.accept(builder);
+                } catch (ServiceConfigurationError error) {
+                    initialContext.error(error, "Failed to load plugin");
+                }
+                errors = initialContext.errors();
+                LlvmToolChain llvmToolChain = null;
+                LLVMConfiguration tempLlVmConfiguration = null;
+                if (errors == 0 && llvm) {
+                    Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
+                    while (llvmTools.hasNext()) {
+                        llvmToolChain = llvmTools.next();
+                        if (llvmToolChain.compareVersionTo("12") >= 0) {
+                            break;
                         }
+                        llvmToolChain = null;
+                    }
+                    if (llvmToolChain == null) {
+                        initialContext.error("No working LLVM toolchain found");
                         errors = initialContext.errors();
-                        LlvmToolChain llvmToolChain = null;
-                        LLVMConfiguration tempLlVmConfiguration = null;
-                        if (errors == 0 && llvm) {
-                            Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
-                            while (llvmTools.hasNext()) {
-                                llvmToolChain = llvmTools.next();
-                                if (llvmToolChain.compareVersionTo("12") >= 0) {
-                                    break;
-                                }
-                                llvmToolChain = null;
-                            }
-                            if (llvmToolChain == null) {
-                                initialContext.error("No working LLVM toolchain found");
-                                errors = initialContext.errors();
-                            } else {
-                                builder.setLlvmToolChain(llvmToolChain);
-                                final VersionIterator vi = VersionScheme.BASIC.iterate(llvmToolChain.getVersion());
-                                vi.next();
-                                tempLlVmConfiguration = llvmConfigurationBuilder.setMajorVersion(vi.getNumberPartAsInt()).build();
-                            }
-                        }
-                        LLVMConfiguration llvmConfiguration = tempLlVmConfiguration;
-                        if (errors == 0) {
-                            assert mainClass != null; // else errors would be != 0
-                            // keep it simple to start with
-                            builder.setMainClass(mainClass.replace('.', '/'));
-
-                            builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
-                            builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
-                            builder.addTypeBuilderFactory(NativeTypeBuilder::new);
-                            builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
-                            builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
-                            builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
-                            builder.addTypeBuilderFactory(ReflectiveElementTypeBuilder::new);
-                            builder.addTypeBuilderFactory(InitAtRuntimeTypeBuilder::new);
-                            builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
-
-                            builder.setClassContextListener(Patcher::initialize);
-
-                            builder.addNativeMethodConfiguratorFactory(NativeBindingMethodConfigurator::new);
-
-                            builder.addResolverFactory(PatcherTypeResolver::create);
-                            builder.addResolverFactory(ConstTypeResolver::new);
-                            builder.addResolverFactory(FunctionTypeResolver::new);
-                            builder.addResolverFactory(PointerTypeResolver::new);
-                            builder.addResolverFactory(InternalNativeTypeResolver::new);
-                            builder.addResolverFactory(NativeTypeResolver::new);
-
-                            // from this point on, all pre-ADD hook tasks are run within a VM thread
-                            builder.addPreHook(Phase.ADD, c -> {
-                                final Vm vm = c.getVm();
-                                ThreadLocal<VmThread> threadHolder = ThreadLocal.withInitial(() ->
-                                    vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority())
-                                );
-                                c.setTaskRunner((wrapper, ctxt) ->
-                                    vm.doAttached(threadHolder.get(), () -> wrapper.accept(ctxt))
-                                );
-                            });
-                            builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
-                            if (llvm) {
-                                builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
-                            }
-                            builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
-                            builder.addPreHook(Phase.ADD, CoreClasses::get);
-                            builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
-                            builder.addPreHook(Phase.ADD, Reflection::get);
-                            builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
-                            builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
-                            builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
-                            builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());
-                            builder.addPreHook(Phase.ADD, VIO::get);
-                            builder.addPreHook(Phase.ADD, VFS::initialize);
-                            builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
-                            builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
-                            builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
-                            builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize2());
-                            builder.addPreHook(Phase.ADD, new AddMainClassHook());
-                            // common GC setup
-                            builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
-                            builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
-                            builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
-                            builder.addPreHook(Phase.ADD, compilationContext -> {
-                                if (!buildTimeInitRootClasses.isEmpty()) {
-                                    for (String toInit : buildTimeInitRootClasses) {
-                                        compilationContext.submitTask(toInit, className -> {
-                                            Vm vm = compilationContext.getVm();
-                                            VmThread loadingThread = vm.newThread("build time init", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
-                                            VmClassLoader appClassLoader = AppClassLoader.get(compilationContext).getAppClassLoader();
-                                            vm.doAttached(loadingThread, () -> {
-                                                VmClass vmClass = appClassLoader.loadClass(className.replace('.', '/'));
-                                                vm.initialize(vmClass);
-                                            });
-                                        });
-                                    }
-                                }
-                            });
-                            builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
-                                new ElementBodyCreator()
-                                .andThen(new BuildTimeOnlyElementHandler())
-                                .andThen(new ElementInitializer())));
-                            builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
-                            if (outputDot) {
-                                builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
-                            }
-                            builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PatcherResolverBasicBlockBuilder::createIfNeeded);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, VarHandleResolvingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, AccessorBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IndyResolvingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
-                            if (optMemoryTracking) {
-                                // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)
-                                // builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
-                            }
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
-                            builder.addPostHook(Phase.ADD, ctxt -> {
-                                Vm vm = ctxt.getVm();
-                                vm.doAttached(vm.newThread("ReflectionData Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
-                                    Reflection.get(ctxt).transferToReflectionData();
-                                });
-                            });
-                            builder.addPostHook(Phase.ADD, ctxt -> {
-                                Vm vm = ctxt.getVm();
-                                vm.doAttached(vm.newThread("ServiceProvider Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
-                                    ServiceLoaderAnalyzer.get(ctxt).serializeProviderConfig();
-                                });
-                            });
-                            builder.addPostHook(Phase.ADD, ctxt -> {
-                                Vm vm = ctxt.getVm();
-                                vm.doAttached(vm.newThread("Resource Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
-                                    RuntimeResourceManager.get(ctxt).findAndSerializeResources();
-                                });
-                            });
-
-                            builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
-                            builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::clear);
-                            builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
-                            builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
-                            builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
-                            builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
-                            builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
-                            builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementBodyCopier()));
-                            if (optEscapeAnalysis) {
-                                builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis())));
-                                if (outputDot) {
-                                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(
-                                        new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new))
-                                    ));
-                                }
-                            } else if (outputDot) {
-                                builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
-                            }
-                            if (optGotos) {
-                                builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
-                            }
-                            if (optPhis) {
-                                builder.addCopyFactory(Phase.ANALYZE, BlockParameterOptimizingVisitor::new);
-                            }
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAnalyzePhase);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, FinalFieldLoadOptimizer::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                            if (optMemoryTracking) {
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
-                            }
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
-                            if (optInlining) {
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::createIfNeeded);
-                            }
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
-
-                            if (optEscapeAnalysis) {
-                                builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
-                                if (outputDot) {
-                                    builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
-                                }
-                            }
-
-                            builder.addPreHook(Phase.LOWER, ReachabilityInfo::reportStats);
-                            builder.addPreHook(Phase.LOWER, new DispatchTableBuilder());
-                            builder.addPreHook(Phase.LOWER, new SupersDisplayBuilder());
-                            builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
-                            builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
-                            builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
-                            if (optEscapeAnalysis) {
-                                builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
-                            }
-                            builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new FunctionLoweringElementHandler()));
-                            if (outputDot) {
-                                builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
-                            }
-                            if (sourceOutputPath != null) {
-                                Map<ClassContext, List<ClassPathElement>> sourcePaths = new HashMap<>();
-                                builder.addPreHook(Phase.LOWER, ctxt -> createSourcePaths(ctxt, bootItems, appItems, sourcePaths));
-                                builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new SourceEmittingElementHandler(sourceOutputPath, sourcePaths)));
-                            }
-                            if (optGotos) {
-                                builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
-                            }
-                            if (optPhis) {
-                                builder.addCopyFactory(Phase.LOWER, BlockParameterOptimizingVisitor::new);
-                            }
-                            builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
-                            builder.addCopyFactory(Phase.LOWER, InitialHeapLiteralSerializingVisitor::new);
-                            builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
-
-                            if (executable) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ExceptionOnThreadStrategy::loweringBuilder);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, UnwindThrowBasicBlockBuilder::new);
-                            }
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-                            // use the common GC BBB for most algorithms
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, GcBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InitCheckLoweringBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
-                            if (llvm) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, (ctxt, delegate) -> new LLVMCompatibleBasicBlockBuilder(ctxt, delegate, llvmConfiguration));
-                            } else if (wasm) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmCompatibleBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmLocalAllocatorHelperBasicBlockBuilder::new);
-                            }
-                            if (optMemoryTracking) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
-                            }
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePoints::createBasicBlockBuilder);
-                            // To avoid serializing Strings we won't need, MethodDataStringsSerializer should be the last "real" BBB
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
-                            builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
-                            builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
-                            builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
-
-                            builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
-                            builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
-                            builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
-                            builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
-                            builder.addPreHook(Phase.GENERATE, BuildtimeHeap::emitEndMarkers);
-
-                            if (llvm) {
-                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));
-                            }
-
-                            if (outputDot) {
-                                builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
-                            }
-                            if (llvm) {
-                                if (llvmConfiguration.isStatepointEnabled()) {
-                                    builder.addPostHook(Phase.GENERATE, LLVMStackMapCollector::execute);
-                                    builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
-                                }
-                            }
-                            if (executable) {
-                                // todo: have a flag for callSiteTable vs shadow stack
-                                builder.addPostHook(Phase.GENERATE, CallSiteTable::writeCallSiteTable);
-                            }
-                            if (llvm) {
-                                // todo: have a flag for callSiteTable vs shadow stack
-                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
-                            }
-                            if (compileOutput && executable) {
-                                builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
-                            }
-                            CompilationContext ctxt;
-                            try (Driver driver = builder.build()) {
-                                ctxt = driver.getCompilationContext();
-                                MainMethod.get(ctxt).setMainClass(mainClass);
-                                driver.execute();
-                            }
-                        }
-                    } catch (IOException e) {
-                        initialContext.error(e, "Failed to probe system types from tool chain");
+                    } else {
+                        builder.setLlvmToolChain(llvmToolChain);
+                        final VersionIterator vi = VersionScheme.BASIC.iterate(llvmToolChain.getVersion());
+                        vi.next();
+                        tempLlVmConfiguration = llvmConfigurationBuilder.setMajorVersion(vi.getNumberPartAsInt()).build();
                     }
                 }
+                LLVMConfiguration llvmConfiguration = tempLlVmConfiguration;
+                if (errors == 0) {
+                    assert mainClass != null; // else errors would be != 0
+                    // keep it simple to start with
+                    builder.setMainClass(mainClass.replace('.', '/'));
+
+                    builder.addTypeBuilderFactory(Patcher::getTypeBuilder);
+                    builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
+                    builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                    builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
+                    builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
+                    builder.addTypeBuilderFactory(ReachabilityAnnotationTypeBuilder::new);
+                    builder.addTypeBuilderFactory(ReflectiveElementTypeBuilder::new);
+                    builder.addTypeBuilderFactory(InitAtRuntimeTypeBuilder::new);
+                    builder.addTypeBuilderFactory(AccessorTypeBuilder::new);
+
+                    builder.setClassContextListener(Patcher::initialize);
+
+                    builder.addNativeMethodConfiguratorFactory(NativeBindingMethodConfigurator::new);
+
+                    builder.addResolverFactory(PatcherTypeResolver::create);
+                    builder.addResolverFactory(ConstTypeResolver::new);
+                    builder.addResolverFactory(FunctionTypeResolver::new);
+                    builder.addResolverFactory(PointerTypeResolver::new);
+                    builder.addResolverFactory(InternalNativeTypeResolver::new);
+                    builder.addResolverFactory(NativeTypeResolver::new);
+
+                    // from this point on, all pre-ADD hook tasks are run within a VM thread
+                    builder.addPreHook(Phase.ADD, c -> {
+                        final Vm vm = c.getVm();
+                        ThreadLocal<VmThread> threadHolder = ThreadLocal.withInitial(() ->
+                            vm.newThread(Thread.currentThread().getName(), vm.getMainThreadGroup(), false, Thread.currentThread().getPriority())
+                        );
+                        c.setTaskRunner((wrapper, ctxt) ->
+                            vm.doAttached(threadHolder.get(), () -> wrapper.accept(ctxt))
+                        );
+                    });
+                    builder.addPreHook(Phase.ADD, ReflectionFactsSetup::setupAdd);
+                    if (llvm) {
+                        builder.addPreHook(Phase.ADD, LLVMIntrinsics::register);
+                    }
+                    builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
+                    builder.addPreHook(Phase.ADD, CoreClasses::get);
+                    builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
+                    builder.addPreHook(Phase.ADD, Reflection::get);
+                    builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
+                    builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
+                    builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
+                    builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());
+                    builder.addPreHook(Phase.ADD, VIO::get);
+                    builder.addPreHook(Phase.ADD, VFS::initialize);
+                    builder.addPreHook(Phase.ADD, Main::mountInitialFileSystem);
+                    builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
+                    builder.addPreHook(Phase.ADD, new InitAppClassLoaderHook());
+                    builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize2());
+                    builder.addPreHook(Phase.ADD, new AddMainClassHook());
+                    // common GC setup
+                    builder.addPreHook(Phase.ADD, ReachabilityInfo::forceCoreClassesReachable);
+                    builder.addPreHook(Phase.ADD, ReflectiveElementRegistry::ensureReflectiveClassesLoaded);
+                    builder.addPreHook(Phase.ADD, ReachabilityFactsSetup::setupAdd);
+                    builder.addPreHook(Phase.ADD, compilationContext -> {
+                        if (!buildTimeInitRootClasses.isEmpty()) {
+                            for (String toInit : buildTimeInitRootClasses) {
+                                compilationContext.submitTask(toInit, className -> {
+                                    Vm vm = compilationContext.getVm();
+                                    VmThread loadingThread = vm.newThread("build time init", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority());
+                                    VmClassLoader appClassLoader = AppClassLoader.get(compilationContext).getAppClassLoader();
+                                    vm.doAttached(loadingThread, () -> {
+                                        VmClass vmClass = appClassLoader.loadClass(className.replace('.', '/'));
+                                        vm.initialize(vmClass);
+                                    });
+                                });
+                            }
+                        }
+                    });
+                    builder.addPreHook(Phase.ADD, new ElementReachableAdapter(
+                        new ElementBodyCreator()
+                        .andThen(new BuildTimeOnlyElementHandler())
+                        .andThen(new ElementInitializer())));
+                    builder.addPreHook(Phase.ADD, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
+                    if (outputDot) {
+                        builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
+                    }
+                    builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PatcherResolverBasicBlockBuilder::createIfNeeded);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, VarHandleResolvingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, AccessorBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::createIfNeeded);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CoreClassesBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, BciRangeExceptionHandlerBasicBlockBuilder::createIfNeeded);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IndyResolvingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SafePointPlacementBasicBlockBuilder::createIfNeeded);
+                    if (optMemoryTracking) {
+                        // TODO: breaks addr_of; should only be done in ANALYZE and then only if addr_of wasn't taken (alias)
+                        // builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                    }
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, DeferenceBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+                    builder.addPostHook(Phase.ADD, ctxt -> {
+                        Vm vm = ctxt.getVm();
+                        vm.doAttached(vm.newThread("ReflectionData Generation", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                            Reflection.get(ctxt).transferToReflectionData();
+                        });
+                    });
+                    builder.addPostHook(Phase.ADD, ctxt -> {
+                        Vm vm = ctxt.getVm();
+                        vm.doAttached(vm.newThread("ServiceProvider Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                            ServiceLoaderAnalyzer.get(ctxt).serializeProviderConfig();
+                        });
+                    });
+                    builder.addPostHook(Phase.ADD, ctxt -> {
+                        Vm vm = ctxt.getVm();
+                        vm.doAttached(vm.newThread("Resource Serialization", vm.getMainThreadGroup(), false, Thread.currentThread().getPriority()), () -> {
+                            RuntimeResourceManager.get(ctxt).findAndSerializeResources();
+                        });
+                    });
+
+                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::reportStats);
+                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::clear);
+                    builder.addPreHook(Phase.ANALYZE, ReachabilityFactsSetup::setupAnalyze);
+                    builder.addPreHook(Phase.ANALYZE, new VMHelpersSetupHook());
+                    builder.addPreHook(Phase.ANALYZE, ReachabilityInfo::forceCoreClassesReachable);
+                    builder.addPreHook(Phase.ANALYZE, ReachabilityRoots::processRootsForAnalyze);
+                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(ReachabilityInfo::processReachableElement));
+                    builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementBodyCopier()));
+                    if (optEscapeAnalysis) {
+                        builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new EscapeAnalysisIntraMethodAnalysis())));
+                        if (outputDot) {
+                            builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(
+                                new DotGenerator(Phase.ANALYZE, "analyze-intra", graphGenConfig).addVisitorFactory(EscapeAnalysisDotVisitor::new))
+                            ));
+                        }
+                    } else if (outputDot) {
+                        builder.addPreHook(Phase.ANALYZE, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig))));
+                    }
+                    if (optGotos) {
+                        builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
+                    }
+                    if (optPhis) {
+                        builder.addCopyFactory(Phase.ANALYZE, BlockParameterOptimizingVisitor::new);
+                    }
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAnalyzePhase);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, FinalFieldLoadOptimizer::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                    if (optMemoryTracking) {
+                        builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                    }
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstraintMaterializingBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, InvalidCastsCleanupBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
+                    if (optInlining) {
+                        builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::createIfNeeded);
+                    }
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+
+                    if (optEscapeAnalysis) {
+                        builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodAnalysis());
+                        if (outputDot) {
+                            builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisDotGenerator(graphGenConfig));
+                        }
+                    }
+
+                    builder.addPreHook(Phase.LOWER, ReachabilityInfo::reportStats);
+                    builder.addPreHook(Phase.LOWER, new DispatchTableBuilder());
+                    builder.addPreHook(Phase.LOWER, new SupersDisplayBuilder());
+                    builder.addPreHook(Phase.LOWER, ReachabilityFactsSetup::setupLower);
+                    builder.addPreHook(Phase.LOWER, ReachabilityRoots::processRootsForLower);
+                    builder.addPreHook(Phase.LOWER, new ClassObjectSerializer());
+                    if (optEscapeAnalysis) {
+                        builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
+                    }
+                    builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new FunctionLoweringElementHandler()));
+                    if (outputDot) {
+                        builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig))));
+                    }
+                    if (sourceOutputPath != null) {
+                        Map<ClassContext, List<ClassPathElement>> sourcePaths = new HashMap<>();
+                        builder.addPreHook(Phase.LOWER, ctxt -> createSourcePaths(ctxt, bootItems, appItems, sourcePaths));
+                        builder.addPreHook(Phase.LOWER, new ElementReachableAdapter(new SourceEmittingElementHandler(sourceOutputPath, sourcePaths)));
+                    }
+                    if (optGotos) {
+                        builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+                    }
+                    if (optPhis) {
+                        builder.addCopyFactory(Phase.LOWER, BlockParameterOptimizingVisitor::new);
+                    }
+                    builder.addCopyFactory(Phase.LOWER, BooleanAccessCopier::new);
+                    builder.addCopyFactory(Phase.LOWER, InitialHeapLiteralSerializingVisitor::new);
+                    builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
+
+                    if (executable) {
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ExceptionOnThreadStrategy::loweringBuilder);
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, UnwindThrowBasicBlockBuilder::new);
+                    }
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                    // use the common GC BBB for most algorithms
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, GcBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InitCheckLoweringBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
+                    if (llvm) {
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, (ctxt, delegate) -> new LLVMCompatibleBasicBlockBuilder(ctxt, delegate, llvmConfiguration));
+                    } else if (wasm) {
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmCompatibleBasicBlockBuilder::new);
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmLocalAllocatorHelperBasicBlockBuilder::new);
+                    }
+                    if (optMemoryTracking) {
+                        builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                    }
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, SafePoints::createBasicBlockBuilder);
+                    // To avoid serializing Strings we won't need, MethodDataStringsSerializer should be the last "real" BBB
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, MethodDataStringsSerializer::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, LocalOptBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
+                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, StaticChecksBasicBlockBuilder::new);
+                    builder.addPostHook(Phase.LOWER, NativeXtorLoweringHook::process);
+                    builder.addPostHook(Phase.LOWER, BuildtimeHeap::reportStats);
+
+                    builder.addPreHook(Phase.GENERATE, ReachabilityFactsSetup::setupGenerate);
+                    builder.addPreHook(Phase.GENERATE, new StringInternTableEmitter());
+                    builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
+                    builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
+                    builder.addPreHook(Phase.GENERATE, BuildtimeHeap::emitEndMarkers);
+
+                    if (llvm) {
+                        builder.addPreHook(Phase.GENERATE, new LLVMGenerator(llvmConfiguration));
+                    }
+                    if (wasm) {
+                        builder.addPreHook(Phase.GENERATE, new WasmGenerator(outputName));
+                    }
+
+                    if (outputDot) {
+                        builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
+                    }
+                    if (llvm) {
+                        if (llvmConfiguration.isStatepointEnabled()) {
+                            builder.addPostHook(Phase.GENERATE, LLVMStackMapCollector::execute);
+                            builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
+                        }
+                    }
+                    if (executable) {
+                        // todo: have a flag for callSiteTable vs shadow stack
+                        builder.addPostHook(Phase.GENERATE, CallSiteTable::writeCallSiteTable);
+                    }
+                    if (llvm) {
+                        // todo: have a flag for callSiteTable vs shadow stack
+                        builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
+                    }
+                    if (compileOutput && executable) {
+                        builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
+                    }
+                    CompilationContext ctxt;
+                    try (Driver driver = builder.build()) {
+                        ctxt = driver.getCompilationContext();
+                        MainMethod.get(ctxt).setMainClass(mainClass);
+                        driver.execute();
+                    }
+                }
+            } catch (IOException e) {
+                initialContext.error(e, "Failed to probe system types from tool chain");
             }
         }
         return;

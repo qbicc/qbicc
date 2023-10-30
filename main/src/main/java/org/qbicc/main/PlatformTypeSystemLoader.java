@@ -96,6 +96,10 @@ public class PlatformTypeSystemLoader {
     TypeSystem load() throws IOException {
         TypeSystem typeSystem = this.fromYaml();
         if (typeSystem == null) {
+            if (toolChain == null) {
+                log.errorf("Cannot determine target type information for platform %s", platform);
+                return null;
+            }
             log.warnf("Failed to load type info for platform %s, using probe.", platform);
             // no such manifest: use a probe
             typeSystem = this.fromProbe();
