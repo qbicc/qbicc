@@ -314,6 +314,8 @@ public interface BasicBlockBuilder extends ProgramLocatable {
 
     // unary
 
+    Value split(Value value);
+
     Value notNull(Value v);
 
     Value negate(Value v); // neg is only needed for FP; ints should use 0-n
@@ -800,10 +802,10 @@ public interface BasicBlockBuilder extends ProgramLocatable {
      * Extra arguments are ignored.
      *
      * @param resumeLabel the handle of the jump target (must not be {@code null})
-     * @param arguments the block arguments to pass to the target block (must not be {@code null})
+     * @param targetArguments the block arguments to pass to the target block (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> arguments);
+    BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> targetArguments);
 
     default BasicBlock goto_(BlockLabel resumeLabel, Slot slot, Value argValue) {
         return goto_(resumeLabel, Map.of(slot, argValue));

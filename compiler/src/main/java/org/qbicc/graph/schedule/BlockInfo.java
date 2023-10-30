@@ -71,4 +71,15 @@ final class BlockInfo {
         }
         return dominates(allBlocks, allBlocks[other.dominator - 1]); // indexes are 1-based, array is 0-based
     }
+
+    BitSet dominateSet(final BlockInfo[] allBlocks) {
+        BitSet set = new BitSet(allBlocks.length);
+        for (int i = 0; i < allBlocks.length; i++) {
+            final BlockInfo bi = allBlocks[i];
+            if (dominates(allBlocks, bi)) {
+                set.set(i);
+            }
+        }
+        return set;
+    }
 }

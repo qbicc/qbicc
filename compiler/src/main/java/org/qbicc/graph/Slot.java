@@ -17,43 +17,40 @@ import io.smallrye.common.constraint.Assert;
  * Basic block parameters are identified by the combination of slot and declaring block.
  */
 public final class Slot implements Comparable<Slot> {
-    private static final ConcurrentHashMap<String, Slot[]> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Kind, Slot[]> cache = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, List<Slot>> simpleArgListCache = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<List<Slot>, List<Slot>> addingThreadCache = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<List<Slot>, List<Slot>> addingThisCache = new ConcurrentHashMap<>();
 
-    private static final Slot THREAD = new Slot("thr", 0);
-    private static final Slot THIS = new Slot("this", 1);
-    private static final Slot RESULT = new Slot("result", 3);
-    private static final Slot THROWN = new Slot("thrown", 4);
+    private static final Slot THREAD = new Slot(Kind.thread);
+    private static final Slot THIS = new Slot(Kind.this_);
+    private static final Slot RESULT = new Slot(Kind.result);
+    private static final Slot THROWN = new Slot(Kind.thrown);
 
-    private final String name;
-    private final int sortOrder;
+    private final Kind kind;
     private final int index;
 
-    Slot(String name, int sortOrder) {
-        this.name = name;
-        this.sortOrder = sortOrder;
+    Slot(Kind kind) {
+        this.kind = kind;
         index = -1;
     }
 
-    Slot(String name, int sortOrder, int index) {
+    Slot(Kind kind, int index) {
         Assert.checkMinimumParameter("index", 0, index);
         Assert.checkMaximumParameter("index", 65535, index);
-        this.name = name;
-        this.sortOrder = sortOrder;
+        this.kind = kind;
         this.index = index;
     }
 
     @Override
     public int compareTo(Slot other) {
-        int res = Integer.compare(sortOrder, other.sortOrder);
+        int res = kind.compareTo(other.kind);
         if (res == 0) res = Integer.compare(index, other.index);
         return res;
     }
 
     public StringBuilder toString(StringBuilder b) {
-        b.append(name);
+        b.append(kind);
         if (index != -1) {
             b.append(index);
         }
@@ -71,7 +68,7 @@ public final class Slot implements Comparable<Slot> {
      * @return the slot name (not {@code null})
      */
     public String getName() {
-        return name;
+        return kind.toString();
     }
 
     /**
@@ -84,10 +81,14 @@ public final class Slot implements Comparable<Slot> {
         return index == -1 ? 0 : index;
     }
 
-    static Slot get(String name, int sortOrder, int index) {
+    public Kind kind() {
+        return kind;
+    }
+
+    static Slot get(Kind kind, int index) {
         Slot[] oldVal, newVal;
         int oldLen;
-        oldVal = cache.get(name);
+        oldVal = cache.get(kind);
         for (;;) {
             if (oldVal == null) {
                 // create
@@ -103,20 +104,20 @@ public final class Slot implements Comparable<Slot> {
                 }
             }
             for (int i = oldLen; i <= index; i ++) {
-                newVal[i] = new Slot(name, sortOrder, i);
+                newVal[i] = new Slot(kind, i);
             }
             if (oldVal == null) {
-                Slot[] appearing = cache.putIfAbsent(name, newVal);
+                Slot[] appearing = cache.putIfAbsent(kind, newVal);
                 if (appearing != null) {
                     oldVal = appearing;
                 } else {
                     return newVal[index];
                 }
             } else {
-                if (cache.replace(name, oldVal, newVal)) {
+                if (cache.replace(kind, oldVal, newVal)) {
                     return newVal[index];
                 } else {
-                    oldVal = cache.get(name);
+                    oldVal = cache.get(kind);
                 }
             }
         }
@@ -131,7 +132,7 @@ public final class Slot implements Comparable<Slot> {
      * @return the slot identifier (not {@code null})
      */
     public static Slot funcParam(int n) {
-        return get("p", 2, n);
+        return get(Kind.param, n);
     }
 
     /**
@@ -141,7 +142,7 @@ public final class Slot implements Comparable<Slot> {
      * @return the slot identifier (not {@code null})
      */
     public static Slot stack(int n) {
-        return get("stack", 5, n);
+        return get(Kind.stack, n);
     }
 
     /**
@@ -151,7 +152,7 @@ public final class Slot implements Comparable<Slot> {
      * @return the slot identifier (not {@code null})
      */
     public static Slot temp(int n) {
-        return get("tmp", 7, n);
+        return get(Kind.temp, n);
     }
 
     /**
@@ -161,7 +162,7 @@ public final class Slot implements Comparable<Slot> {
      * @return the slot identifier (not {@code null})
      */
     public static Slot variable(int n) {
-        return get("var", 6, n);
+        return get(Kind.variable, n);
     }
 
     // singleton
@@ -262,5 +263,31 @@ public final class Slot implements Comparable<Slot> {
             }
         }
         return list;
+    }
+
+    public enum Kind {
+        thread("thr"),
+        this_("this"),
+        param("p"),
+        result,
+        thrown,
+        stack("stack"),
+        variable("var"),
+        temp("tmp"),
+        ;
+        private final String toString;
+
+        Kind() {
+            toString = name();
+        }
+
+        Kind(String str) {
+            toString = str;
+        }
+
+        @Override
+        public String toString() {
+            return toString;
+        }
     }
 }

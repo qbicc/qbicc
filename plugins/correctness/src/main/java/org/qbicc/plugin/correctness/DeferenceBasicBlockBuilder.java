@@ -371,8 +371,8 @@ public final class DeferenceBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> args) {
-        return super.goto_(resumeLabel, rhs(args));
+    public BasicBlock goto_(BlockLabel resumeLabel, Map<Slot, Value> targetArguments) {
+        return super.goto_(resumeLabel, rhs(targetArguments));
     }
 
     @Override

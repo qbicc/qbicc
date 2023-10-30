@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
@@ -61,6 +62,7 @@ import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.impl.VmImpl;
+import org.qbicc.machine.arch.Cpu;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
@@ -110,7 +112,6 @@ import org.qbicc.plugin.llvm.LLVMIntrinsics;
 import org.qbicc.plugin.llvm.LLVMStackMapCollector;
 import org.qbicc.plugin.llvm.LLVMStripStackMapStage;
 import org.qbicc.plugin.llvm.ReferenceStrategy;
-import org.qbicc.plugin.lowering.AbortingThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.BooleanAccessCopier;
 import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InitCheckLoweringBasicBlockBuilder;
@@ -180,6 +181,8 @@ import org.qbicc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import org.qbicc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import org.qbicc.plugin.vfs.VFS;
 import org.qbicc.plugin.vio.VIO;
+import org.qbicc.plugin.wasm.WasmCompatibleBasicBlockBuilder;
+import org.qbicc.plugin.wasm.WasmLocalAllocatorHelperBasicBlockBuilder;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.classfile.BciRangeExceptionHandlerBasicBlockBuilder;
@@ -299,8 +302,12 @@ public class Main implements Callable<DiagnosticContext> {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         builder.setOptLevel(optLevel);
-        boolean semiGc = gc.equals("semi");
+        // {@code true} if we are building using llvm, {@code false} otherwise
         boolean llvm = backend.equals(Backend.llvm);
+        // {@code true} if we are targeting wasm, {@code false} otherwise
+        boolean wasm = backend.equals(Backend.wasm);
+        // {@code true} if we are creating an executable, {@code false} otherwise
+        boolean executable = llvm;
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
@@ -597,9 +604,7 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addCopyFactory(Phase.LOWER, InitialHeapLiteralSerializingVisitor::new);
                             builder.addCopyFactory(Phase.LOWER, MemberPointerCopier::new);
 
-                            if (platform.isWasm()) {
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, AbortingThrowLoweringBasicBlockBuilder::new);
-                            } else {
+                            if (executable) {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ExceptionOnThreadStrategy::loweringBuilder);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, UnwindThrowBasicBlockBuilder::new);
                             }
@@ -614,6 +619,9 @@ public class Main implements Callable<DiagnosticContext> {
                             builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                             if (llvm) {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, (ctxt, delegate) -> new LLVMCompatibleBasicBlockBuilder(ctxt, delegate, llvmConfiguration));
+                            } else if (wasm) {
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmCompatibleBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, WasmLocalAllocatorHelperBasicBlockBuilder::new);
                             }
                             if (optMemoryTracking) {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
@@ -646,7 +654,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPostHook(Phase.GENERATE, new LLVMStripStackMapStage());
                                 }
                             }
-                            if (! platform.isWasm()) {
+                            if (executable) {
                                 // todo: have a flag for callSiteTable vs shadow stack
                                 builder.addPostHook(Phase.GENERATE, CallSiteTable::writeCallSiteTable);
                             }
@@ -654,7 +662,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 // todo: have a flag for callSiteTable vs shadow stack
                                 builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(llvmConfiguration));
                             }
-                            if (compileOutput) {
+                            if (compileOutput && executable) {
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(outputName, isPie, librarySearchPaths));
                             }
                             CompilationContext ctxt;
@@ -858,7 +866,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptEscapeAnalysis(optionsProcessor.optArgs.optEscapeAnalysis)
             .setOptLevel(optionsProcessor.optArgs.optLevel)
             .setSmallTypeIds(optionsProcessor.smallTypeIds)
-            .setBackend(optionsProcessor.backend)
+            .setBackend(Objects.requireNonNullElse(optionsProcessor.backend, platform.cpu() == Cpu.wasm32 ? Backend.wasm : Backend.llvm))
             .setGraphGenConfig(optionsProcessor.graphGenConfig)
             .setLlvmConfigurationBuilder(LLVMConfiguration.builder()
                 .setEmitAssembly(optionsProcessor.emitAssembly)
@@ -1008,7 +1016,7 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.Option(names = "--small-type-ids", negatable = true, defaultValue = "false", description = "Use narrow (16-bit) type ID values if true, wide (32-bit) type ID values if false")
         private boolean smallTypeIds;
 
-        @CommandLine.Option(names = "--backend", defaultValue = "llvm", description = "The backend type to use. Valid values: ${COMPLETION-CANDIDATES}")
+        @CommandLine.Option(names = "--backend", description = "The backend type to use. Valid values: ${COMPLETION-CANDIDATES}")
         private Backend backend;
 
         @CommandLine.Parameters(index="0", arity="1", defaultValue = "", description = "Application main class")

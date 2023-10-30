@@ -75,6 +75,16 @@ public interface Node extends ProgramLocatable {
         throw new IndexOutOfBoundsException(index);
     }
 
+    default boolean uses(Value value) {
+        int cnt = getValueDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            if (getValueDependency(i).equals(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     StringBuilder toString(StringBuilder b);
 
     default int getBlockIndex() {
@@ -809,6 +819,10 @@ public interface Node extends ProgramLocatable {
 
             public Value visit(final Copier param, final Shr node) {
                 return param.getBlockBuilder().shr(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(Copier copier, Split node) {
+                return copier.getBlockBuilder().split(copier.copyValue(node.input()));
             }
 
             public Value visit(final Copier param, final StackAllocation node) {

@@ -2,6 +2,7 @@ package org.qbicc.graph.schedule;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,7 +24,6 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.type.ReferenceType;
 
 /**
  * The scheduler.
@@ -101,6 +101,11 @@ public final class Scheduler {
             }
             // and build the sequence
             buildSequence();
+            List<BasicBlock> allBlocksList = Arrays.stream(allBlocks).map(blockInfo -> blockInfo.block).toList();
+            for (BlockInfo blockInfo : allBlocks) {
+                blockInfo.block.setDominateSet(blockInfo.dominateSet(allBlocks));
+                blockInfo.block.setAllBlocks(allBlocksList);
+            }
         }
 
         // 🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
