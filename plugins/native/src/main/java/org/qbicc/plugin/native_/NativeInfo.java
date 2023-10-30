@@ -19,6 +19,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
+import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.plugin.core.ConditionEvaluation;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.FunctionType;
@@ -317,11 +318,16 @@ final class NativeInfo {
                             // even if they wanted a union, they get a struct with no members
                             resolved = ts.getIncompleteStructType(ctTag, simpleName);
                         } else {
+                            CToolChain toolChain = ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY);
+                            if (toolChain == null) {
+                                ctxt.error("Cannot resolve native type information for %s (no probe available for this platform)", definedType.getInternalName());
+                                return ts.getPoisonType();
+                            }
                             CProbe.Type probeType = tb.build();
                             pb.probeType(probeType);
                             CProbe probe = pb.build();
                             try {
-                                CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
+                                CProbe.Result result = probe.run(toolChain, ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
                                 if (result != null) {
                                     CProbe.Type.Info typeInfo = result.getTypeInfo(probeType);
                                     long size = typeInfo.getSize();

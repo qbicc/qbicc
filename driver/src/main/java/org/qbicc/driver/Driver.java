@@ -93,9 +93,18 @@ public class Driver implements Closeable {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
         outputDir = Assert.checkNotNullParam("builder.outputDirectory", builder.outputDirectory);
         typeBuilderFactories = builder.typeBuilderFactories;
-        initialContext.putAttachment(C_TOOL_CHAIN_KEY, Assert.checkNotNullParam("builder.toolChain", builder.toolChain));
-        initialContext.putAttachment(LLVM_TOOL_KEY, Assert.checkNotNullParam("builder.llvmToolChain", builder.llvmToolChain));
-        initialContext.putAttachment(OBJ_PROVIDER_TOOL_KEY, Assert.checkNotNullParam("builder.objectFileProvider", builder.objectFileProvider));
+        CToolChain toolChain = builder.toolChain;
+        if (toolChain != null) {
+            initialContext.putAttachment(C_TOOL_CHAIN_KEY, toolChain);
+        }
+        LlvmToolChain llvmToolChain = builder.llvmToolChain;
+        if (llvmToolChain != null) {
+            initialContext.putAttachment(LLVM_TOOL_KEY, llvmToolChain);
+        }
+        ObjectFileProvider objectFileProvider = builder.objectFileProvider;
+        if (objectFileProvider != null) {
+            initialContext.putAttachment(OBJ_PROVIDER_TOOL_KEY, objectFileProvider);
+        }
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
         final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);

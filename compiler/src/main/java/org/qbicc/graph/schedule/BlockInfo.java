@@ -19,6 +19,7 @@ final class BlockInfo {
     final BitSet pred = new BitSet();
     final BitSet succ = new BitSet();
     final BitSet bucket = new BitSet();
+    final BitSet dom = new BitSet();
     int parent;
     int ancestor;
     int child;
@@ -59,27 +60,31 @@ final class BlockInfo {
         return domDepth;
     }
 
-    boolean dominates(final BlockInfo[] allBlocks, final BlockInfo other) {
-        // this block dominates other if it is the immediate dominator of other or its ancestor
-        if (this == other || index == 1) {
+    static void computeDomSets(final BlockInfo[] allBlocks) {
+        for (BlockInfo block : allBlocks) {
             // blocks dominate themselves, and block 1 dominates everything
-            return true;
-        }
-        if (other.index == 1) {
-            // we're not block 1 but the other is, so we cannot possibly dominate it
-            return false;
-        }
-        return dominates(allBlocks, allBlocks[other.dominator - 1]); // indexes are 1-based, array is 0-based
-    }
-
-    BitSet dominateSet(final BlockInfo[] allBlocks) {
-        BitSet set = new BitSet(allBlocks.length);
-        for (int i = 0; i < allBlocks.length; i++) {
-            final BlockInfo bi = allBlocks[i];
-            if (dominates(allBlocks, bi)) {
-                set.set(i);
+            if (block.index == 1) {
+                block.dom.set(1, allBlocks.length + 1);
+            } else {
+                block.dom.set(block.index);
+                // recursively add ourselves to our dominators up the tree
+                addBit(allBlocks, block.index, allBlocks[block.dominator - 1]);
             }
         }
-        return set;
+    }
+
+    private static void addBit(final BlockInfo[] allBlocks, int dominatedIndex, BlockInfo dominator) {
+        if (! dominator.dom.get(dominatedIndex)) {
+            dominator.dom.set(dominatedIndex);
+            addBit(allBlocks, dominatedIndex, allBlocks[dominator.dominator - 1]);
+        }
+    }
+
+    boolean dominates(final BlockInfo other) {
+        return dom.get(other.index);
+    }
+
+    BitSet dominateSet() {
+        return dom;
     }
 }
