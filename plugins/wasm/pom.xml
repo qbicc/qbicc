@@ -25,6 +25,10 @@
             <artifactId>qbicc-machine-file-wasm</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-plugin-intrinsics</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.smallrye.common</groupId>
             <artifactId>smallrye-common-constraint</artifactId>
         </dependency>

@@ -5,6 +5,7 @@ import static org.qbicc.runtime.CNative.*;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.runtime.CNative;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
@@ -38,6 +39,7 @@ import org.qbicc.type.generic.Variance;
 public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
     private final ClassTypeDescriptor restrictAnnotation;
     private final ClassTypeDescriptor arraySizeAnnotation;
+    private final ClassTypeDescriptor addrSpaceAnnotation;
 
     private final ClassContext classCtxt;
     private final CompilationContext ctxt;
@@ -49,6 +51,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
         this.delegate = delegate;
         restrictAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.RESTRICT_INT_NAME);
         arraySizeAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ARRAY_SIZE_INT_NAME);
+        addrSpaceAnnotation = ClassTypeDescriptor.synthesize(classCtxt, Native.ADDR_SPACE_INT_NAME);
     }
 
     public DescriptorTypeResolver getDelegate() {
@@ -66,6 +69,10 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
 
     public ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, TypeParameterContext paramCtxt, TypeSignature signature) {
         boolean restrict = signature.hasAnnotation(restrictAnnotation);
+        int addrSpace = 0;
+        if (signature.hasAnnotation(addrSpaceAnnotation)) {
+            addrSpace = ((IntAnnotationValue)signature.getAnnotation(addrSpaceAnnotation).getValue("value")).intValue();
+        }
         // special handling for pointers and functions
         out: if (descriptor instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor ctd = (ClassTypeDescriptor) descriptor;
@@ -81,7 +88,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                         }
                         List<TypeArgument> args = sig.getTypeArguments();
                         if (args.size() == 0) {
-                            pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+                            pointerType = ctxt.getTypeSystem().getVoidType().pointer(addrSpace);
                         } else {
                             if (args.size() != 1) {
                                 ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
@@ -105,7 +112,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V);
                                 }
                             }
-                            pointerType = pointeeType.getPointer();
+                            pointerType = pointeeType.pointer(addrSpace);
                         }
                     } else if (signature instanceof TypeVariableSignature tvs) {
                         TypeParameter resolved = paramCtxt.resolveTypeParameter(tvs.getIdentifier());
@@ -114,11 +121,11 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                             return resolveTypeFromMethodDescriptor(descriptor, paramCtxt, sig);
                         }
                         // the pointer type is just unknown
-                        pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+                        pointerType = ctxt.getTypeSystem().getVoidType().pointer(addrSpace);
                     } else {
                         // todo: how can we cleanly get the location from here?
                         ctxt.warning("Generic signature type mismatch (expected a %s but got a %s)", ClassTypeSignature.class, signature.getClass());
-                        pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
+                        pointerType = ctxt.getTypeSystem().getVoidType().pointer(addrSpace);
                     }
                     return restrict ? pointerType.asRestrict() : pointerType;
                 } else {

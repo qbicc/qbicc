@@ -32,6 +32,7 @@
 
         <!-- Plugin implementation modules -->
         <module>llvm</module>
+        <module>wasm</module>
     </modules>
 
     <build>

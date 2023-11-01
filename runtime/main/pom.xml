@@ -28,6 +28,10 @@
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-llvm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-runtime-wasm</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

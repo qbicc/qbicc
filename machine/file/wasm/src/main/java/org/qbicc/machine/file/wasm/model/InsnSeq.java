@@ -2,6 +2,7 @@ package org.qbicc.machine.file.wasm.model;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -433,6 +434,10 @@ public final class InsnSeq implements Iterable<Insn<?>>, WasmSerializable {
                 bi.body().forEachRecursive(action);
             }
         }
+    }
+
+    public List<Insn<?>> instructions() {
+        return Collections.unmodifiableList(instructions);
     }
 
     /**

@@ -4,17 +4,21 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
+import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
+import org.eclipse.collections.api.map.primitive.ImmutableIntObjectMap;
+
 /**
  * A type.
  */
 public abstract class Type {
     public static final Type[] NO_TYPES = new Type[0];
 
-    private static final VarHandle pointerTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointerType", VarHandle.class, Type.class, PointerType.class);
+    private static final VarHandle pointerTypesHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "pointerTypes", VarHandle.class, Type.class, ImmutableIntObjectMap.class);
 
     final TypeSystem typeSystem;
     private final int hashCode;
-    private volatile PointerType pointerType;
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile ImmutableIntObjectMap<PointerType> pointerTypes = IntObjectMaps.immutable.empty();
 
     Type(final TypeSystem typeSystem, final int hashCode) {
         this.typeSystem = typeSystem;
@@ -30,25 +34,43 @@ public abstract class Type {
         return typeSystem;
     }
 
+    @SuppressWarnings("unchecked")
+    private ImmutableIntObjectMap<PointerType> caxPointerTypes(ImmutableIntObjectMap<PointerType> expect, ImmutableIntObjectMap<PointerType> update) {
+        return (ImmutableIntObjectMap<PointerType>) pointerTypesHandle.compareAndExchange(this, expect, update);
+    }
+
+    /**
+     * {@return a pointer to this type in the given address space}
+     * @param addrSpace the address space
+     */
+    public final PointerType pointer(int addrSpace) {
+        ImmutableIntObjectMap<PointerType> map = this.pointerTypes;
+        PointerType pointerType = map.get(addrSpace);
+        if (pointerType != null) {
+            return pointerType;
+        }
+        PointerType newPointerType = typeSystem.createPointer((ValueType) this, addrSpace);
+        ImmutableIntObjectMap<PointerType> newMap = map.newWithKeyValue(addrSpace, newPointerType);
+        ImmutableIntObjectMap<PointerType> witness = caxPointerTypes(map, newMap);
+        while (witness != map) {
+            map = witness;
+            pointerType = map.get(addrSpace);
+            if (pointerType != null) {
+                return pointerType;
+            }
+            newMap = map.newWithKeyValue(addrSpace, newPointerType);
+            witness = caxPointerTypes(map, newMap);
+        }
+        return newPointerType;
+    }
+
     /**
      * Get the pointer type to this type.
      *
      * @return the pointer type
      */
     public final PointerType getPointer() {
-        PointerType pointerType = this.pointerType;
-        if (pointerType != null) {
-            return pointerType;
-        }
-        // todo: all Types are ValueTypes so merge them
-        PointerType newPointerType = typeSystem.createPointer((ValueType) this);
-        while (! pointerTypeHandle.compareAndSet(this, null, newPointerType)) {
-            pointerType = this.pointerType;
-            if (pointerType != null) {
-                return pointerType;
-            }
-        }
-        return newPointerType;
+        return pointer(0);
     }
 
     public boolean isImplicitlyConvertibleFrom(Type other) {

@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import org.eclipse.collections.api.factory.primitive.IntIntMaps;
+import org.eclipse.collections.api.map.primitive.ImmutableIntIntMap;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
@@ -19,9 +21,8 @@ public final class TypeSystem {
     private static final VarHandle referenceArrayDefinitionHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "referenceArrayDefinition", VarHandle.class, TypeSystem.class, DefinedTypeDefinition.class);
 
     private final int byteBits;
-    private final int pointerSize;
-    private final int pointerAlign;
-    private final int funcAlign;
+    private final ImmutableIntIntMap pointerSizes;
+    private final ImmutableIntIntMap pointerAlignments;
     private final int referenceSize;
     private final int referenceAlign;
     private final int typeIdSize;
@@ -50,6 +51,7 @@ public final class TypeSystem {
     private final TypeCache<InstanceMethodType> instanceMethodTypeCache = new TypeCache<>();
 
     private volatile ClassObjectType objectClass;
+    @SuppressWarnings("unused")
     private volatile DefinedTypeDefinition referenceArrayDefinition;
 
     TypeSystem(final Builder builder) {
@@ -57,9 +59,8 @@ public final class TypeSystem {
         this.byteBits = byteBits;
         maxAlign = builder.getMaxAlignment();
         signedChar = builder.isSignedChar();
-        pointerSize = builder.getPointerSize();
-        pointerAlign = builder.getPointerAlignment();
-        funcAlign = builder.getPointerAlignment();
+        pointerSizes = builder.getPointerSizes();
+        pointerAlignments = builder.getPointerAlignments();
         referenceSize = builder.getReferenceSize();
         referenceAlign = builder.getReferenceAlignment();
         booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment());
@@ -141,12 +142,20 @@ public final class TypeSystem {
     }
 
     /**
-     * Get the pointer size for this type system.
+     * Get the pointer size for the default address space of this type system.
      *
      * @return the size of a pointer
      */
     public int getPointerSize() {
-        return pointerSize;
+        return pointerSize(0);
+    }
+
+    /**
+     * {@return the pointer size for the given address space}
+     * @param addrSpace the address space (must not be negative)
+     */
+    public int pointerSize(int addrSpace) {
+        return pointerSizes.getOrThrow(addrSpace);
     }
 
     /**
@@ -155,7 +164,15 @@ public final class TypeSystem {
      * @return the pointer alignment for this type system
      */
     public int getPointerAlignment() {
-        return pointerAlign;
+        return pointerAlignment(0);
+    }
+
+    /**
+     * {@return the pointer alignment for the given address space}
+     * @param addrSpace the address space (must not be negative)
+     */
+    public int pointerAlignment(int addrSpace) {
+        return pointerAlignments.getOrThrow(addrSpace);
     }
 
     /**
@@ -173,7 +190,7 @@ public final class TypeSystem {
      * @return the function alignment for this type system
      */
     public int getFunctionAlignment() {
-        return funcAlign;
+        return pointerAlignment(0);
     }
 
     /**
@@ -516,8 +533,8 @@ public final class TypeSystem {
         return new InterfaceObjectType(this, definedType, interfaces);
     }
 
-    PointerType createPointer(ValueType type) {
-        return new PointerType(this, type, false, false, getPointerSize());
+    PointerType createPointer(ValueType type, int addrSpace) {
+        return new PointerType(this, type, false, false, pointerSize(addrSpace), addrSpace);
     }
 
     ReferenceType createReference(PhysicalObjectType objectType, Set<InterfaceObjectType> interfaceBounds) {
@@ -539,8 +556,8 @@ public final class TypeSystem {
     public static Builder builder() {
         return new Builder() {
             int byteBits = 8;
-            int pointerSize = 8;
-            int pointerAlignment = 8;
+            ImmutableIntIntMap pointerSizes = IntIntMaps.immutable.of(0, 8);
+            ImmutableIntIntMap pointerAlignments = IntIntMaps.immutable.of(0, 8);
             int functionAlignment = 1;
             boolean signedChar = true;
             int boolSize = 1;
@@ -573,22 +590,22 @@ public final class TypeSystem {
                 this.byteBits = byteBits;
             }
 
-            public int getPointerSize() {
-                return pointerSize;
+            public ImmutableIntIntMap getPointerSizes() {
+                return pointerSizes;
             }
 
-            public void setPointerSize(final int pointerSize) {
-                Assert.checkMinimumParameter("pointerSize", 1, pointerSize);
-                this.pointerSize = pointerSize;
+            public void setPointerSizes(final ImmutableIntIntMap pointerSizes) {
+                Assert.checkNotNullParam("pointerSizes", pointerSizes);
+                this.pointerSizes = pointerSizes;
             }
 
-            public int getPointerAlignment() {
-                return pointerAlignment;
+            public ImmutableIntIntMap getPointerAlignments() {
+                return pointerAlignments;
             }
 
-            public void setPointerAlignment(final int pointerAlignment) {
-                TypeUtil.checkAlignmentParameter("pointerAlignment", pointerAlignment);
-                this.pointerAlignment = pointerAlignment;
+            public void setPointerAlignments(final ImmutableIntIntMap pointerAlignments) {
+                Assert.checkNotNullParam("pointerAlignments", pointerAlignments);
+                this.pointerAlignments = pointerAlignments;
             }
 
             public void setMaxAlignment(final int maxAlignment) {
@@ -801,13 +818,13 @@ public final class TypeSystem {
 
         void setByteBits(int byteBits);
 
-        int getPointerSize();
+        ImmutableIntIntMap getPointerSizes();
 
-        void setPointerSize(int pointerSize);
+        void setPointerSizes(ImmutableIntIntMap pointerSizes);
 
-        int getPointerAlignment();
+        ImmutableIntIntMap getPointerAlignments();
 
-        void setPointerAlignment(int pointerAlignment);
+        void setPointerAlignments(ImmutableIntIntMap pointerAlignments);
 
         int getMaxAlignment();
 

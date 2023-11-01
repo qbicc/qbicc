@@ -87,5 +87,9 @@
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-machine-file-wasm</artifactId>
+        </dependency>
     </dependencies>
 </project>

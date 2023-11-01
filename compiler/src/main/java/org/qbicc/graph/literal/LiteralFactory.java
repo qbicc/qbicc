@@ -5,11 +5,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.machine.file.wasm.model.InsnSeq;
 import org.qbicc.object.ProgramObject;
 import org.qbicc.pointer.ConstructorPointer;
 import org.qbicc.pointer.ElementPointer;
@@ -187,6 +189,8 @@ public interface LiteralFactory {
     StaticFieldLiteral literalOf(StaticFieldElement variableElement);
 
     AsmLiteral literalOfAsm(String instructions, String constraints, FunctionType type, AsmLiteral.Flag... flags);
+
+    WasmLiteral literalOfWasm(Consumer<InsnSeq> builder, FunctionType type, WasmLiteral.Flag... flags);
 
     default ExecutableLiteral literalOf(ExecutableElement element) {
         if (element instanceof InitializerElement ie) {
@@ -499,6 +503,16 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("type", type);
                 Set<AsmLiteral.Flag> flagSet = flags == null ? Set.of() : Set.of(flags);
                 return new AsmLiteral(instructions, constraints, flagSet, type);
+            }
+
+            @Override
+            public WasmLiteral literalOfWasm(Consumer<InsnSeq> builder, FunctionType type, WasmLiteral.Flag... flags) {
+                Assert.checkNotNullParam("builder", builder);
+                Assert.checkNotNullParam("type", type);
+                Assert.checkNotNullParam("flags", flags);
+                InsnSeq seq = new InsnSeq();
+                builder.accept(seq);
+                return new WasmLiteral(seq, type, flags);
             }
 
             @Override
