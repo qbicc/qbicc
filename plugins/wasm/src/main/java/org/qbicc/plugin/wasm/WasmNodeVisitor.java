@@ -79,6 +79,10 @@ public final class WasmNodeVisitor implements ValueVisitor<InsnSeq, Void>, Actio
      * The local in which the given value may be found.
      */
     private final Map<Value, Local> locals = new HashMap<>();
+    /**
+     * The set of values that should be emitted in sequence but then dropped (not stored in a local).
+     */
+    private final Set<Value> drops = new HashSet<>();
     private final ExecutableElement element;
 
     public WasmNodeVisitor(CompilationContext ctxt, ExecutableElement element) {
@@ -159,6 +163,15 @@ public final class WasmNodeVisitor implements ValueVisitor<InsnSeq, Void>, Actio
                         || val instanceof Comp
                     ) {
                         trivialValues.add(val);
+                        continue;
+                    }
+                    if (val.getType() instanceof VoidType) {
+                        // technically, it doesn't need a drop, but this allows us to remember that it's not trivial
+                        drops.add(val);
+                        continue;
+                    } else if (! val.getLiveOuts().contains(val)) {
+                        // value does not survive its definition
+                        drops.add(val);
                         continue;
                     }
                     // otherwise, find a local for it to live in
@@ -654,6 +667,13 @@ public final class WasmNodeVisitor implements ValueVisitor<InsnSeq, Void>, Actio
                 if (locals.containsKey(v)) {
                     v.accept(this, seq);
                     seq.add(local.set, locals.get(v));
+                } else if (drops.contains(v)) {
+                    // no local, but still emit in sequence
+                    v.accept(this, seq);
+                    if (! (v.getType() instanceof VoidType)) {
+                        // result value is not used
+                        seq.add(drop);
+                    }
                 }
                 // otherwise, the value is emitted at each use site!
             } else if (instruction instanceof Action a) {
