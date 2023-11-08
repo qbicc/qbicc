@@ -904,6 +904,7 @@ public final class CNative {
     public static final class long_double extends word {}
 
     @incomplete
+    @Deprecated
     public static final class c_void extends object {}
 
     /**
@@ -1724,6 +1725,19 @@ public final class CNative {
     @Target(ElementType.TYPE_USE)
     @Retention(RetentionPolicy.CLASS)
     public @interface restrict {
+    }
+
+    /**
+     * Indicate that the pointer type in question belongs to the given address space.
+     * Different platforms support different address spaces.
+     * If no address space annotation is given, the default of {@code 0} (zero) is assumed.
+     * All platforms must support address space {@code 0}.
+     * Pointers in different address spaces may have different sizes or alignment requirements.
+     */
+    @Target(ElementType.TYPE_USE)
+    @Retention(RetentionPolicy.CLASS)
+    public @interface addrSpace {
+        int value();
     }
 
     /**

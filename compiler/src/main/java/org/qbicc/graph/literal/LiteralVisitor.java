@@ -124,6 +124,10 @@ public interface LiteralVisitor<T, R> {
         return visitAny(t, literal);
     }
 
+    default R visit(T t, WasmLiteral literal) {
+        return visitAny(t, literal);
+    }
+
     default R visit(T t, ZeroInitializerLiteral literal) {
         return visitAny(t, literal);
     }
@@ -244,6 +248,10 @@ public interface LiteralVisitor<T, R> {
         }
 
         default R visit(T t, UndefinedLiteral literal) {
+            return getDelegateLiteralVisitor().visit(t, literal);
+        }
+
+        default R visit(T t, WasmLiteral literal) {
             return getDelegateLiteralVisitor().visit(t, literal);
         }
 

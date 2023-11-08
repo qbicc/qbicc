@@ -368,7 +368,7 @@ public class Main implements Callable<DiagnosticContext> {
                     QbiccFeatureProcessor.process(cc, qbiccYamlFeatures, qbiccFeatures);
                     CoreClasses.init(cc);
                     ExceptionOnThreadStrategy.initialize(cc);
-                    UnwindExceptionStrategy.init(cc);
+                    if (llvm) UnwindExceptionStrategy.init(cc);
                     return VmImpl.create(cc,
                         new BasicHeaderManualInitializer(cc)
                     ).setPropertyDefines(this.propertyDefines);
@@ -451,7 +451,9 @@ public class Main implements Callable<DiagnosticContext> {
                     builder.addPreHook(Phase.ADD, CoreClasses::get);
                     builder.addPreHook(Phase.ADD, ReflectionIntrinsics::register);
                     builder.addPreHook(Phase.ADD, Reflection::get);
-                    builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
+                    if (llvm) {
+                        builder.addPreHook(Phase.ADD, UnwindExceptionStrategy::get);
+                    }
                     builder.addPreHook(Phase.ADD, GcCommon::registerIntrinsics);
                     builder.addPreHook(Phase.ADD, ctxt -> AbstractGc.install(ctxt, gc));
                     builder.addPreHook(Phase.ADD, compilationContext -> compilationContext.getVm().initialize());

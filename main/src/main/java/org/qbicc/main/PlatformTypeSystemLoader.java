@@ -2,7 +2,10 @@ package org.qbicc.main;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.eclipse.collections.api.factory.primitive.IntIntMaps;
+import org.eclipse.collections.api.map.primitive.ImmutableIntIntMap;
 import org.jboss.logging.Logger;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.machine.arch.Platform;
@@ -134,8 +137,10 @@ public class PlatformTypeSystemLoader {
             tsBuilder.setFloat32Alignment((int) probeResult.getTypeInfo(float_t).getAlign());
             tsBuilder.setFloat64Size((int) probeResult.getTypeInfo(double_t).getSize());
             tsBuilder.setFloat64Alignment((int) probeResult.getTypeInfo(double_t).getAlign());
-            tsBuilder.setPointerSize((int) probeResult.getTypeInfo(void_p).getSize());
-            tsBuilder.setPointerAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
+            int pointerSize = (int) probeResult.getTypeInfo(void_p).getSize();
+            tsBuilder.setPointerSizes(IntIntMaps.immutable.of(0, pointerSize));
+            int pointerAlignment = (int) probeResult.getTypeInfo(void_p).getAlign();
+            tsBuilder.setPointerAlignments(IntIntMaps.immutable.of(0, pointerAlignment));
             tsBuilder.setMaxAlignment((int) probeResult.getTypeInfo(max_align_t).getAlign());
             // todo: function alignment probe
             tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(referenceType.type).getSize());
@@ -145,8 +150,8 @@ public class PlatformTypeSystemLoader {
             tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(type_id_type).getAlign());
             tsBuilder.setEndianness(probeResult.getByteOrder());
             // todo: compressed refs
-            tsBuilder.setReferenceSize(tsBuilder.getPointerSize());
-            tsBuilder.setReferenceAlignment(tsBuilder.getPointerAlignment());
+            tsBuilder.setReferenceSize(pointerSize);
+            tsBuilder.setReferenceAlignment(pointerAlignment);
 
             return tsBuilder.build();
         }
@@ -200,15 +205,42 @@ public class PlatformTypeSystemLoader {
         tsBuilder.setFloat64Size(float64_t.get("size").asInt());
         tsBuilder.setFloat64Alignment(float64_t.get("align").asInt());
 
+        ImmutableIntIntMap pointerSizes = IntIntMaps.immutable.of(0, 8);
+        ImmutableIntIntMap pointerAlignments = IntIntMaps.immutable.of(0, 8);
+
         JsonNode pointer_t = platformTypeInfo.get("pointer");
-        tsBuilder.setPointerSize(pointer_t.get("size").asInt());
-        tsBuilder.setPointerAlignment(pointer_t.get("align").asInt());
+        if (pointer_t.isArray()) {
+            ArrayNode array = (ArrayNode) pointer_t;
+            for (JsonNode node : array) {
+                int addrSpace = node.get("address-space").asInt(0);
+                pointerSizes = pointerSizes.newWithKeyValue(addrSpace, node.get("size").asInt());
+                pointerAlignments = pointerAlignments.newWithKeyValue(addrSpace, node.get("align").asInt());
+            }
+        } else {
+            pointerSizes = pointerSizes.newWithKeyValue(0, pointer_t.get("size").asInt());
+            pointerAlignments = pointerAlignments.newWithKeyValue(0, pointer_t.get("align").asInt());
+        }
+
+
+        tsBuilder.setPointerSizes(pointerSizes);
+        tsBuilder.setPointerAlignments(pointerAlignments);
 
         tsBuilder.setMaxAlignment(platformTypeInfo.get("max-alignment").asInt());
 
-        JsonNode reference_t = platformTypeInfo.get(referenceType.jsonField);
-        tsBuilder.setReferenceSize(reference_t.get("size").asInt());
-        tsBuilder.setReferenceAlignment(reference_t.get("align").asInt());
+        switch (referenceType) {
+            case POINTER -> {
+                tsBuilder.setReferenceSize(pointerSizes.getOrThrow(0));
+                tsBuilder.setReferenceAlignment(pointerAlignments.getOrThrow(0));
+            }
+            case INT32 -> {
+                tsBuilder.setReferenceSize(tsBuilder.getInt32Size());
+                tsBuilder.setReferenceAlignment(tsBuilder.getInt32Alignment());
+            }
+            case INT64 -> {
+                tsBuilder.setReferenceSize(tsBuilder.getInt64Size());
+                tsBuilder.setReferenceAlignment(tsBuilder.getInt64Alignment());
+            }
+        }
 
         JsonNode type_id_t = smallTypeIds? int16_t : int32_t;
         tsBuilder.setTypeIdSize(type_id_t.get("size").asInt());
@@ -216,8 +248,8 @@ public class PlatformTypeSystemLoader {
 
         tsBuilder.setEndianness(endianness(platformTypeInfo.get("endian").asText()));
 
-        tsBuilder.setReferenceSize(tsBuilder.getPointerSize());
-        tsBuilder.setReferenceAlignment(tsBuilder.getPointerAlignment());
+        tsBuilder.setReferenceSize(pointerSizes.getOrThrow(0));
+        tsBuilder.setReferenceAlignment(pointerAlignments.getOrThrow(0));
 
         return tsBuilder.build();
     }

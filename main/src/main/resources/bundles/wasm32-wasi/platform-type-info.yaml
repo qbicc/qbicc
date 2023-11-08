@@ -4,8 +4,36 @@ platform-type-info:
     signed-char: true
     max-alignment: 8
     pointer:
+        # global data and variables (shared)
+      - address-space: 0
         size: 4
         align: 4
+
+        # heap area (shared)
+      - address-space: 1
+        size: 4
+        align: 4
+
+        # thread-local area (non-shared)
+      - address-space: 128
+        size: 4
+        align: 4
+
+        # function/method pointer pseudo-space (function ID number, also as index into function table)
+      - address-space: 256
+        size: 4
+        align: 4
+
+        # memory pseudo-space (actually a memory index, limit 255 for sanity's sake)
+      - address-space: 257
+        size: 1
+        align: 1
+
+        # data segment pseudo-space (actually a segment index, limit 255 for sanity's sake)
+      - address-space: 258
+        size: 1
+        align: 1
+
     boolean:
         size: 1
         align: 1

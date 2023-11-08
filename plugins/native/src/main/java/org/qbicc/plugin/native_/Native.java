@@ -42,6 +42,7 @@ final class Native {
 
     static final String ANN_SAFEPOINT = className(SafePoint.class);
 
+    static final String ADDR_SPACE_INT_NAME = intName(addrSpace.class);
     static final String ARRAY_SIZE_INT_NAME = intName(array_size.class);
     static final String RESTRICT_INT_NAME = intName(restrict.class);
     static final String OBJECT_INT_NAME = intName(object.class);

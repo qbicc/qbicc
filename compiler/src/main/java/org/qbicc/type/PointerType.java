@@ -10,16 +10,18 @@ public final class PointerType extends NullableType {
     private final PointerType asRestrict;
     private final PointerType withConstPointee;
     private final int size;
+    private final int addressSpace;
     private final PointerType asWide;
 
-    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, int size) {
-        super(typeSystem, pointeeType.hashCode() * 19 + Boolean.hashCode(restrict));
+    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, int size, int addressSpace) {
+        super(typeSystem, ((pointeeType.hashCode() * 19 + Boolean.hashCode(restrict)) * 19 + size) * 19 + addressSpace);
         this.pointeeType = pointeeType;
         this.restrict = restrict;
         this.constPointee = constPointee;
-        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, size);
-        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, size);
-        this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, 8);
+        this.addressSpace = addressSpace;
+        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, size, addressSpace);
+        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, size, addressSpace);
+        this.asWide = size == 8 ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, 8, addressSpace);
         this.size = size;
     }
 
@@ -77,6 +79,10 @@ public final class PointerType extends NullableType {
         return size;
     }
 
+    public int addressSpace() {
+        return addressSpace;
+    }
+
     public int getMinBits() {
         return (int) (getSize()) * typeSystem.getByteBits();
     }
@@ -110,7 +116,7 @@ public final class PointerType extends NullableType {
     }
 
     public boolean equals(final PointerType other) {
-        return other == this || super.equals(other) && restrict == other.restrict && pointeeType.equals(other.pointeeType);
+        return other == this || super.equals(other) && restrict == other.restrict && pointeeType.equals(other.pointeeType) && size == other.size && addressSpace == other.addressSpace;
     }
 
     @Override
@@ -143,7 +149,11 @@ public final class PointerType extends NullableType {
         if (size == 8 && typeSystem.getPointerSize() < 8) {
             b.append("wide ");
         }
-        b.append("pointer to ");
+        b.append("pointer ");
+        if (addressSpace != 0) {
+            b.append("addrspace(").append(addressSpace).append(')');
+        }
+        b.append(" to ");
         if (constPointee) {
             b.append("const ");
         }
@@ -152,7 +162,12 @@ public final class PointerType extends NullableType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return pointeeType.toFriendlyString(b).append('*');
+        pointeeType.toFriendlyString(b);
+        if (addressSpace != 0) {
+            b.append(' ').append("addrspace(").append(addressSpace).append(')');
+        }
+        b.append('*');
+        return b;
     }
 
     public PointerType getConstraintType() {

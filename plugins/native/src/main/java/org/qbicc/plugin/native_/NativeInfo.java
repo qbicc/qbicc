@@ -1,6 +1,9 @@
 package org.qbicc.plugin.native_;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -13,10 +16,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.machine.tool.CToolChain;
@@ -134,8 +141,11 @@ final class NativeInfo {
             synchronized (ref) {
                 resolved = ref.get();
                 if (resolved == null) {
+                    ValueType yamlType;
                     if (definedType.getSuperClassInternalName().equals(Native.PTR_INT_NAME)) {
                         ref.set(resolved = decodePointerType(definedType));
+                    } else if ((yamlType = probeYaml(definedType)) != null) {
+                        ref.set(resolved = yamlType);
                     } else {
                         CProbe.Builder pb = CProbe.builder();
                         String simpleName = null;
@@ -406,6 +416,121 @@ final class NativeInfo {
             }
         }
         return resolved;
+    }
+
+    private static final AttachmentKey<Map<String, YamlProbeInfo>> PROBE_INFO_CACHE_KEY = new AttachmentKey<>();
+
+    private Map<String, YamlProbeInfo> getProbeInfo() {
+        Map<String, YamlProbeInfo> map = ctxt.getAttachment(PROBE_INFO_CACHE_KEY);
+        if (map == null) {
+            Platform platform = ctxt.getPlatform();
+            String searchName = platform.cpu() + "-" + platform.os() + "-" + platform.abi();
+            String path = "/bundles/" + searchName + "/platform-abi-type-info.yaml";
+            InputStream is = getClass().getResourceAsStream(path);
+            if (is == null) {
+                searchName = platform.cpu() + "-" + platform.os();
+                path = "/bundles/" + searchName + "/platform-abi-type-info.yaml";
+                is = getClass().getResourceAsStream(path);
+            }
+            if (is != null) {
+                ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+                ObjectReader objectReader = mapper.readerForMapOf(YamlProbeInfo.class);
+                try (InputStream ignored = is) {
+                    try (InputStreamReader reader = new InputStreamReader(is)) {
+                        try (BufferedReader br = new BufferedReader(reader)) {
+                            map = objectReader.readValue(br);
+                        }
+                    }
+                } catch (IOException e) {
+                    map = Map.of();
+                }
+            } else {
+                map = Map.of();
+            }
+            Map<String, YamlProbeInfo> appearing = ctxt.putAttachmentIfAbsent(PROBE_INFO_CACHE_KEY, map);
+            if (appearing != null) {
+                map = appearing;
+            }
+        }
+        return map;
+    }
+
+    private ValueType probeYaml(final DefinedTypeDefinition definedType) {
+        // compute host-side name
+        String name = null;
+        for (Annotation annotation : definedType.getInvisibleAnnotations()) {
+            if (annotation.getDescriptor().packageAndClassNameEquals(Native.NATIVE_PKG, Native.ANN_NAME)) {
+                name = ((StringAnnotationValue)annotation.getValue("value")).getString();
+            }
+        }
+        if (name == null) {
+            String internalName = definedType.getInternalName();
+            int idx = internalName.lastIndexOf('/');
+            name = idx == -1 ? internalName : internalName.substring(idx + 1);
+            idx = name.lastIndexOf('$');
+            if (idx != -1) {
+                name = name.substring(idx + 1);
+            }
+        }
+        if (name.startsWith("struct_")) {
+            name = name.substring(7);
+        } else if (name.startsWith("union_")) {
+            name = name.substring(6);
+        }
+        YamlProbeInfo info = getProbeInfo().get(name);
+        return info == null ? null : decodeYamlInfo(name, info);
+    }
+
+    private ValueType decodeYamlInfo(final String name, final YamlProbeInfo yamlInfo) {
+        final TypeSystem ts = ctxt.getTypeSystem();
+        return switch (yamlInfo.kind()) {
+            case incomplete -> ts.getIncompleteStructType(StructType.Tag.NONE, name);
+            case boolean_ -> ts.getBooleanType();
+            case struct -> ts.getStructType(switch (yamlInfo.tag()) {
+                    case none, union -> StructType.Tag.NONE;
+                    case struct -> StructType.Tag.STRUCT;
+                }, name, () -> yamlInfo.members().values().stream().map(m ->
+                ts.getProbedStructTypeMember(
+                    m.name(),
+                    decodeYamlInfo(m.type(), getProbeInfo().get(m.type())),
+                    m.offset()
+                )).toList()
+            );
+            case union -> ts.getUnionType(switch (yamlInfo.tag()) {
+                    case none, struct -> UnionType.Tag.NONE;
+                    case union -> UnionType.Tag.UNION;
+                }, name, () -> yamlInfo.members().values().stream().map(m ->
+                ts.getUnionTypeMember(
+                    m.name(),
+                    decodeYamlInfo(m.type(), getProbeInfo().get(m.type()))
+                )).toList()
+            );
+            case signed_integer -> switch (yamlInfo.size()) {
+                case 1 -> ts.getSignedInteger8Type();
+                case 2 -> ts.getSignedInteger16Type();
+                case 4 -> ts.getSignedInteger32Type();
+                case 8 -> ts.getSignedInteger64Type();
+                default -> throw new IllegalArgumentException();
+            };
+            case unsigned_integer -> switch (yamlInfo.size()) {
+                case 1 -> ts.getUnsignedInteger8Type();
+                case 2 -> ts.getUnsignedInteger16Type();
+                case 4 -> ts.getUnsignedInteger32Type();
+                case 8 -> ts.getUnsignedInteger64Type();
+                default -> throw new IllegalArgumentException();
+            };
+            case float_ -> switch (yamlInfo.size()) {
+                case 4 -> ts.getFloat32Type();
+                case 8 -> ts.getFloat64Type();
+                default -> throw new IllegalArgumentException();
+            };
+            case pointer -> switch (yamlInfo.size()) {
+                case 4 -> ts.getVoidType().getPointer();
+                case 8 -> ts.getPointerSize() == 8 ? ts.getVoidType().getPointer() : ts.getVoidType().getPointer().asWide();
+                default -> throw new IllegalArgumentException();
+            };
+            case void_ -> ts.getVoidType();
+        };
     }
 
     private void processEnclosingType(ClassContext classContext, CProbe.Builder builder, DefinedTypeDefinition definedType) {

@@ -1,0 +1,127 @@
+---
+# todo: use anchors & refs - see https://github.com/FasterXML/jackson-dataformats-text/issues/98
+
+void:
+    kind: void
+
+_Bool:
+    kind: boolean
+    size: 1
+    align: 1
+
+char:
+    kind: signed_integer
+    size: 1
+    align: 1
+"signed char":
+    kind: signed_integer
+    size: 1
+    align: 1
+"unsigned char":
+    kind: unsigned_integer
+    size: 1
+    align: 1
+short:
+    kind: signed_integer
+    size: 2
+    align: 2
+"unsigned short":
+    kind: signed_integer
+    size: 2
+    align: 2
+int:
+    kind: signed_integer
+    size: 4
+    align: 4
+"unsigned int":
+    kind: unsigned_integer
+    size: 4
+    align: 4
+long:
+    kind: signed_integer
+    size: 4
+    align: 4
+"unsigned long":
+    kind: unsigned_integer
+    size: 4
+    align: 4
+"long long":
+    kind: signed_integer
+    size: 8
+    align: 8
+"unsigned long long":
+    kind: unsigned_integer
+    size: 8
+    align: 8
+
+float:
+    kind: float
+    size: 4
+    align: 4
+_Float32:
+    kind: float
+    size: 4
+    align: 4
+double:
+    kind: float
+    size: 8
+    align: 8
+_Float64:
+    kind: float
+    size: 8
+    align: 8
+
+int8_t:
+    kind: signed_integer
+    size: 1
+    align: 1
+uint8_t:
+    kind: unsigned_integer
+    size: 1
+    align: 1
+int16_t:
+    kind: signed_integer
+    size: 2
+    align: 2
+uint16_t:
+    kind: unsigned_integer
+    size: 2
+    align: 2
+int32_t:
+    kind: signed_integer
+    size: 4
+    align: 4
+uint32_t:
+    kind: unsigned_integer
+    size: 4
+    align: 4
+int64_t:
+    kind: signed_integer
+    size: 8
+    align: 8
+uint64_t:
+    kind: unsigned_integer
+    size: 8
+    align: 8
+
+uintptr_t:
+    kind: unsigned_integer
+    size: 4
+    align: 4
+intptr_t:
+    kind: signed_integer
+    size: 4
+    align: 4
+size_t:
+    kind: unsigned_integer
+    size: 4
+    align: 4
+ssize_t:
+    kind: signed_integer
+    size: 4
+    align: 4
+
+max_align_t:
+    kind: unsigned_integer
+    size: 8
+    align: 8
