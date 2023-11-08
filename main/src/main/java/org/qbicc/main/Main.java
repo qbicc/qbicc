@@ -196,6 +196,8 @@ import picocli.CommandLine.ParseResult;
  * The main entry point, which can be constructed using a builder or directly invoked.
  */
 public class Main implements Callable<DiagnosticContext> {
+    private static final int LLVM_MIN_VERSION = 14;
+
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;
     private final Runtime.Version classLibVersion;
@@ -256,6 +258,7 @@ public class Main implements Callable<DiagnosticContext> {
         bootPaths.add(getCoreComponent("qbicc-runtime-llvm"));
         bootPaths.add(getCoreComponent("qbicc-runtime-main"));
         bootPaths.add(getCoreComponent("qbicc-runtime-unwind"));
+        bootPaths.add(getCoreComponent("qbicc-runtime-wasm"));
         bootPaths.add(ClassPathEntry.ofClassLibraries(builder.classLibVersion));
         bootPaths.addAll(builder.bootPathsAppend);
         this.bootPaths = bootPaths;
@@ -391,7 +394,7 @@ public class Main implements Callable<DiagnosticContext> {
                     Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
                     while (llvmTools.hasNext()) {
                         llvmToolChain = llvmTools.next();
-                        if (llvmToolChain.compareVersionTo("12") >= 0) {
+                        if (llvmToolChain.compareVersionTo(Integer.toString(LLVM_MIN_VERSION)) >= 0) {
                             break;
                         }
                         llvmToolChain = null;
