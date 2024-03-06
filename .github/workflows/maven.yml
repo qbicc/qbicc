@@ -14,23 +14,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm-version: ["15", "16", "17"]
+        llvm-version: ["16", "17", "18"]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     steps:
       - name: Install LLVM (Homebrew)
-        if: matrix.os == 'macos-latest' && ( matrix.llvm-version == '16' || matrix.llvm-version == '17' )
+        if: matrix.os == 'macos-latest'
         run: |
+            brew update
             brew install llvm@${{ matrix.llvm-version }}
             echo /opt/homebrew/opt/llvm@${{ matrix.llvm-version }}/bin >> $GITHUB_PATH
 
-      - name: Install LLVM (Non-homebrew)
-        if: matrix.os != 'macos-latest' || matrix.llvm-version == '15'
-        uses: KyleMayes/install-llvm-action@v2.0.2
-        with:
-          version: ${{ matrix.llvm-version }}
-          directory: ${{ runner.temp }}/llvm-install
+      - name: Install LLVM (Linux apt-get)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${{ matrix.llvm-version }} main"
+          sudo apt-get install -y llvm-${{ matrix.llvm-version }}
+          sudo dpkg -L llvm-${{ matrix.llvm-version }}
+          sudo ln -s /usr/bin/llc-${{ matrix.llvm-version }} /usr/bin/llc
+          sudo ln -s /usr/bin/opt-${{ matrix.llvm-version }} /usr/bin/opt
+          sudo ln -s /usr/bin/llvm-objcopy-${{ matrix.llvm-version }} /usr/bin/llvm-objcopy
 
       - name: Install `libgcc` (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -84,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.os }}-llvm${{ matrix.llvm-version }}
           path: |
             'test-reports.tgz'
             ./qbicc-*/core/*
