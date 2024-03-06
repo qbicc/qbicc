@@ -53,7 +53,7 @@ public abstract class AbstractCompilerTestCase {
         LlvmToolChain llvmToolChain = null;
         while (llvmTools.hasNext()) {
             llvmToolChain = llvmTools.next();
-            if (llvmToolChain.compareVersionTo("12") >= 0) {
+            if (llvmToolChain.compareVersionTo("16") >= 0) {
                 break;
             }
             llvmToolChain = null;
