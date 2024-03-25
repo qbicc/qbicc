@@ -36,7 +36,7 @@
         <version.org.jboss.logging.commons>1.0.0.Final</version.org.jboss.logging.commons>
         <version.org.jboss.logmanager>3.0.4.Final</version.org.jboss.logmanager>
         <version.org.jboss.slf4j.logmanager>2.0.1.Final</version.org.jboss.slf4j.logmanager>
-        <version.org.ow2.asm>9.6</version.org.ow2.asm>
+        <version.org.ow2.asm>9.7</version.org.ow2.asm>
         <version.org.yaml.snakeyaml>2.2</version.org.yaml.snakeyaml>
         <version.compiler.plugin>3.8.1</version.compiler.plugin>
 
