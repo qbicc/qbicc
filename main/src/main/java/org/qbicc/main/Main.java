@@ -3,6 +3,7 @@ package org.qbicc.main;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -227,6 +228,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Backend backend;
     private final LLVMConfiguration.Builder llvmConfigurationBuilder;
     private final int optLevel;
+    private final List<Consumer<Vm>> extraHooks;
 
     Main(Builder builder) {
         outputPath = builder.outputPath;
@@ -269,6 +271,7 @@ public class Main implements Callable<DiagnosticContext> {
         classPathResolver = builder.classPathResolver == null ? this::resolveClassPath : builder.classPathResolver;
         llvmConfigurationBuilder = builder.llvmConfigurationBuilder;
         classLibVersion = Runtime.Version.parse(builder.classLibVersion.split("\\.")[0]);
+        extraHooks = List.copyOf(builder.extraHooks);
     }
 
     public DiagnosticContext call() {
@@ -372,9 +375,10 @@ public class Main implements Callable<DiagnosticContext> {
                     CoreClasses.init(cc);
                     ExceptionOnThreadStrategy.initialize(cc);
                     if (llvm) UnwindExceptionStrategy.init(cc);
-                    return VmImpl.create(cc,
+                    VmImpl vm = VmImpl.create(cc,
                         new BasicHeaderManualInitializer(cc)
-                    ).setPropertyDefines(this.propertyDefines);
+                    );
+                    return vm.setPropertyDefines(this.propertyDefines);
                 });
                 ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
                 Iterator<DriverPlugin> iterator = loader.iterator();
@@ -495,6 +499,12 @@ public class Main implements Callable<DiagnosticContext> {
                         builder.addPreHook(Phase.ADD, new ElementReachableAdapter(new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig))));
                     }
                     builder.addPreHook(Phase.ADD, new ElementReachableAdapter(CallSiteTable::computeMethodType));
+                    builder.addPreHook(Phase.ADD, compilationContext -> {
+                        Vm vm = compilationContext.getVm();
+                        for (Consumer<Vm> extraHook : extraHooks) {
+                            extraHook.accept(vm);
+                        }
+                    });
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MultiNewArrayExpansionBasicBlockBuilder::new);
                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PatcherResolverBasicBlockBuilder::createIfNeeded);
@@ -1189,6 +1199,7 @@ public class Main implements Callable<DiagnosticContext> {
         private List<Path> librarySearchPaths = List.of();
         private List<URL> qbiccYamlFeatures = new ArrayList<>();
         private List<QbiccFeature> qbiccFeatures = new ArrayList<>();
+        private List<Consumer<Vm>> extraHooks = new ArrayList<>();
         private ClassPathResolver classPathResolver;
         private LLVMConfiguration.Builder llvmConfigurationBuilder;
 
@@ -1409,6 +1420,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setLlvmConfigurationBuilder(final LLVMConfiguration.Builder builder) {
             this.llvmConfigurationBuilder = Assert.checkNotNullParam("builder", builder);
+            return this;
+        }
+
+        public Builder addExtraHook(String internalName, Class<?> hookClass, MethodHandles.Lookup lookup) {
+            extraHooks.add(vm -> vm.registerHooks(vm.getAppClassLoader().loadClass(internalName), hookClass, lookup));
             return this;
         }
 
