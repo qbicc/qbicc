@@ -724,13 +724,19 @@ public final class VmImpl implements Vm {
                 throw new IllegalArgumentException("Invalid argument of " + parameterType + " on constructor of " + hookClass);
             }
         }
-        final Method[] methods = hookClass.getDeclaredMethods();
+        MethodHandle ctorHandle;
+        try {
+            ctorHandle = lookup.unreflectConstructor(ctor);
+        } catch (IllegalAccessException e) {
+            throw new IllegalArgumentException("Unable to access hook class constructor", e);
+        }
         final Object instance;
         try {
-            instance = ctor.newInstance(ctorArgs.toArray());
-        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+            instance = ctorHandle.invokeWithArguments(ctorArgs);
+        } catch (Throwable e) {
             throw new IllegalArgumentException("Unable to instantiate hook object", e);
         }
+        final Method[] methods = hookClass.getDeclaredMethods();
         for (Method method : methods) {
             final Hook hook = method.getAnnotation(Hook.class);
             if (hook != null) {
