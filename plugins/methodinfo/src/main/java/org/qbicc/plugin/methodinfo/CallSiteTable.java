@@ -727,11 +727,12 @@ public final class CallSiteTable {
      * A base entry in the instruction table.
      *
      * @param fnAddress the call site function address
+     * @param index the function index in the program module
      * @param offset the offset into the function of the call site
      * @param sci the source code info for this entry (may be shared)
      * @param lvi the live-value information for this entry (may be shared)
      */
-    public record CallSiteEntry(Function fnAddress, long offset, SourceCodeEntry sci, LiveValueInfo lvi) {}
+    public record CallSiteEntry(Function fnAddress, int index, long offset, SourceCodeEntry sci, LiveValueInfo lvi) {}
 
     /**
      * The source code information for a single stack entry.

@@ -165,7 +165,7 @@ public final class LLVMStackMapCollector {
                                 // todo: Replace the `address` argument with a Literal which represents the relocation with offset;
                                 // the address is actually a relocation... but we can cheat and just grab the function itself by index
                                 Function functionAddress = ctxt.getOrAddProgramModule(typeDefinition).getFunction((int) fnIndex);
-                                fnCallSites.add(new CallSiteTable.CallSiteEntry(functionAddress, offset, getSourceCodeEntry(node), lvi));
+                                fnCallSites.add(new CallSiteTable.CallSiteEntry(functionAddress, (int) fnIndex, offset, getSourceCodeEntry(node), lvi));
                             }
 
                             public void endFunction(long fnIndex) {
@@ -173,7 +173,7 @@ public final class LLVMStackMapCollector {
                                     // don't emit anything
                                     return;
                                 }
-                                fnCallSites.sort(Comparator.comparingLong(CallSiteTable.CallSiteEntry::offset));
+                                fnCallSites.sort(Comparator.comparingInt(CallSiteTable.CallSiteEntry::index).thenComparingLong(CallSiteTable.CallSiteEntry::offset));
                                 callSites.addAll(fnCallSites);
                                 fnCallSites.clear();
                             }
