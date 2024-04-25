@@ -4,7 +4,9 @@ import static io.smallrye.common.constraint.Assert.unreachableCode;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterAll;
@@ -51,15 +53,18 @@ public abstract class AbstractCompilerTestCase {
         builder.setToolChain(toolChains.next());
         Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(platform, t -> true, AbstractCompilerTestCase.class.getClassLoader()).iterator();
         LlvmToolChain llvmToolChain = null;
+        List<String> tried = new ArrayList<>();
         while (llvmTools.hasNext()) {
             llvmToolChain = llvmTools.next();
-            if (llvmToolChain.compareVersionTo("12") >= 0) {
+            if (llvmToolChain.compareVersionTo("16") >= 0) {
+                // found it
                 break;
             }
+            tried.add(llvmToolChain.getVersion());
             llvmToolChain = null;
         }
         if (llvmToolChain == null) {
-            fail("No LLVM tool chain found");
+            fail("No LLVM tool chain found (found versions: " + tried + ")");
             throw unreachableCode();
         } else {
             builder.setLlvmToolChain(llvmToolChain);

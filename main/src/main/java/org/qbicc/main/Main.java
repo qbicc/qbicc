@@ -197,7 +197,7 @@ import picocli.CommandLine.ParseResult;
  * The main entry point, which can be constructed using a builder or directly invoked.
  */
 public class Main implements Callable<DiagnosticContext> {
-    private static final int LLVM_MIN_VERSION = 14;
+    private static final int LLVM_MIN_VERSION = 16;
 
     private final List<ClassPathEntry> bootPaths;
     private final List<ClassPathEntry> appPaths;

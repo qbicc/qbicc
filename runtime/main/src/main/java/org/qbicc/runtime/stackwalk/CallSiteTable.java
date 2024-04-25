@@ -188,8 +188,8 @@ public final class CallSiteTable {
                 return addr_of(call_site_tbl[mid]);
             }
         }
-        // no entry
-        return null;
+        // return the closest entry
+        return addr_of(call_site_tbl[low]);
     }
 
     // struct_call_site -> *
