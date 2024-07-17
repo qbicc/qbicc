@@ -52,7 +52,7 @@
         <version.plexus.sec-dispatcher>1.4</version.plexus.sec-dispatcher>
         <version.plexus.cipher>1.7</version.plexus.cipher>
 
-        <version.commons.codec>1.17.0</version.commons.codec>
+        <version.commons.codec>1.17.1</version.commons.codec>
         <version.commons.lang3>3.14.0</version.commons.lang3>
         <version.commons.io>2.16.1</version.commons.io>
         <version.eclipse.sisu>0.3.5</version.eclipse.sisu>
