@@ -557,6 +557,7 @@ public final class Reflection {
         for (TypeAnnotationList tl : paramAnnotations) {
             if (tl != TypeAnnotationList.empty()) {
                 nonEmpty = true;
+                break;
             }
         }
         if (!nonEmpty) {

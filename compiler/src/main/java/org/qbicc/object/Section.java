@@ -64,6 +64,7 @@ public final class Section implements Comparable<Section> {
         for (Attribute attribute : attributes) {
             if (attribute == Flag.DATA_ONLY) {
                 dataOnly = true;
+                break;
             }
         }
         if (section.index == index && section.name.equals(name) && section.segment.equals(segment) && section.dataOnly == dataOnly) {
