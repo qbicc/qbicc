@@ -45,7 +45,6 @@ public final class MachOObjectFile implements ObjectFile {
         // load commands
         commands = new EnumMap<>(MachO.LoadCommand.class);
         long offs = magic == MachO.MH_MAGIC_32 ? 28 : 32;
-        List<Segment> segments = new ArrayList<>();
         for (int i = 0; i < header.nCmds; i ++) {
             final LoadCommand cmd = new LoadCommand(buffer, offs);
             commands.computeIfAbsent(cmd.command, c -> new ArrayList<>()).add(cmd);
@@ -53,7 +52,6 @@ public final class MachOObjectFile implements ObjectFile {
                 symTabs.add(new SymTab(buffer, cmd));
             } else if (cmd.command == MachO.LoadCommand.LC_SEGMENT) {
                 final Segment segment = new Segment(buffer, offs + 8, false);
-                segments.add(segment);
                 final Map<String, Section> subMap = segmentsAndSections.computeIfAbsent(segment.name, n -> new HashMap<>());
                 long subOffs = offs + 56;
                 for (int j = 0; j < segment.numSections; j ++) {
@@ -64,7 +62,6 @@ public final class MachOObjectFile implements ObjectFile {
                 }
             } else if (cmd.command == MachO.LoadCommand.LC_SEGMENT_64) {
                 final Segment segment = new Segment(buffer, offs + 8, true);
-                segments.add(segment);
                 final Map<String, Section> subMap = segmentsAndSections.computeIfAbsent(segment.name, n -> new HashMap<>());
                 long subOffs = offs + 72;
                 for (int j = 0; j < segment.numSections; j ++) {
