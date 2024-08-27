@@ -43,7 +43,7 @@
         <!-- Aether things -->
         <version.maven>3.9.8</version.maven>
         <version.maven.filtering>3.3.2</version.maven.filtering>
-        <version.maven.plugin-annotations>3.13.1</version.maven.plugin-annotations>
+        <version.maven.plugin-annotations>3.14.0</version.maven.plugin-annotations>
         <version.maven.project>2.2.1</version.maven.project>
         <version.maven.resolver>1.9.20</version.maven.resolver>
         <version.maven.wagon>3.5.3</version.maven.wagon>
