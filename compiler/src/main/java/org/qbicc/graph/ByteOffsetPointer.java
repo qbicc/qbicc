@@ -96,7 +96,7 @@ public final class ByteOffsetPointer extends AbstractValue {
     }
 
     public boolean equals(final ByteOffsetPointer other) {
-        return this == other || other != null && base.equals(other.base) && offset.equals(other.offset) && outputType.equals(other.offset);
+        return this == other || other != null && base.equals(other.base) && offset.equals(other.offset) && outputType.equals(other.outputType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
