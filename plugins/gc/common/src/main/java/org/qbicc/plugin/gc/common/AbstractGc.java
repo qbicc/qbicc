@@ -106,7 +106,7 @@ public abstract class AbstractGc {
 
     public static AbstractGc install(CompilationContext ctxt, String name) {
         AbstractGc gc;
-        ServiceLoader<GcFactory> gcLoader = ServiceLoader.load(GcFactory.class);
+        ServiceLoader<GcFactory> gcLoader = ServiceLoader.load(GcFactory.class, AbstractGc.class.getClassLoader());
         Iterator<GcFactory> it = gcLoader.iterator();
         for (;;) try {
             if (! it.hasNext()) {

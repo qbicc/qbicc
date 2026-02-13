@@ -50,7 +50,7 @@ jobs:
       - name: Install OpenJDK
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'temurin'
 
       - name: Clone qbicc
