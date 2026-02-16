@@ -29,7 +29,7 @@
         <version.info.picocli>4.7.7</version.info.picocli>
         <version.io.smallrye.beanbag>1.6.1</version.io.smallrye.beanbag>
         <version.io.smallrye.common>2.16.0</version.io.smallrye.common>
-        <version.junit.jupiter>6.0.2</version.junit.jupiter>
+        <version.junit.jupiter>6.0.3</version.junit.jupiter>
         <version.org.eclipse.collections>13.0.0</version.org.eclipse.collections>
         <version.org.jboss.jandex>2.4.5.Final</version.org.jboss.jandex>
         <version.org.jboss.logging>3.6.2.Final</version.org.jboss.logging>
