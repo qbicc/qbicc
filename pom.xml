@@ -29,9 +29,9 @@
         <version.info.picocli>4.7.7</version.info.picocli>
         <version.io.smallrye.beanbag>1.6.1</version.io.smallrye.beanbag>
         <version.io.smallrye.common>2.18.1</version.io.smallrye.common>
+        <version.io.smallrye.jandex>3.5.3</version.io.smallrye.jandex>
         <version.junit.jupiter>6.0.3</version.junit.jupiter>
         <version.org.eclipse.collections>13.0.0</version.org.eclipse.collections>
-        <version.org.jboss.jandex>2.4.5.Final</version.org.jboss.jandex>
         <version.org.jboss.logging>3.6.3.Final</version.org.jboss.logging>
         <version.org.jboss.logging.commons>2.0.0.Final</version.org.jboss.logging.commons>
         <version.org.jboss.logmanager>3.2.2.Final</version.org.jboss.logmanager>
@@ -571,9 +571,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jboss</groupId>
+                <groupId>io.smallrye.jandex</groupId>
                 <artifactId>jandex</artifactId>
-                <version>${version.org.jboss.jandex}</version>
+                <version>${version.io.smallrye.jandex}</version>
             </dependency>
 
             <dependency>
