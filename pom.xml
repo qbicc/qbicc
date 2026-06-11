@@ -28,7 +28,7 @@
         <version.com.fasterxml.jackson>2.22.0</version.com.fasterxml.jackson>
         <version.info.picocli>4.7.7</version.info.picocli>
         <version.io.smallrye.beanbag>1.6.1</version.io.smallrye.beanbag>
-        <version.io.smallrye.common>2.18.1</version.io.smallrye.common>
+        <version.io.smallrye.common>2.19.0</version.io.smallrye.common>
         <version.io.smallrye.jandex>3.5.3</version.io.smallrye.jandex>
         <version.junit.jupiter>6.1.0</version.junit.jupiter>
         <version.org.eclipse.collections>13.0.0</version.org.eclipse.collections>
