@@ -30,7 +30,7 @@
         <version.io.smallrye.beanbag>1.6.1</version.io.smallrye.beanbag>
         <version.io.smallrye.common>2.19.0</version.io.smallrye.common>
         <version.io.smallrye.jandex>3.5.3</version.io.smallrye.jandex>
-        <version.junit.jupiter>6.1.1</version.junit.jupiter>
+        <version.junit.jupiter>6.1.2</version.junit.jupiter>
         <version.org.eclipse.collections>13.0.0</version.org.eclipse.collections>
         <version.org.jboss.logging>3.6.3.Final</version.org.jboss.logging>
         <version.org.jboss.logging.commons>2.0.0.Final</version.org.jboss.logging.commons>
