@@ -921,7 +921,18 @@ final class LLVMNodeVisitor implements NodeVisitor<List<Value>, LLValue, Instruc
         final Value input = node.getInput();
         return switch (moduleVisitor.config.getReferenceStrategy()) {
             case POINTER -> null;
-            case POINTER_AS1 -> builder.addrspacecast(map(input.getType()), map(input), map(node.getType())).setLValue(map(node));
+            case POINTER_AS1 -> {
+                LLValue cast = builder.addrspacecast(map(input.getType()), map(input), map(node.getType())).asLocal();
+                // To prevent LLVM from hoisting the address-space cast (pointer conversion) across loop-based
+                // safepoint polls (which relocate the managed reference and leave unmanaged pointers stale),
+                // we pass the casted pointer through a volatile, no-op inline assembly block.
+                // The constraint "=r,0" ensures the output uses the same register as the input, preserving the value.
+                LLValue asmVal = asm("", "=r,0", Set.of(AsmFlag.SIDE_EFFECT));
+                LLValue fnType = function(map(node.getType()), List.of(map(node.getType())), false);
+                Call asmCall = builder.call(fnType, asmVal);
+                asmCall.arg(map(node.getType()), cast);
+                yield asmCall.setLValue(map(node));
+            }
         };
     }
 
