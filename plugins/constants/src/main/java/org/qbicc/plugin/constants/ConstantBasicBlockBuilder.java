@@ -71,6 +71,30 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return getDelegate().load(pointer, accessMode);
     }
 
+    /**
+     * Overrides deref to intercept constant loading for static final fields representing C constants.
+     *
+     * @param pointer the pointer value being dereferenced
+     * @return the resolved constant value or the dereferenced pointer
+     */
+    @Override
+    public Value deref(Value pointer) {
+        if (pointer instanceof StaticFieldLiteral sf) {
+            final StaticFieldElement fieldElement = sf.getVariableElement();
+            Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
+            if (constantValue != null) {
+                return constantValue;
+            }
+            if (fieldElement.isReallyFinal()) {
+                final Literal initialValue = fieldElement.getInitialValue();
+                if (initialValue != null) {
+                    return initialValue;
+                }
+            }
+        }
+        return getDelegate().deref(pointer);
+    }
+
     @Override
     public Value call(Value targetPtr, Value receiver, List<Value> arguments) {
         if (targetPtr.isFold()) try {
