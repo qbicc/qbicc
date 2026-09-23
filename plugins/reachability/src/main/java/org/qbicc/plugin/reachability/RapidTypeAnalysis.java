@@ -128,6 +128,7 @@ public final class RapidTypeAnalysis implements ReachabilityAnalysis {
             processReachableType(field.getEnclosingType().load(), null);
             info.addAccessedStaticField(field);
             heapAnalyzer.traceHeap(this, field, currentElement);
+            Facts.get(ctxt).discover(field, FieldReachabilityFacts.IS_READ);
         }
     }
 

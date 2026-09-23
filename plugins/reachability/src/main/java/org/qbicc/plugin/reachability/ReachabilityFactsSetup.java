@@ -13,6 +13,7 @@ import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InstanceFieldElement;
 import org.qbicc.type.definition.element.InstanceMethodElement;
+import org.qbicc.type.definition.element.InitializerElement;
 
 /**
  * Core facts utility class.
@@ -51,6 +52,17 @@ public final class ReachabilityFactsSetup {
 
     private static void setupReachability(final Facts facts) {
         facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), ReachabilityFactsSetup::markTypeAsOnHeap);
+        facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_INSTANTIATED), (type, f) -> requestInitialization(type, f));
+        facts.registerInlineAction(Condition.when(FieldReachabilityFacts.IS_READ), (field, f) -> {
+            if (field.isStatic()) {
+                requestInitialization(field.getEnclosingType().load(), f);
+            }
+        });
+        facts.registerInlineAction(Condition.when(FieldReachabilityFacts.IS_WRITTEN), (field, f) -> {
+            if (field.isStatic()) {
+                requestInitialization(field.getEnclosingType().load(), f);
+            }
+        });
         facts.registerInlineAction(Condition.when(TypeReachabilityFacts.IS_ON_HEAP), ReachabilityFactsSetup::markEachMethodAsInstantiated);
         facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyInvoked);
         facts.registerInlineAction(Condition.when(InstanceMethodReachabilityFacts.IS_PROVISIONALLY_DISPATCH_INVOKED), ReachabilityFactsSetup::markEnclosingTypeAsProvisionallyDispatched);
@@ -103,6 +115,47 @@ public final class ReachabilityFactsSetup {
             facts.discover(type, TypeReachabilityFacts.IS_INSTANTIATED, TypeReachabilityFacts.HAS_CLASS);
         } else {
             facts.discover(type, TypeReachabilityFacts.HAS_CLASS);
+        }
+        if (e.isStatic() && !(e instanceof InitializerElement)) {
+            requestInitialization(type, facts);
+        }
+    }
+
+    /**
+     * Request initialization for a given class/type and its superclasses and interface default initializers.
+     *
+     * @param ltd the type definition to initialize
+     * @param facts the facts context to discover initializers in
+     */
+    private static void requestInitialization(LoadedTypeDefinition ltd, Facts facts) {
+        if (ltd.hasSuperClass()) {
+            LoadedTypeDefinition superClass = ltd.getSuperClass();
+            if (superClass != null) {
+                requestInitialization(superClass, facts);
+            }
+        }
+        maybeInitializeInterfaces(ltd, facts);
+        InitializerElement initializer = ltd.getInitializer();
+        if (initializer != null) {
+            facts.discover(initializer, InitializerReachabilityFacts.NEEDS_INITIALIZATION);
+        }
+    }
+
+    /**
+     * Recursively initialize interfaces that declare default methods.
+     *
+     * @param ltd the type definition whose interfaces are inspected
+     * @param facts the facts context
+     */
+    private static void maybeInitializeInterfaces(LoadedTypeDefinition ltd, Facts facts) {
+        int cnt = ltd.getInterfaceCount();
+        for (int i = 0; i < cnt; i ++) {
+            LoadedTypeDefinition interfaceLtd = ltd.getInterface(i);
+            if (interfaceLtd.declaresDefaultMethods()) {
+                requestInitialization(interfaceLtd, facts);
+            } else {
+                maybeInitializeInterfaces(interfaceLtd, facts);
+            }
         }
     }
 
