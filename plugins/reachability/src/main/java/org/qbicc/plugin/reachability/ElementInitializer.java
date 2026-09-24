@@ -1,27 +1,24 @@
-package org.qbicc.driver;
-
-import java.util.function.Consumer;
+package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.facts.Condition;
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
-import org.qbicc.interpreter.VmThread;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 
 /**
  *
  */
-public class ElementInitializer implements Consumer<ExecutableElement> {
-    public ElementInitializer() {
-    }
+public class ElementInitializer {
+    private ElementInitializer() {}
 
-    @Override
-    public void accept(ExecutableElement element) {
-        if (element instanceof InitializerElement && element.hasNoModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
+    private static void doInit(InitializerElement element) {
+        if (element.hasNoModifiersOf(ClassFile.I_ACC_RUN_TIME)) {
             if (element.hasMethodBody()) {
                 Vm vm = Vm.requireCurrent();
                 VmClass vmClass = element.getEnclosingType().load().getVmClass();
@@ -52,5 +49,11 @@ public class ElementInitializer implements Consumer<ExecutableElement> {
                 }
             }
         }
+    }
+
+    public static void register(final CompilationContext ctxt) {
+        Facts facts = Facts.get(ctxt);
+        facts.registerInlineAction(Condition.when(InitializerReachabilityFacts.NEEDS_INITIALIZATION), (init, f) -> f.discover(init, ExecutableReachabilityFacts.NEEDS_COMPILATION));
+        facts.registerAction(Condition.whenAll(InitializerReachabilityFacts.NEEDS_INITIALIZATION, ExecutableReachabilityFacts.IS_COMPILED), ElementInitializer::doInit);
     }
 }

@@ -142,6 +142,10 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                 return lf.undefinedLiteralOfType(fieldElement.getType());
             }
             CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+            if (!constantInfo.isDefined()) {
+                // If the constant is not defined, return an undefined literal so that CNative.defined() works properly.
+                return lf.undefinedLiteralOfType(fieldElement.getType());
+            }
             // compute the type and raw value
             return constantInfo.getValueAsLiteralOfType(ctxt.getTypeSystem(), lf, fieldElement.getType());
         });

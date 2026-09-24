@@ -8,9 +8,17 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public enum ExecutableReachabilityFacts implements Fact<ExecutableElement> {
     /**
-     * This element is definitely directly invoked.
+     * This element is definitely directly or indirectly invoked.
      */
     IS_INVOKED,
+    /**
+     * This element must be compiled.
+     */
+    NEEDS_COMPILATION,
+    /**
+     * This element has been compiled.
+     */
+    IS_COMPILED,
     ;
 
     @Override

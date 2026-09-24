@@ -461,8 +461,8 @@ public class BuildtimeHeap {
             // Could be part of a cyclic object graph; must record the symbol for this object before we serialize its fields
             LoadedTypeDefinition concreteType = ot.getDefinition().load();
             LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
-            if (concreteType.getTypeId() == -1) {
-                ctxt.warning("Serialized an instance of %s whose typeId is -1 (unreachable type)", concreteType.getDescriptor().toString());
+            if (!concreteType.isTypeIdValid()) {
+                ctxt.warning("Serialized an instance of %s whose typeId is not valid (unreachable type)", concreteType.getDescriptor().toString());
             }
             if (isRootClass(value)) {
                 int typeId = ((VmClass)value).getTypeDefinition().getTypeId();
@@ -495,7 +495,7 @@ public class BuildtimeHeap {
     }
 
     private boolean isRootClass(VmObject value) {
-        return value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().getTypeId() != -1;
+        return value instanceof VmClass vmClass && !(vmClass instanceof VmReferenceArrayClass) && vmClass.getTypeDefinition().isTypeIdValid();
     }
 
     private String nextLiteralName(ModuleSection into) {
