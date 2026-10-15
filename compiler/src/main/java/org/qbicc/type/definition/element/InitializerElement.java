@@ -8,6 +8,8 @@ import java.util.function.Function;
 
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
+import org.qbicc.facts.Facts;
+import org.qbicc.facts.core.ExecutableReachabilityFacts;
 import org.qbicc.pointer.InitializerPointer;
 import org.qbicc.runtime.SafePointBehavior;
 import org.qbicc.type.StaticMethodType;
@@ -85,6 +87,7 @@ public final class InitializerElement extends BasicElement implements Executable
                 return false;
             }
         }
+        Facts.get(getEnclosingType().getContext().getCompilationContext()).discover(this, ExecutableReachabilityFacts.IS_COMPILED);
         return true;
     }
 

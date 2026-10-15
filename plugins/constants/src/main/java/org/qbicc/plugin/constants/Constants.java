@@ -9,6 +9,7 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Value;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
 
 /**
  *
@@ -38,6 +39,13 @@ public final class Constants {
 
     public Value getConstantValue(FieldElement element) {
         Supplier<Value> supplier = constants.get(element);
+        if (supplier == null) {
+            InitializerElement initializer = element.getEnclosingType().load().getInitializer();
+            if (initializer != null) {
+                initializer.tryCreateMethodBody();
+                supplier = constants.get(element);
+            }
+        }
         return supplier == null ? null : supplier.get();
     }
 
